@@ -2,6 +2,9 @@
 
 from fastapi import APIRouter
 
+from app.modules.auth.router import router as auth_router
+
+
 # Main API router
 api_router = APIRouter()
 
@@ -24,4 +27,4 @@ async def health_check():
 #
 # You can also manually register module routers:
 # from app.modules.auth.router import router as auth_router
-# api_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+api_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])

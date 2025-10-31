@@ -41,7 +41,7 @@ services:
       - ENVIRONMENT=${ENVIRONMENT:-production}
       - PROJECT_NAME=${PROJECT_NAME:-ops-monitor-central}
       - CENTRAL_PORT=${CENTRAL_PORT:-8000}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-opsmonitor}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-opsmonitor}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-opsmonitor}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-opsmonitor}
       - SECRET_KEY=${SECRET_KEY}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - CORS_ORIGINS=${CORS_ORIGINS:-["http://localhost:3000"]}

@@ -1,4 +1,4 @@
-# central
+# Ops Monitor Central Dashboard
 
 A FastAPI application: central
 
@@ -125,7 +125,9 @@ Key environment variables (see `.env` file):
 - `PROJECT_NAME`: Application name
 - `DATABASE_URL`: Database connection string
 - `SECRET_KEY`: Secret key for security (change in production!)
-- `CORS_ORIGINS`: Allowed CORS origins
+- `CORS_ORIGINS`: Allowed CORS origins (JSON array format: `["http://localhost:3000","http://localhost:5173"]`)
+- `CORS_METHODS`: Allowed HTTP methods (JSON array format: `["GET","POST"]` or `["*"]` for all)
+- `CORS_HEADERS`: Allowed HTTP headers (JSON array format: `["*"]` for all)
 - `ENVIRONMENT`: Environment (development/production)
 
 ## License

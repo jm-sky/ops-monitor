@@ -15,7 +15,8 @@ from .exceptions import (
     UserAlreadyExistsError,
     UserNotFoundError,
 )
-from .models import User, user_store
+from .types import UserRepositoryInterface
+from .models import User
 from .schemas import LoginResponse, UserResponse
 
 logger = logging.getLogger(__name__)
@@ -23,9 +24,13 @@ logger = logging.getLogger(__name__)
 
 class AuthService:
     """Service class for authentication operations."""
+    user_repository: UserRepositoryInterface
 
-    @staticmethod
-    async def register_user(email: str, password: str, name: str) -> User:
+    def __init__(self, user_repository: UserRepositoryInterface):
+        self.user_repository = user_repository
+
+
+    async def register_user(self, email: str, password: str, name: str) -> User:
         """
         Register a new user.
 
@@ -41,13 +46,13 @@ class AuthService:
             UserAlreadyExistsError: If user with email already exists
         """
         try:
-            user = user_store.create_user(email, password, name)
+            user = await self.user_repository.create_user(email, password, name)
             return user
         except UserAlreadyExistsError:
             raise
 
-    @staticmethod
-    async def login_user(email: str, password: str) -> LoginResponse:
+
+    async def login_user(self, email: str, password: str) -> LoginResponse:
         """
         Authenticate user and generate tokens.
 
@@ -62,7 +67,7 @@ class AuthService:
             InvalidCredentialsError: If credentials are invalid
         """
         # Get user by email
-        user = user_store.get_user_by_email(email)
+        user = await self.user_repository.get_user_by_email(email)
         if not user:
             raise InvalidCredentialsError("Invalid email or password")
 
@@ -83,11 +88,11 @@ class AuthService:
             accessToken=access_token,
             refreshToken=refresh_token,
             tokenType="bearer",
-            expiresIn=settings.access_token_expires_minutes * 60  # Convert to seconds
+            expiresIn=settings.security.access_token_expires_minutes * 60  # Convert to seconds
         )
 
-    @staticmethod
-    async def refresh_access_token(refresh_token: str) -> dict[str, str]:
+
+    async def refresh_access_token(self, refresh_token: str) -> dict[str, str]:
         """
         Refresh access token using refresh token.
 
@@ -113,7 +118,7 @@ class AuthService:
                 raise InvalidTokenError("Invalid token payload")
 
             # Verify user exists
-            user = user_store.get_user_by_id(user_id)
+            user = await self.user_repository.get_user_by_id(user_id)
             if not user or not user.isActive:
                 raise InvalidTokenError("User not found or inactive")
 
@@ -125,7 +130,7 @@ class AuthService:
                 "accessToken": new_access_token,
                 "refreshToken": new_refresh_token,
                 "tokenType": "bearer",
-                "expiresIn": settings.access_token_expires_minutes * 60
+                "expiresIn": settings.security.access_token_expires_minutes * 60
             }
 
         except InvalidTokenError:
@@ -136,8 +141,8 @@ class AuthService:
             logger.error(f"Unexpected error during token refresh: {e}", exc_info=True)
             raise InvalidTokenError("Invalid or expired refresh token")
 
-    @staticmethod
-    async def request_password_reset(email: str) -> bool:
+
+    async def request_password_reset(self, email: str) -> bool:
         """
         Generate password reset token for user.
 
@@ -151,7 +156,7 @@ class AuthService:
             In production, this should send an email with the reset link.
             For development, the token can be logged or returned.
         """
-        token = user_store.generate_reset_token(email)
+        token = await self.user_repository.generate_reset_token(email)
         if token:
             # TODO: Send email with reset link containing the token
             # In development mode only, log the token (NEVER in production!)
@@ -167,8 +172,8 @@ class AuthService:
             return True
         return False
 
-    @staticmethod
-    async def reset_password(token: str, new_password: str) -> bool:
+
+    async def reset_password(self, token: str, new_password: str) -> bool:
         """
         Reset password using reset token.
 
@@ -182,17 +187,13 @@ class AuthService:
         Raises:
             InvalidTokenError: If token is invalid
         """
-        success = user_store.reset_password_with_token(token, new_password)
+        success = await self.user_repository.reset_password_with_token(token, new_password)
         if not success:
             raise InvalidTokenError("Invalid or expired reset token")
         return True
 
-    @staticmethod
-    async def change_password(
-        user_id: str,
-        current_password: str,
-        new_password: str
-    ) -> bool:
+
+    async def change_password(self, user_id: str, current_password: str, new_password: str) -> bool:
         """
         Change user password.
 
@@ -208,9 +209,9 @@ class AuthService:
             InvalidCredentialsError: If current password is incorrect
             UserNotFoundError: If user not found
         """
-        success = user_store.change_password(user_id, current_password, new_password)
+        success = await self.user_repository.change_password(user_id, current_password, new_password)
         if not success:
-            user = user_store.get_user_by_id(user_id)
+            user = await self.user_repository.get_user_by_id(user_id)
             if not user:
                 raise UserNotFoundError("User not found")
             raise InvalidCredentialsError("Current password is incorrect")

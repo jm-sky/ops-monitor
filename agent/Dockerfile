@@ -24,7 +24,7 @@ ENV PATH="/app/venv/bin:$PATH"
 # Install dependencies
 # Use cache mount to speed up subsequent builds
 RUN --mount=type=cache,target=/root/.cache/pip \
-    --mount=type=bind,source=requirements.txt,target=requirements.txt \
+    --mount=type=bind,source=agent/requirements.txt,target=requirements.txt \
     pip install --no-cache-dir -r requirements.txt
 
 # =========================================
@@ -59,11 +59,11 @@ COPY --from=builder /app/venv /app/venv
 ENV PATH="/app/venv/bin:$PATH"
 
 # Copy application code
-COPY --chown=appuser:appuser ./app ./app
-COPY --chown=appuser:appuser ./main.py ./main.py
+COPY --chown=appuser:appuser agent/app ./app
+COPY --chown=appuser:appuser agent/main.py ./main.py
 
-# Copy shared code if exists
-COPY --chown=appuser:appuser --from=builder /src/shared /app/shared 2>/dev/null || true
+# Copy shared code if exists (optional)
+# COPY --chown=appuser:appuser shared /app/shared
 
 # Switch to non-privileged user
 USER appuser

@@ -5,22 +5,33 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from .service import AuthService
+from .types import UserRepositoryInterface
 from .auth_utils import verify_token
 from .exceptions import ExpiredTokenError, InvalidTokenError, InactiveUserError
-from .models import User, user_store
+from .models import User
+from .repositories import get_user_repository
 
 # HTTP Bearer security scheme
 security = HTTPBearer()
 
 
+def get_auth_service(
+    user_repository: Annotated[UserRepositoryInterface, Depends(get_user_repository)]
+) -> AuthService:
+    return AuthService(user_repository)
+
+
 async def get_current_user(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)]
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+    user_repository: Annotated[UserRepositoryInterface, Depends(get_user_repository)]
 ) -> User:
     """
     Get current authenticated user from JWT token.
 
     Args:
         credentials: HTTP Bearer credentials
+        user_repository: User repository
 
     Returns:
         Authenticated user
@@ -51,7 +62,7 @@ async def get_current_user(
             )
 
         # Get user from store
-        user = user_store.get_user_by_id(user_id)
+        user = await user_repository.get_user_by_id(user_id)
         if user is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -86,3 +97,4 @@ async def get_current_user(
 
 # Type alias for dependency injection
 CurrentUser = Annotated[User, Depends(get_current_user)]
+AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
