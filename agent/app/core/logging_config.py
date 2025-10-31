@@ -19,7 +19,9 @@ def configure_logging() -> None:
     log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
 
     # Create formatter
-    formatter = logging.Formatter(fmt=settings.log_format, datefmt="%Y-%m-%d %H:%M:%S")
+    formatter = logging.Formatter(
+        fmt=settings.log_format, datefmt="%Y-%m-%d %H:%M:%S"
+    )
 
     # Configure root logger
     root_logger = logging.getLogger()

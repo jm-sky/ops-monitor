@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     )
 
     # Application Settings
-    app_name: str = Field(default="ops-monitor", description="Application name")
+    app_name: str = Field(default="central", description="Application name")
     environment: Environment = Field(
         default=Environment.DEVELOPMENT, description="Application environment"
     )
@@ -105,9 +105,7 @@ class Settings(BaseSettings):
         """Validate secret key in production."""
         if info.data.get("environment") == Environment.PRODUCTION:
             if len(v) < 32:
-                raise ValueError(
-                    "Secret key must be at least 32 characters in production"
-                )
+                raise ValueError("Secret key must be at least 32 characters in production")
             if v == "change-me-in-production-min-32-chars!":
                 raise ValueError("Must change default secret key in production")
         return v

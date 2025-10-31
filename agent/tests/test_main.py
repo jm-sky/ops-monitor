@@ -9,7 +9,7 @@ def test_read_root(client: TestClient):
     assert response.status_code == 200
     data = response.json()
     assert "message" in data
-    assert data["message"] == "Welcome to ops-monitor"
+    assert data["message"] == "Welcome to {project_name}"
 
 
 def test_health_check(client: TestClient):

@@ -30,14 +30,13 @@ AsyncSessionLocal = async_sessionmaker(
 
 class Base(DeclarativeBase):
     """Base class for SQLAlchemy models."""
-
     pass
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     Dependency for getting async database sessions.
-
+    
     Usage in FastAPI endpoints:
         async def my_endpoint(db: AsyncSession = Depends(get_db)):
             ...
@@ -62,3 +61,4 @@ async def init_db() -> None:
 async def close_db() -> None:
     """Close database connections."""
     await engine.dispose()
+
