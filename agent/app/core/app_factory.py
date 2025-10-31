@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.middleware import setup_middleware
+from app.api.router import api_router
 
 
 @asynccontextmanager
@@ -22,17 +23,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     import logging
 
     logger = logging.getLogger(__name__)
-    logger.info("Starting application", extra={"environment": settings.environment})
-
-    # Add your startup logic here
-    # Example: Initialize database connection, cache, etc.
+    logger.info("Starting application", extra={"environment": settings.app.environment})
 
     yield
 
     # Shutdown
     logger.info("Shutting down application")
-    # Add your shutdown logic here
-    # Example: Close database connections, etc.
 
 
 def create_app() -> FastAPI:
@@ -43,9 +39,9 @@ def create_app() -> FastAPI:
         Configured FastAPI application
     """
     app = FastAPI(
-        title=settings.app_name,
-        version=settings.version,
-        debug=settings.debug,
+        title=settings.app.name,
+        version=settings.app.version,
+        debug=settings.app.debug,
         lifespan=lifespan,
         docs_url="/api/docs" if settings.is_development() else None,
         redoc_url="/api/redoc" if settings.is_development() else None,
@@ -123,25 +119,16 @@ def register_routers(app: FastAPI) -> None:
         app: FastAPI application instance
     """
     # Import and register module routers here
-    # Example:
-    # from app.modules.auth.router import router as auth_router
-    # app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
-
-    # Health check endpoint
-    @app.get("/health", tags=["System"])
-    async def health_check() -> dict:
-        """Health check endpoint."""
-        return {
-            "status": "healthy",
-            "environment": settings.environment,
-            "version": settings.version,
-        }
+    try:
+        app.include_router(api_router, prefix="/api", tags=["API"])
+    except ImportError:
+        pass
 
     @app.get("/", tags=["System"])
     async def root() -> dict:
         """Root endpoint."""
         return {
-            "message": f"Welcome to {settings.app_name}",
-            "version": settings.version,
+            "message": f"Welcome to {settings.app.name}",
+            "version": settings.app.version,
             "docs": "/api/docs" if settings.is_development() else None,
         }
