@@ -8,9 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
-from app.core.database import init_db, close_db
 from app.core.middleware import setup_middleware
-from app.api.router import api_router
 
 
 @asynccontextmanager
@@ -29,6 +27,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Initialize database (optional - uncomment if you want auto-init)
     # In production, use Alembic migrations instead
     try:
+        from app.core.database import init_db
         await init_db()
         logger.info("Database initialized successfully")
     except Exception as e:
@@ -41,6 +40,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Close database connections
     try:
+        from app.core.database import close_db
         await close_db()
         logger.info("Database connections closed successfully")
     except Exception as e:
@@ -136,6 +136,7 @@ def register_routers(app: FastAPI) -> None:
     """
     # Import and register module routers here
     try:
+        from app.api.router import api_router
         app.include_router(api_router, prefix="/api", tags=["API"])
     except ImportError:
         pass

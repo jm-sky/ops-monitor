@@ -32,7 +32,7 @@ class AppSettings(BaseSettings):
     model_config = _base_config
 
     name: str = Field(
-        default="central",
+        default="Ops-Monitor",
         validation_alias="APP_NAME",
         description="Application name"
     )
@@ -146,31 +146,12 @@ class DatabaseSettings(BaseSettings):
     @field_validator("url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:
-        """Validate database URL format and ensure async drivers are used."""
+        """Validate database URL format."""
         if not v:
             raise ValueError("Database URL cannot be empty")
-
-        # Support both sqlite and postgresql with async drivers
-        if v.startswith("sqlite") and not v.startswith("sqlite+aiosqlite"):
-            raise ValueError(
-                "SQLite URLs must use the async driver: sqlite+aiosqlite://..."
-            )
-        elif v.startswith("postgresql://") or v.startswith("postgres://"):
-            raise ValueError(
-                "PostgreSQL URLs must use the async driver. "
-                "Use 'postgresql+asyncpg://' instead of 'postgresql://'"
-            )
-        elif v.startswith("postgresql+psycopg"):
-            raise ValueError(
-                "PostgreSQL URLs must use the async driver. "
-                "Use 'postgresql+asyncpg://' instead of 'postgresql+psycopg://'"
-            )
-        elif not (v.startswith("sqlite+aiosqlite") or v.startswith("postgresql+asyncpg")):
-            raise ValueError(
-                "Only async SQLite (sqlite+aiosqlite://) and "
-                "PostgreSQL (postgresql+asyncpg://) databases are supported"
-            )
-
+        # Support both sqlite and postgresql
+        if not (v.startswith("sqlite") or v.startswith("postgresql")):
+            raise ValueError("Only SQLite and PostgreSQL databases are supported")
         return v
 
 

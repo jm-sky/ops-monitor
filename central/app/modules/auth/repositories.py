@@ -1,7 +1,8 @@
 """Database repository implementation for user management.
 
 This module provides async PostgreSQL/SQLite repository using SQLAlchemy 2.0+.
-For development without database, use memory_stores.py instead.
+For quick development, use SQLite with DATABASE_URL="sqlite+aiosqlite:///./dev.db"
+or in-memory with DATABASE_URL="sqlite+aiosqlite:///:memory:"
 """
 
 import logging
@@ -20,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 
-from .types import UserRepositoryInterface
+from .types.repository import UserRepositoryInterface
 from .models import User
 from .db_models import UserDB
 from .auth_utils import (
@@ -277,5 +278,15 @@ def get_user_repository(db: AsyncSession = Depends(get_db)) -> UserRepositoryInt
             repo: UserRepository = Depends(get_user_repository)
         ):
             return await repo.get_all_users()
+
+    Configuration:
+        For development, use SQLite in your .env:
+            DATABASE_URL=sqlite+aiosqlite:///./dev.db
+
+        For in-memory database (data lost on restart):
+            DATABASE_URL=sqlite+aiosqlite:///:memory:
+
+        For production, use PostgreSQL:
+            DATABASE_URL=postgresql+asyncpg://user:pass@host/db
     """
     return UserRepository(db)

@@ -24,6 +24,9 @@ class UserDB(Base):
     This model represents the user table in the database and provides
     the structure for persistent user data storage.
 
+    Note: If both auth and users modules are loaded, the table will be
+    extended with additional fields from the users module (like 'role').
+
     Attributes:
         id: Unique identifier (ULID format, 26 chars)
         email: User email address (unique, indexed)
@@ -36,6 +39,7 @@ class UserDB(Base):
     """
 
     __tablename__ = "users"
+    __table_args__ = {'extend_existing': True}
 
     id: Mapped[str] = mapped_column(String(26), primary_key=True)  # ULID
     email: Mapped[str] = mapped_column(

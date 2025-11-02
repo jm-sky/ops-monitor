@@ -1,6 +1,6 @@
-# Ops Monitor Central Dashboard
+# Ops-Monitor
 
-A FastAPI application: central
+A FastAPI application: Ops-Monitor
 
 ## Setup
 
