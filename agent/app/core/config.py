@@ -32,7 +32,7 @@ class AppSettings(BaseSettings):
     model_config = _base_config
 
     name: str = Field(
-        default="agent",
+        default="Ops-Agent",
         validation_alias="APP_NAME",
         description="Application name"
     )

@@ -9,7 +9,6 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.middleware import setup_middleware
-from app.api.router import api_router
 
 
 @asynccontextmanager
@@ -120,6 +119,7 @@ def register_routers(app: FastAPI) -> None:
     """
     # Import and register module routers here
     try:
+        from app.api.router import api_router
         app.include_router(api_router, prefix="/api", tags=["API"])
     except ImportError:
         pass

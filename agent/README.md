@@ -1,6 +1,6 @@
-# agent
+# Ops-Agent
 
-A FastAPI application: agent
+A FastAPI application: Ops-Agent
 
 ## Setup
 
