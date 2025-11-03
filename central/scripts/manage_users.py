@@ -26,13 +26,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import argparse
+import asyncio
 import getpass
 
-from app.modules.auth.models import user_repository
+from app.modules.auth.repositories import UserRepository
+from app.core.database import AsyncSessionLocal
 from app.modules.auth.exceptions import UserAlreadyExistsError
 
 
-def create_user_command(args):
+async def create_user_command(args):
     """Create a new user."""
     email = args.email or input("Email: ").strip()
     name = args.name or input("Name: ").strip()
@@ -46,77 +48,86 @@ def create_user_command(args):
             print("❌ Passwords do not match!")
             return
 
-    try:
-        user = user_repository.create_user(email=email, password=password, full_name=name)
-        print(f"\n✅ User created successfully!")
+    async with AsyncSessionLocal() as db:
+        user_repository = UserRepository(db)
+        try:
+            user = await user_repository.create_user(email=email, password=password, full_name=name)
+            print(f"\n✅ User created successfully!")
+            print(f"   ID: {user.id}")
+            print(f"   Email: {user.email}")
+            print(f"   Name: {user.name}")
+        except UserAlreadyExistsError:
+            print(f"❌ User with email '{email}' already exists!")
+        except Exception as e:
+            print(f"❌ Error: {e}")
+
+
+async def list_users_command(args):
+    """List all users."""
+    async with AsyncSessionLocal() as db:
+        user_repository = UserRepository(db)
+        users = await user_repository.get_all_users()
+
+        if not users:
+            print("No users found.")
+            return
+
+        print(f"\n{'ID':<40} {'Email':<30} {'Name':<25} {'Active':<8} {'Created'}")
+        print("-" * 130)
+
+        for user in users:
+            active = "✓" if user.isActive else "✗"
+            created = user.createdAt.strftime("%Y-%m-%d %H:%M")
+            print(f"{user.id:<40} {user.email:<30} {user.name:<25} {active:<8} {created}")
+
+        print(f"\nTotal: {len(users)} user(s)")
+
+
+async def show_user_command(args):
+    """Show user details."""
+    async with AsyncSessionLocal() as db:
+        user_repository = UserRepository(db)
+        user = await user_repository.get_user_by_email(args.email)
+
+        if not user:
+            print(f"❌ User with email '{args.email}' not found!")
+            return
+
+        print("\n📋 User Details:")
         print(f"   ID: {user.id}")
         print(f"   Email: {user.email}")
         print(f"   Name: {user.name}")
-    except UserAlreadyExistsError:
-        print(f"❌ User with email '{email}' already exists!")
-    except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"   Active: {'Yes' if user.isActive else 'No'}")
+        print(f"   Created: {user.createdAt.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"   Has Reset Token: {'Yes' if user.resetToken else 'No'}")
 
 
-def list_users_command(args):
-    """List all users."""
-    users = user_repository.get_all_users()
-
-    if not users:
-        print("No users found.")
-        return
-
-    print(f"\n{'ID':<40} {'Email':<30} {'Name':<25} {'Active':<8} {'Created'}")
-    print("-" * 130)
-
-    for user in users:
-        active = "✓" if user.isActive else "✗"
-        created = user.createdAt.strftime("%Y-%m-%d %H:%M")
-        print(f"{user.id:<40} {user.email:<30} {user.name:<25} {active:<8} {created}")
-
-    print(f"\nTotal: {len(users)} user(s)")
-
-
-def show_user_command(args):
-    """Show user details."""
-    user = user_repository.get_user_by_email(args.email)
-
-    if not user:
-        print(f"❌ User with email '{args.email}' not found!")
-        return
-
-    print("\n📋 User Details:")
-    print(f"   ID: {user.id}")
-    print(f"   Email: {user.email}")
-    print(f"   Name: {user.name}")
-    print(f"   Active: {'Yes' if user.isActive else 'No'}")
-    print(f"   Created: {user.createdAt.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"   Has Reset Token: {'Yes' if user.resetToken else 'No'}")
-
-
-def change_password_command(args):
+async def change_password_command(args):
     """Change user password."""
-    user = user_repository.get_user_by_email(args.email)
+    async with AsyncSessionLocal() as db:
+        user_repository = UserRepository(db)
+        user = await user_repository.get_user_by_email(args.email)
 
-    if not user:
-        print(f"❌ User with email '{args.email}' not found!")
-        return
-
-    if args.password:
-        new_password = args.password
-    else:
-        new_password = getpass.getpass("New password: ")
-        confirm = getpass.getpass("Confirm new password: ")
-        if new_password != confirm:
-            print("❌ Passwords do not match!")
+        if not user:
+            print(f"❌ User with email '{args.email}' not found!")
             return
 
-    user.set_password(new_password)
-    user_repository.update_user(user)
-    print(f"✅ Password changed successfully for {user.email}")
+        if args.password:
+            new_password = args.password
+        else:
+            new_password = getpass.getpass("New password: ")
+            confirm = getpass.getpass("Confirm new password: ")
+            if new_password != confirm:
+                print("❌ Passwords do not match!")
+                return
+
+        user.set_password(new_password)
+        await user_repository.update_user(user)
+        print(f"✅ Password changed successfully for {user.email}")
 
 
-def main():
+async def async_main():
+    """Async main function to handle commands."""
     parser = argparse.ArgumentParser(
         description="User management CLI for ops-monitor",
         formatter_class=argparse.RawDescriptionHelpFormatter
@@ -157,9 +168,14 @@ def main():
 
     command_func = commands.get(args.command)
     if command_func:
-        command_func(args)
+        await command_func(args)
     else:
         parser.print_help()
+
+
+def main():
+    """Entry point that runs the async main function."""
+    asyncio.run(async_main())
 
 
 if __name__ == "__main__":

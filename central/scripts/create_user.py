@@ -10,6 +10,7 @@ For interactive mode (prompts for password):
 """
 
 import argparse
+import asyncio
 import getpass
 import sys
 from pathlib import Path
@@ -17,26 +18,29 @@ from pathlib import Path
 # Add parent directory to path to import app modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.modules.auth.models import user_repository
+from app.modules.auth.repositories import UserRepository
+from app.core.database import AsyncSessionLocal
 from app.modules.auth.exceptions import UserAlreadyExistsError
 
 
-def create_user(email: str, name: str, password: str) -> None:
+async def create_user(email: str, name: str, password: str) -> None:
     """Create a new user."""
-    try:
-        user = user_repository.create_user(email=email, password=password, full_name=name)
-        print(f"\n✅ User created successfully!")
-        print(f"   ID: {user.id}")
-        print(f"   Email: {user.email}")
-        print(f"   Name: {user.name}")
-        print(f"   Created: {user.createdAt}")
+    async with AsyncSessionLocal() as db:
+        user_repository = UserRepository(db)
+        try:
+            user = await user_repository.create_user(email=email, password=password, full_name=name)
+            print(f"\n✅ User created successfully!")
+            print(f"   ID: {user.id}")
+            print(f"   Email: {user.email}")
+            print(f"   Name: {user.name}")
+            print(f"   Created: {user.createdAt}")
 
-    except UserAlreadyExistsError:
-        print(f"\n❌ Error: User with email '{email}' already exists!")
-        sys.exit(1)
-    except Exception as e:
-        print(f"\n❌ Error creating user: {e}")
-        sys.exit(1)
+        except UserAlreadyExistsError:
+            print(f"\n❌ Error: User with email '{email}' already exists!")
+            sys.exit(1)
+        except Exception as e:
+            print(f"\n❌ Error creating user: {e}")
+            sys.exit(1)
 
 
 def validate_email(email: str) -> bool:
@@ -65,7 +69,8 @@ def validate_password(password: str) -> bool:
     return True
 
 
-def main():
+async def async_main():
+    """Async main function."""
     parser = argparse.ArgumentParser(
         description="Create a new user in ops-monitor",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -141,7 +146,12 @@ Examples:
     print(f"  Email: {args.email}")
     print(f"  Name: {args.name}")
 
-    create_user(email=args.email, name=args.name, password=password)
+    await create_user(email=args.email, name=args.name, password=password)
+
+
+def main():
+    """Entry point that runs the async main function."""
+    asyncio.run(async_main())
 
 
 if __name__ == "__main__":

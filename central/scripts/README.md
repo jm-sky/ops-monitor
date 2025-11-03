@@ -163,21 +163,23 @@ docker-compose exec central python scripts/create_user.py \
 
 ## Important Notes
 
-⚠️ **Security Warnings:**
+⚠️ **Database Configuration:**
 
-1. **In-Memory Storage**: Currently users are stored in-memory and will be lost on restart
-2. **Production Use**: Replace `UserStore` with a proper database (PostgreSQL) in production
+1. **Async Database**: The application uses async SQLAlchemy with PostgreSQL/SQLite support
+2. **Configuration**: Set `DATABASE_URL` in your `.env` file:
+   - Development (SQLite): `DATABASE_URL=sqlite+aiosqlite:///./dev.db`
+   - In-memory: `DATABASE_URL=sqlite+aiosqlite:///:memory:` (data lost on restart)
+   - Production (PostgreSQL): `DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/dbname`
 3. **Password in CLI**: Avoid passing passwords via command line arguments in production (use interactive mode)
 4. **Environment Variables**: Never store passwords in environment variables or config files
 
-## Migration to Database
+## Technical Details
 
-When you migrate to a database-backed user store, these scripts will continue to work with minimal changes. Just ensure your `UserStore` implementation maintains the same interface:
-
-- `create_user(email, password, full_name)`
-- `get_user_by_email(email)`
-- `get_all_users()`
-- `update_user(user)`
+The scripts use:
+- **Async/Await**: All database operations are asynchronous using `asyncio`
+- **SQLAlchemy 2.0+**: Modern async database operations
+- **AsyncSession**: Proper session management with context managers
+- **ULID/UUID**: Unique identifiers for users (ULID preferred if available)
 
 ## Troubleshooting
 
@@ -195,7 +197,7 @@ python scripts/create_user.py --help
 If you get "User already exists" error, either:
 1. Use a different email
 2. List existing users with `python scripts/manage_users.py list`
-3. Restart the application to clear in-memory storage (development only!)
+3. Delete the user from database (if using SQLite, you can delete the `dev.db` file for development)
 
 ### Permission Denied
 
@@ -203,6 +205,21 @@ Make sure scripts are executable:
 
 ```bash
 chmod +x scripts/*.py
+```
+
+## Running Scripts Before First Startup
+
+Before running the scripts, make sure the database is initialized:
+
+```bash
+# The database tables are automatically created when the application starts
+# Or you can initialize them manually:
+cd central/
+python -c "
+import asyncio
+from app.core.database import init_db
+asyncio.run(init_db())
+"
 ```
 
 ## Development User Seeding
@@ -215,7 +232,7 @@ ENVIRONMENT=development
 SEED_DEVELOPMENT_USER=true
 ```
 
-This will create a test user:
+This will create a test user on application startup:
 - Email: `test@example.com`
 - Password: `Test123!@#`
 
