@@ -126,42 +126,86 @@ Each feature is self-contained in `src/modules/`. Each module contains:
 
 ### Monitoring Data Schemas
 
-**Agent `/health` endpoint:**
+**App `/health` endpoint (self-reporting):**
 ```json
 {
-  "status": "ok" | "degraded" | "critical",
-  "uptime_seconds": 123456,
-  "timestamp": "2025-01-01T00:00:00Z"
+  "schema_version": 1,
+  "status": "ok|degraded|failed",
+  "version": "1.2.3",
+  "environment": "production",
+  "components": {
+    "database": {
+      "status": "failed",
+      "reason": "Connection timeout after 5s",
+      "since": "2026-04-11T09:45:00Z",
+      "details": { "host": "db.internal:5432", "adapter": "postgresql" }
+    },
+    "cache": { "status": "ok" }
+  },
+  "last_activity": "2026-04-11T10:00:00Z",
+  "errors": []
 }
 ```
+- `status` + `reason` + `since` required only when status != `ok`
+- `details` is a free dict, displayed as-is in the dashboard
 
-**Agent `/system` endpoint:**
+**Agent `/system` endpoint (psutil on monitored server):**
 ```json
 {
   "cpu_percent": 42.5,
   "memory": { "total_mb": 16384, "used_mb": 8192, "percent": 50.0 },
   "disk": { "total_gb": 500, "used_gb": 200, "percent": 40.0 },
   "load_avg": [0.5, 0.8, 1.2],
-  "timestamp": "2025-01-01T00:00:00Z"
+  "uptime_seconds": 123456,
+  "reboot_required": true,
+  "reboot_reason": "kernel update",
+  "reboot_detected_at": "2026-04-11T08:00:00Z",
+  "updates_available": 12,
+  "security_updates": 3,
+  "system_state": "outdated",
+  "timestamp": "2026-04-11T10:00:00Z"
 }
 ```
 
-**PostgreSQL snapshot table** (`site_snapshots`):
+**`sites` table (Postgres):**
+```json
+{
+  "name": "app-prod-1",
+  "health_url": "https://app1.internal/health",
+  "system_url": "https://app1.internal:9100/system",
+  "token": "<bearer-token>",
+  "polling": {
+    "health": 300,
+    "system": 300,
+    "updates": 43200,
+    "reboot": 1800
+  }
+}
 ```
-site_id, polled_at, status, cpu_percent, mem_percent, disk_percent, raw_json
-```
+
+### Statuses
+
+| Type | Values |
+|---|---|
+| App | `ok` / `degraded` / `failed` |
+| Reboot | `ok` / `reboot_required` |
+| Updates | `up_to_date` / `outdated` |
 
 ### Polling & Live Mode
 
-- Default polling interval: 300 seconds per site (configurable in DB)
-- Live mode: frontend sends heartbeat → backend reduces polling to ~30s for that site
+- Default interval: **300s** for all types (`health`, `system`, `updates`, `reboot`), configurable per site
+- Token per site sent as `Authorization: Bearer <token>` — apps may require it on `/health`
+- **Live mode**: frontend sends heartbeat → backend reduces polling globally (configurable, e.g. 30s)
+  - Ends after configurable inactivity timeout (e.g. 60s without heartbeat)
+  - Can be disabled in system settings
 - APScheduler manages the polling job queue
+- Sites config editable via dashboard without backend restart
 
 ### Alerting
 
-- MS Teams Adaptive Cards sent via webhook URL stored per site in DB
-- Threshold breach triggers alert (configurable per site): CPU > X%, mem > X%, status != "ok"
-- Cooldown period to avoid alert spam
+- **Channel**: MS Teams Incoming Webhook (Adaptive Cards)
+- **Triggers**: app status → `degraded` or `failed`; `reboot_required`; system `outdated`
+- **Deduplication**: no repeat alerts while status unchanged (no spam when app stays `failed`)
 
 ### State Management
 
