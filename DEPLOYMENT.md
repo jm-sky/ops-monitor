@@ -1,422 +1,259 @@
-# Deployment Guide
+# Deployment Setup Guide
 
-This document describes deployment strategies for ops-monitor monorepo containing two applications: **Central** (dashboard) and **Agent** (monitoring agent).
+This guide explains how to set up and deploy the Gear Stack application with support for both manual deployment (main user) and automated GitHub Actions deployment (`deploy` user).
 
 ## Overview
 
-- **Central**: Deployed on one central server, collects and displays metrics from all agents
-- **Agent**: Deployed on multiple VMs, collects system metrics and exposes them via API
+- **Project folder (git repository):** `/home/$USER/projects/gear-stack/`
+- **Deployment folder (Caddy serves from):** `/var/www/gear-stack/`
+- **Users with deploy access:**
+  - Main user (your username) - manual deployment
+  - `deploy` - GitHub Actions automated deployment
 
-## Deployment Options
+Both users should be members of the `docker`, `caddy`, and `deploy` groups.
 
-### Option 1: Sparse Checkout (Development/Testing)
+## Initial Setup
 
-Best for: Development, testing, quick deployments
+### 1. Configure Permissions and Groups
 
-This method uses Git's sparse checkout to clone only the necessary parts of the repository.
-
-#### Agent Deployment
-
-```bash
-# Clone repository with sparse checkout
-git clone --sparse --filter=blob:none <repository-url> ops-monitor
-cd ops-monitor
-
-# Checkout only agent and shared code
-git sparse-checkout set agent shared
-
-# Setup and run
-cd agent
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-
-# Configure
-cp .env.example .env
-# Edit .env with your configuration
-
-# Run
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-#### Central Deployment
+You need to configure permissions for both users. Run these commands as root or with sudo:
 
 ```bash
-# Clone repository with sparse checkout
-git clone --sparse --filter=blob:none <repository-url> ops-monitor
-cd ops-monitor
+# Configuration variables - REPLACE WITH YOUR USERNAME
+PROJECT_USER="your-username"
+PROJECT_DIR="/home/$PROJECT_USER/projects/gear-stack"
+DEPLOY_DIR="/var/www/gear-stack"
 
-# Checkout only central and shared code
-git sparse-checkout set central shared
+# Create deploy user if it doesn't exist
+sudo useradd -m -s /bin/bash deploy
 
-# Setup and run
-cd central
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+# Add both users to required groups
+sudo usermod -a -G docker,caddy,deploy $PROJECT_USER
+sudo usermod -a -G docker,caddy deploy
 
-# Configure
-cp .env.example .env
-# Edit .env with your configuration
+# Create deploy group and add both users
+sudo groupadd -f deploy
+sudo usermod -a -G deploy $PROJECT_USER
+sudo usermod -a -G deploy deploy
 
-# Run
-uvicorn main:app --host 0.0.0.0 --port 8000
+# Set project directory permissions
+sudo chown -R $PROJECT_USER:deploy "$PROJECT_DIR"
+sudo chmod -R g+rwX "$PROJECT_DIR"
+sudo chmod g+s "$PROJECT_DIR"
+
+# Set deployment directory permissions
+sudo mkdir -p "$DEPLOY_DIR"
+sudo chown -R caddy:deploy "$DEPLOY_DIR"
+sudo chmod -R 775 "$DEPLOY_DIR"
+sudo chmod g+s "$DEPLOY_DIR"
 ```
 
-#### Updates
+### 2. Configure Sudoers
+
+Create a sudoers file to allow passwordless deployment commands:
 
 ```bash
-cd ops-monitor
-git pull
-cd agent  # or central
-pip install -r requirements.txt
-# Restart the application
-```
+# Create sudoers file
+sudo tee /etc/sudoers.d/gear-stack-deploy > /dev/null <<'EOF'
+# Gear Stack Deployment Permissions
+# Replace YOUR_USERNAME with your actual username
 
-**Pros:**
-- Simple Git workflow
-- Easy updates with `git pull`
-- No additional infrastructure needed
-- Good for development and testing
+# Both users can manage files in /var/www/gear-stack
+YOUR_USERNAME ALL=(ALL) NOPASSWD: /bin/rm -rf /var/www/gear-stack/*, /bin/cp -r * /var/www/gear-stack/, /usr/bin/chown -R caddy\:deploy /var/www/gear-stack
+deploy ALL=(ALL) NOPASSWD: /bin/rm -rf /var/www/gear-stack/*, /bin/cp -r * /var/www/gear-stack/, /usr/bin/chown -R caddy\:deploy /var/www/gear-stack
 
-**Cons:**
-- Requires Git on production servers
-- Requires Python environment setup on each VM
-- Less isolated than containers
-- Manual dependency management
-
----
-
-### Option 2: Docker Images (Production) - RECOMMENDED
-
-Best for: Production deployments, scalability, consistency
-
-This method builds separate Docker images for each application from the monorepo.
-
-#### Prerequisites
-
-- Docker and Docker Compose installed on target VMs
-- Docker Registry access (GitHub Container Registry, Docker Hub, or private registry)
-
-#### Repository Structure
-
-```
-ops-monitor/
-├── agent/
-│   ├── Dockerfile
-│   ├── docker-compose.yml
-│   ├── .dockerignore
-│   └── ...
-├── central/
-│   ├── Dockerfile
-│   ├── docker-compose.yml
-│   ├── .dockerignore
-│   └── ...
-├── shared/
-└── .github/workflows/
-    ├── build-agent.yml
-    └── build-central.yml
-```
-
-#### Building Images
-
-**Locally:**
-
-```bash
-# From repository root
-
-# Build Agent image
-docker build -f agent/Dockerfile -t ops-monitor-agent:latest .
-
-# Build Central image
-docker build -f central/Dockerfile -t ops-monitor-central:latest .
-
-# Push to registry (if needed)
-docker tag ops-monitor-agent:latest ghcr.io/yourusername/ops-monitor-agent:latest
-docker push ghcr.io/yourusername/ops-monitor-agent:latest
-
-docker tag ops-monitor-central:latest ghcr.io/yourusername/ops-monitor-central:latest
-docker push ghcr.io/yourusername/ops-monitor-central:latest
-```
-
-**With CI/CD (GitHub Actions):**
-
-Images are automatically built and pushed to GitHub Container Registry on push to main branch.
-
-#### Agent Deployment
-
-On each VM where you want to run the agent:
-
-```bash
-# Create deployment directory
-mkdir -p ~/ops-monitor-agent
-cd ~/ops-monitor-agent
-
-# Download docker-compose.yml
-curl -O https://raw.githubusercontent.com/yourusername/ops-monitor/main/agent/docker-compose.yml
-
-# Create .env file
-cat > .env << EOF
-PROJECT_NAME=ops-monitor-agent
-ENVIRONMENT=production
-CENTRAL_URL=https://central.example.com
-AGENT_PORT=8000
-# Add other configuration
+# Both users can reload Caddy (if needed)
+YOUR_USERNAME ALL=(ALL) NOPASSWD: /usr/bin/systemctl reload caddy
+deploy ALL=(ALL) NOPASSWD: /usr/bin/systemctl reload caddy
 EOF
 
-# Pull and start
-docker-compose pull
-docker-compose up -d
-
-# Check logs
-docker-compose logs -f
+# Set correct permissions and validate
+sudo chmod 440 /etc/sudoers.d/gear-stack-deploy
+sudo visudo -c -f /etc/sudoers.d/gear-stack-deploy
 ```
 
-#### Central Deployment
+**Important:** Replace `YOUR_USERNAME` in the sudoers file with your actual username before saving. After running these commands, log out and log back in for group changes to take effect.
 
-On the central server:
+### 3. Set Up SSH Key for GitHub Actions
+
+The `deploy` user needs an SSH key for GitHub Actions to authenticate:
 
 ```bash
-# Create deployment directory
-mkdir -p ~/ops-monitor-central
-cd ~/ops-monitor-central
+# Switch to deploy user
+sudo su - deploy
 
-# Download docker-compose.yml
-curl -O https://raw.githubusercontent.com/yourusername/ops-monitor/main/central/docker-compose.yml
+# Generate SSH key (if not already exists)
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/id_ed25519
 
-# Create .env file
-cat > .env << EOF
-PROJECT_NAME=ops-monitor-central
-ENVIRONMENT=production
-DATABASE_URL=postgresql://user:pass@db:5432/opsmonitor
-SECRET_KEY=your-secret-key-here
-CENTRAL_PORT=8000
-# Add other configuration
-EOF
+# Display the private key (you'll add this to GitHub Secrets)
+cat ~/.ssh/id_ed25519
 
-# Pull and start
-docker-compose pull
-docker-compose up -d
+# Add the public key to authorized_keys
+cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
 
-# Check logs
-docker-compose logs -f
+# Exit deploy user
+exit
 ```
 
-#### Updates
+### 4. Configure GitHub Secrets
+
+Add the following secrets to your GitHub repository (Settings → Secrets and variables → Actions):
+
+- `DEPLOY_HOST` - Your server's IP address or hostname
+- `DEPLOY_SSH_KEY` - The **private key** from `/home/deploy/.ssh/id_ed25519`
+- `DEPLOY_PORT` - SSH port (optional, defaults to 22)
+
+To add the SSH key secret:
+1. Copy the entire contents of the private key file (including `-----BEGIN OPENSSH PRIVATE KEY-----` and `-----END OPENSSH PRIVATE KEY-----`)
+2. Paste it into the GitHub secret value field
+
+## Manual Deployment
+
+To deploy manually:
 
 ```bash
-cd ~/ops-monitor-agent  # or ~/ops-monitor-central
-
-# Pull latest image
-docker-compose pull
-
-# Recreate containers with new image
-docker-compose up -d
-
-# Clean old images
-docker image prune -f
+cd /home/$USER/projects/gear-stack
+bash scripts/deploy.sh
 ```
 
-**Pros:**
-- Clean separation - only Docker images on production
-- No Git or Python environment needed on VMs
-- Consistent environment across all deployments
-- Easy rollbacks (tag-based versioning)
-- Standard CI/CD workflow
-- Better isolation and security
+This script will:
+1. Pull latest changes from git
+2. Install frontend dependencies with pnpm
+3. Build the frontend
+4. Deploy to `/var/www/gear-stack/`
+5. Restart backend Docker containers and run migrations
 
-**Cons:**
-- Requires Docker Registry
-- Slightly more complex initial setup
-- Need to manage image versions/tags
+## Automated Deployment (GitHub Actions)
 
----
+The GitHub Actions workflow (`.github/workflows/deploy.yml`) automatically deploys when:
+- Code is pushed to the `main` branch
+- Manually triggered via GitHub Actions UI (workflow_dispatch)
 
-## Comparison
+### Workflow Steps
 
-| Feature | Sparse Checkout | Docker Images |
-|---------|----------------|---------------|
-| Setup Complexity | Low | Medium |
-| Production Ready | Testing/Dev | Yes |
-| Requires Git | Yes | No |
-| Requires Python Setup | Yes | No |
-| Rollback Easy | No | Yes |
-| CI/CD Integration | Manual | Native |
-| Isolation | None | Full |
-| Updates | `git pull` | `docker-compose pull` |
-| Best For | Development, Testing | Production |
+1. **Lint and Type Check** (runs in GitHub runner)
+   - Checkout code
+   - Install dependencies
+   - Run `pnpm lint`
+   - Run `pnpm type-check`
 
----
+2. **Deploy** (runs on your server via SSH)
+   - Connect to server as `deploy` user
+   - Run the deployment script
 
-## Recommended Workflow
+The workflow will fail if linting or type checking fails, preventing broken code from being deployed.
 
-1. **Development**: Use Sparse Checkout (Option 1) for local testing
-2. **Staging**: Use Docker Images (Option 2) to test containerized deployment
-3. **Production**: Use Docker Images (Option 2) with proper CI/CD pipeline
+## Deployment Script Details
 
----
+The `scripts/deploy.sh` script performs the following:
 
-## Environment Configuration
+1. **Pull latest changes** - `git pull`
+2. **Install dependencies** - `pnpm install --frozen-lockfile`
+3. **Build frontend** - `pnpm build`
+4. **Deploy to /var/www/gear-stack/**
+   - Remove old files: `sudo rm -rf /var/www/gear-stack/*`
+   - Copy new build: `sudo cp -r dist/* /var/www/gear-stack/`
+   - Fix ownership: `sudo chown -R caddy:deploy /var/www/gear-stack`
+5. **Restart backend and migrate**
+   - Stop Docker Compose: `docker compose -f docker-compose.dev.yml down`
+   - Start Docker Compose: `docker compose -f docker-compose.dev.yml up -d`
+   - Run migrations: `docker compose -f docker-compose.dev.yml exec app python cli.py db migrate`
 
-Both applications require `.env` files for configuration.
+## Permission Structure
 
-### Agent .env Example
+### Project Directory (`/home/$USER/projects/gear-stack/`)
+- Owner: `your-username:deploy`
+- Permissions: `g+rwX` (group read, write, execute)
+- SGID bit set: new files inherit `deploy` group
 
-```env
-PROJECT_NAME=ops-monitor-agent
-ENVIRONMENT=production
-AGENT_PORT=8000
-CENTRAL_URL=https://central.example.com
-LOG_LEVEL=INFO
-METRICS_COLLECTION_INTERVAL=60
-```
+### Deployment Directory (`/var/www/gear-stack/`)
+- Owner: `caddy:deploy`
+- Permissions: `775` (owner/group full, others read+execute)
+- SGID bit set: new files inherit `deploy` group
 
-### Central .env Example
+### Sudoers Configuration (`/etc/sudoers.d/gear-stack-deploy`)
 
-```env
-PROJECT_NAME=ops-monitor-central
-ENVIRONMENT=production
-CENTRAL_PORT=8000
-DATABASE_URL=postgresql://user:pass@localhost:5432/opsmonitor
-SECRET_KEY=your-very-secret-key-change-in-production
-LOG_LEVEL=INFO
-CORS_ORIGINS=["https://dashboard.example.com"]
-```
+Both your main user and `deploy` can run these commands without password:
+- `sudo rm -rf /var/www/gear-stack/*`
+- `sudo cp -r * /var/www/gear-stack/`
+- `sudo chown -R caddy:deploy /var/www/gear-stack`
+- `sudo systemctl reload caddy`
 
----
+### Docker Access
 
-## Security Considerations
-
-1. **Never commit `.env` files** - they are in `.gitignore`
-2. **Use strong SECRET_KEY** in production
-3. **Use HTTPS** for communication between Agent and Central
-4. **Implement authentication** for Agent API endpoints
-5. **Keep Docker images updated** with security patches
-6. **Use Docker secrets** for sensitive data in production
-7. **Restrict network access** - only Central should access Agent APIs
-
----
-
-## Monitoring & Maintenance
-
-### Health Checks
-
-Both applications expose health check endpoints:
-
-```bash
-# Agent
-curl http://localhost:8000/health
-
-# Central
-curl http://localhost:8000/health
-```
-
-### Logs
-
-**Sparse Checkout:**
-```bash
-# Application logs in logs/ directory or stdout
-tail -f logs/app.log
-```
-
-**Docker:**
-```bash
-docker-compose logs -f
-docker-compose logs -f agent  # specific service
-```
-
-### Backup
-
-**Central Database Backup:**
-```bash
-# PostgreSQL backup
-docker-compose exec db pg_dump -U user opsmonitor > backup.sql
-
-# Restore
-docker-compose exec -T db psql -U user opsmonitor < backup.sql
-```
-
----
+Both users are in the `docker` group, allowing them to run Docker commands without `sudo`.
 
 ## Troubleshooting
 
-### Sparse Checkout: Can't see files after clone
+### "Permission denied" when deploying
+- Ensure you've run the permission setup commands from section 1
+- Log out and log back in to refresh group memberships
+- Check group membership: `groups` (should include `docker`, `caddy`, `deploy`)
 
+### GitHub Actions fails with SSH connection error
+- Verify the `DEPLOY_HOST` secret is correct
+- Verify the `DEPLOY_SSH_KEY` secret contains the complete private key
+- Test SSH connection: `ssh deploy@YOUR_HOST` from your local machine
+
+### GitHub Actions fails with "git pull" error
+- Ensure the `deploy` user has read access to the git repository
+- The project directory should be readable by the `deploy` group
+
+### Frontend not updating after deployment
+- Check Caddy is serving from `/var/www/gear-stack/`
+- Verify files were copied: `ls -la /var/www/gear-stack/`
+- Hard refresh browser (Ctrl+Shift+R) to clear cache
+
+### Docker commands fail
+- Ensure user is in `docker` group: `groups`
+- Restart Docker service: `sudo systemctl restart docker`
+- Log out and log back in to refresh group memberships
+
+## Security Notes
+
+- The `deploy` user has limited sudo access (only specific commands via sudoers)
+- SSH key for `deploy` should be kept secure and only used for GitHub Actions
+- The sudoers configuration is validated with `visudo -c` during setup
+- Both users can only manage files in `/var/www/gear-stack/`, not system-wide
+
+## Manual Commands
+
+### Check deployment status
 ```bash
-git sparse-checkout list  # Check what's checked out
-git sparse-checkout set agent shared  # Reset checkout
+# Check Caddy status
+sudo systemctl status caddy
+
+# Check backend containers
+cd /home/$USER/projects/gear-stack/backend
+docker compose -f docker-compose.dev.yml ps
+
+# Check deployed frontend
+ls -la /var/www/gear-stack/
 ```
 
-### Docker: Container won't start
-
+### Reload Caddy configuration
 ```bash
-docker-compose logs  # Check logs
-docker-compose down && docker-compose up -d  # Restart
+sudo systemctl reload caddy
 ```
 
-### Docker: Port already in use
+### Configure Cache Headers for Static Assets
 
+To improve Lighthouse performance scores, configure cache headers in your Caddyfile. See `docs/Caddyfile.example` for a complete example.
+
+Key points:
+- **Hashed assets** (`/assets/*.js`, `/assets/*.css`): Cache for 1 year (`max-age=31536000, immutable`)
+- **Other static files**: Cache for 1 hour (`max-age=3600`)
+- **HTML files**: No cache (always fresh)
+
+The FastAPI backend also adds cache headers as a fallback, but Caddy configuration is recommended for optimal performance.
+
+### View deployment logs
 ```bash
-# Change port in .env or docker-compose.yml
-AGENT_PORT=8001  # Use different port
+# Frontend build logs (during manual deployment)
+# Output is shown directly in terminal
+
+# Backend logs
+cd /home/$USER/projects/gear-stack/backend
+docker compose -f docker-compose.dev.yml logs -f
 ```
-
-### Docker: Image pull fails
-
-```bash
-# Login to registry
-docker login ghcr.io -u username
-
-# Check image name and tag
-docker images | grep ops-monitor
-```
-
----
-
-## CI/CD Pipeline (GitHub Actions)
-
-Example workflow for building and pushing images:
-
-**.github/workflows/build-agent.yml**
-
-```yaml
-name: Build Agent Image
-
-on:
-  push:
-    branches: [main, develop]
-    paths:
-      - 'agent/**'
-      - 'shared/**'
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: agent/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/agent:latest
-            ghcr.io/${{ github.repository }}/agent:${{ github.sha }}
-```
-
-Similar workflow for Central application.
-
----
-
-## Support
-
-For issues and questions, please refer to the main [README.md](README.md) or create an issue in the repository.
