@@ -73,7 +73,7 @@ export async function createItem(api: APIRequestContext, data: CreateItemData) {
 /**
  * Update an item via API
  */
-export async function updateItem(api: APIRequestContext, itemId: string, data: Partial<CreateItemData & CreateContainerData>) {
+export async function updateItem(api: APIRequestContext, itemId: string, data: Partial<CreateContainerData & CreateItemData>) {
   const response = await api.patch(`/api/gear/v2/items/${itemId}`, {
     data,
   })

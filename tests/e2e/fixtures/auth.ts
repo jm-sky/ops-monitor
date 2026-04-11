@@ -1,8 +1,8 @@
 import { test as base, expect } from '@playwright/test'
-import type { Page } from '@playwright/test'
 import { config } from 'dotenv'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
+import type { Page } from '@playwright/test'
 
 // Load .env
 const __filename = fileURLToPath(import.meta.url)

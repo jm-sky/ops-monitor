@@ -1,8 +1,8 @@
 import { test as base, request } from '@playwright/test'
-import type { APIRequestContext } from '@playwright/test'
 import { config } from 'dotenv'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
+import type { APIRequestContext } from '@playwright/test'
 
 // Load .env
 const __filename = fileURLToPath(import.meta.url)

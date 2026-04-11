@@ -4,13 +4,12 @@
  * Creates test user via CLI if needed
  */
 
-import { exec } from 'child_process'
-import { promisify } from 'util'
-
 import { request } from '@playwright/test'
+import { exec } from 'child_process'
 import { config } from 'dotenv'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
+import { promisify } from 'util'
 
 const execAsync = promisify(exec)
 
