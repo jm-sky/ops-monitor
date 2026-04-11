@@ -10,8 +10,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
     volumes:
       - ops_monitor_postgres_data:/var/lib/postgresql/data
-    ports:
-      - "127.0.0.1:${DB_FORWARD_PORT:-5432}:5432"  # Only localhost access
+    # Ports intentionally not exposed — access via docker exec or app container only
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-backend}"]
       interval: 10s
@@ -32,8 +31,7 @@ services:
     restart: unless-stopped
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-changeme}
-    ports:
-      - "127.0.0.1:${REDIS_FORWARD_PORT:-6379}:6379"  # Only localhost access
+    # Ports intentionally not exposed — access via app container only
     volumes:
       - ops_monitor_redis_data:/data
     command: >
