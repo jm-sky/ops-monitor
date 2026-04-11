@@ -36,41 +36,15 @@ class UserProfileUpdate(BaseModel):
     """
 
     name: Optional[str] = Field(None, min_length=1, max_length=100)
-    avatarUrl: Optional[str] = Field(
-        None, description="Avatar URL (only allowed providers like Gravatar)"
-    )
+    avatarUrl: Optional[str] = Field(None, description="Avatar URL (only allowed providers like Gravatar)")
 
     @field_validator("avatarUrl")
     @classmethod
     def validate_avatar_url(cls, v: str | None) -> str | None:
         """Validate avatar URL against allowed providers."""
         if v is not None and not validate_avatar_url(v):
-            raise ValueError(
-                "Avatar URL must be from an allowed provider (e.g., Gravatar)"
-            )
+            raise ValueError("Avatar URL must be from an allowed provider (e.g., Gravatar)")
         return v
-
-
-class AiFeatures(BaseModel):
-    """AI features configuration."""
-
-    enabled: bool = Field(..., description="Whether AI features are enabled for user")
-    limit: Optional[float] = Field(
-        None, description="AI usage limit in USD (null = unlimited)"
-    )
-
-
-class StorageFeatures(BaseModel):
-    """Storage features configuration."""
-
-    limit: int = Field(..., description="Storage limit in bytes")
-
-
-class UserFeatures(BaseModel):
-    """User features configuration with limits."""
-
-    ai: AiFeatures = Field(..., description="AI features configuration")
-    storage: StorageFeatures = Field(..., description="Storage features configuration")
 
 
 class UserResponse(BaseModel):
@@ -84,9 +58,6 @@ class UserResponse(BaseModel):
     avatarUrl: Optional[str] = None
     createdAt: datetime
     updatedAt: datetime
-    features: Optional[UserFeatures] = Field(
-        None, description="User features and limits (only included in /me endpoint)"
-    )
 
     model_config = {"from_attributes": True, "populate_by_name": True}
 
@@ -129,13 +100,3 @@ class MessageResponse(BaseModel):
     """Generic message response."""
 
     message: str
-
-
-class StorageUsageResponse(BaseModel):
-    """Storage usage response schema with camelCase."""
-
-    usedBytes: int = Field(..., description="Total storage used in bytes")
-    limitBytes: int = Field(..., description="Storage limit in bytes")
-    usedPercentage: float = Field(..., description="Storage usage percentage (0-100)")
-
-    model_config = {"from_attributes": True, "populate_by_name": True}

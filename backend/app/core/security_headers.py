@@ -35,9 +35,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     - Vue.js inline styles (style-src 'unsafe-inline')
     """
 
-    async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         """
         Process request and add security headers to response.
 
@@ -58,7 +56,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: https:",
             "font-src 'self' data:",
-            "connect-src 'self' https://*.gear-stack.ovh https://www.google.com https://*.sentry.io",
+            "connect-src 'self' https://www.google.com https://*.sentry.io",
             "worker-src 'self' blob:",
             "frame-src 'self' https://www.google.com https://www.gstatic.com",
             "frame-ancestors 'none'",
@@ -79,16 +77,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # HTTP Strict Transport Security (HSTS) - production only
         # Force HTTPS for 1 year, include subdomains, allow preload listing
         if settings.is_production():
-            response.headers["Strict-Transport-Security"] = (
-                "max-age=31536000; includeSubDomains; preload"
-            )
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
 
         # Control information sent in Referer header
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
         # Permissions Policy - disable sensitive features
-        response.headers["Permissions-Policy"] = (
-            "geolocation=(), microphone=(), camera=()"
-        )
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
 
         return response

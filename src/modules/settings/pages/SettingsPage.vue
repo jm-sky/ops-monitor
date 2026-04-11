@@ -5,7 +5,6 @@ import DeleteAccountCard from '@/modules/settings/components/DeleteAccountCard.v
 import OAuthConnectionsCard from '../components/OAuthConnectionsCard.vue'
 import PreferencesSettingsCard from '../components/PreferencesSettingsCard.vue'
 import SecuritySettingsCard from '../components/SecuritySettingsCard.vue'
-import StorageUsageCard from '../components/StorageUsageCard.vue'
 
 const { t } = useI18n()
 </script>
@@ -31,9 +30,6 @@ const { t } = useI18n()
 
         <!-- OAuth Connections -->
         <OAuthConnectionsCard />
-
-        <!-- Storage Usage -->
-        <StorageUsageCard />
 
         <!-- Additional Settings from other modules (via slot) -->
         <slot name="after" />

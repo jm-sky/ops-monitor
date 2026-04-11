@@ -309,25 +309,7 @@ async def _test_email_async(to: str, template: str) -> None:
         raise typer.Exit(1)
 
 
-@test_app.command("ai")
-def test_ai(
-    prompt: str = typer.Option("Hello, can you help me?", "--prompt", "-p", help="Test prompt to send to AI"),
-    model: str = typer.Option("openai/gpt-4o-mini", "--model", "-m", help="AI model to test"),
-) -> None:
-    """Test AI module with OpenRouter integration.
-
-    Tests the OpenRouter API connection, model availability, and response generation.
-    Requires OPENROUTER_API_KEY and AI_TOKEN_ENCRYPTION_KEY to be configured.
-
-    Examples:
-        python -m cli test ai
-        python -m cli test ai --prompt "What is 2+2?"
-        python -m cli test ai --model "anthropic/claude-3.5-sonnet"
-    """
-    asyncio.run(_test_ai_async(prompt, model))
-
-
-async def _test_ai_async(prompt: str, model: str) -> None:
+async def _test_ai_async_removed(prompt: str, model: str) -> None:
     """Async implementation of AI test."""
     console.print("\n[bold cyan]Testing AI Module (OpenRouter)[/bold cyan]")
     console.print("=" * 50)

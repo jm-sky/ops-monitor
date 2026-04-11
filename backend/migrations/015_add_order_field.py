@@ -21,15 +21,13 @@ from app.core.database import engine
 async def table_exists(conn, table_name: str) -> bool:
     """Check if a table exists in the database."""
     result = await conn.execute(
-        text(
-            """
+        text("""
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
                 WHERE table_schema = 'public' 
                 AND table_name = :table_name
             );
-        """
-        ),
+        """),
         {"table_name": table_name},
     )
     return result.scalar() is True
@@ -44,21 +42,15 @@ async def upgrade() -> None:
 
         if not items_exist:
             print("gear_items table does not exist, skipping migration...")
-            print(
-                "Note: Table will be created with order field when created from models"
-            )
+            print("Note: Table will be created with order field when created from models")
             return
 
         print("gear_items table exists, adding order field...")
         # Add order field to gear_items
-        await conn.execute(
-            text(
-                """
+        await conn.execute(text("""
                 ALTER TABLE gear_items 
                 ADD COLUMN IF NOT EXISTS "order" INTEGER;
-            """
-            )
-        )
+            """))
         print("✓ Added order field to gear_items table")
 
     print("✓ Migration completed successfully")
@@ -70,14 +62,10 @@ async def downgrade() -> None:
 
     async with engine.begin() as conn:
         # Remove order field from gear_items
-        await conn.execute(
-            text(
-                """
+        await conn.execute(text("""
                 ALTER TABLE gear_items 
                 DROP COLUMN IF EXISTS "order";
-            """
-            )
-        )
+            """))
         print("✓ Removed order field from gear_items table")
 
     print("✓ Downgrade completed successfully")

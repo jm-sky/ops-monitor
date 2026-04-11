@@ -9,7 +9,6 @@ from typing import Any, Generic, Self, TypeVar
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Query
 
-
 T = TypeVar("T")
 
 

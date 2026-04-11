@@ -25,24 +25,16 @@ async def upgrade() -> None:
 
     async with engine.begin() as conn:
         # Add is_owner column
-        await conn.execute(
-            text(
-                """
+        await conn.execute(text("""
                 ALTER TABLE users
                 ADD COLUMN IF NOT EXISTS is_owner BOOLEAN NOT NULL DEFAULT FALSE
-                """
-            )
-        )
+                """))
 
         # Add is_premium column
-        await conn.execute(
-            text(
-                """
+        await conn.execute(text("""
                 ALTER TABLE users
                 ADD COLUMN IF NOT EXISTS is_premium BOOLEAN NOT NULL DEFAULT FALSE
-                """
-            )
-        )
+                """))
 
     print("✓ is_owner and is_premium columns added successfully")
 
@@ -53,24 +45,16 @@ async def downgrade() -> None:
 
     async with engine.begin() as conn:
         # Drop is_owner column
-        await conn.execute(
-            text(
-                """
+        await conn.execute(text("""
                 ALTER TABLE users
                 DROP COLUMN IF EXISTS is_owner
-                """
-            )
-        )
+                """))
 
         # Drop is_premium column
-        await conn.execute(
-            text(
-                """
+        await conn.execute(text("""
                 ALTER TABLE users
                 DROP COLUMN IF EXISTS is_premium
-                """
-            )
-        )
+                """))
 
     print("✓ is_owner and is_premium columns removed successfully")
 
@@ -79,9 +63,7 @@ async def main() -> None:
     """Run migration."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Add Owner and Premium roles migration"
-    )
+    parser = argparse.ArgumentParser(description="Add Owner and Premium roles migration")
     parser.add_argument(
         "action",
         choices=["upgrade", "downgrade"],

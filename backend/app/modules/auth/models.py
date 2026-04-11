@@ -55,7 +55,6 @@ from .exceptions import (  # noqa: E402
     InvalidTokenError,
 )
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -133,9 +132,7 @@ class User(BaseModel):
             logger.debug("Invalid reset token for user %s", self.id)
             return False
         except Exception as e:
-            logger.error(
-                "Unexpected error validating reset token: %s", e, exc_info=True
-            )
+            logger.error("Unexpected error validating reset token: %s", e, exc_info=True)
             return False
 
     def set_email_verification_token(self, token: str, sent_at: datetime) -> None:

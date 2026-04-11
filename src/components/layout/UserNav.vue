@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CreditCard, LogIn, LogOut, SettingsIcon, ShieldIcon, UserIcon, UserPlusIcon } from 'lucide-vue-next'
+import { LogIn, LogOut, SettingsIcon, ShieldIcon, UserIcon, UserPlusIcon } from 'lucide-vue-next'
 import { type Component, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -14,7 +14,6 @@ import { cn } from '@/lib/utils'
 import { AdminRoutePaths } from '@/modules/admin/routes'
 import { useAuth } from '@/modules/auth/composables/useAuth'
 import { AuthRoutePaths } from '@/modules/auth/config/routes'
-import { BillingRoutePaths } from '@/modules/billing/routes'
 import { SettingsRoutePaths } from '@/modules/settings/routes'
 import { UserRoutePaths } from '@/modules/user/routes'
 import { generateGravatarUrl, GRAVATAR_BASE_URL } from '@/modules/user/utils/generateGravatarUrl'
@@ -65,31 +64,24 @@ const defaultCoreLinks = computed<Link[]>(() => [
     icon: SettingsIcon,
   },
   {
-    to: BillingRoutePaths.billing,
-    label: t('billing.title', 'Billing & Subscription'),
-    icon: CreditCard,
-  },
-  {
     to: AdminRoutePaths.dashboard,
     label: t('admin.dashboard.title', 'Admin Dashboard'),
     icon: ShieldIcon,
     hidden: !canAccessAdminPanel.value,
-  }
+  },
 ])
 
 const coreLinksList = computed<Link[]>(() => props.coreLinks ?? defaultCoreLinks.value)
 const coreLinksFiltered = computed<Link[]>(() => coreLinksList.value.filter((link) => !link.hidden))
 const initials = computed<string>(() => getInitials(props.userName ?? props.userEmail ?? 'U'))
 
-const avatarUrl = computed<string | undefined>(() =>{
+const avatarUrl = computed<string | undefined>(() => {
   if (props.userAvatar?.startsWith(GRAVATAR_BASE_URL)) {
     return props.userAvatar.replace(/&s=\d+/, `&s=${AVATAR_SIZE}`)
   }
-
   if (!props.userAvatar && props.userEmail) {
     return generateGravatarUrl(props.userEmail, AVATAR_SIZE)
   }
-
   return props.userAvatar
 })
 
@@ -120,7 +112,6 @@ const handleLogout = () => {
     </DropdownMenuTrigger>
 
     <DropdownMenuContent class="w-64" align="end">
-      <!-- User info -->
       <DropdownMenuLabel v-if="isAuthenticated">
         <div class="flex flex-col space-y-1">
           <p class="text-sm font-medium leading-none">
@@ -141,7 +132,6 @@ const handleLogout = () => {
 
       <DropdownMenuSeparator />
 
-      <!-- Navigation Links (mobile only) -->
       <template v-if="navLinks && navLinks.length > 0">
         <div class="md:hidden">
           <DropdownMenuItemLink
@@ -156,7 +146,6 @@ const handleLogout = () => {
         </div>
       </template>
 
-      <!-- Profile/Settings slot -->
       <slot name="menu-items">
         <DropdownMenuItemLink
           v-for="link in coreLinksFiltered"
@@ -171,7 +160,6 @@ const handleLogout = () => {
 
       <DropdownMenuSeparator />
 
-      <!-- Logout -->
       <DropdownMenuItem v-if="isAuthenticated" @click="handleLogout">
         <LogOut class="size-4 mr-2" />
         {{ t('auth.logout', 'Logout') }}

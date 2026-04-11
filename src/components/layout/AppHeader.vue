@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BackpackIcon, CreditCard, GlobeIcon, PackageIcon, SettingsIcon, ShieldIcon, ShoppingCartIcon, UserIcon } from 'lucide-vue-next'
+import { SettingsIcon, ShieldIcon, UserIcon } from 'lucide-vue-next'
 import { type Component, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -10,15 +10,12 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
 import { AdminRoutePaths } from '@/modules/admin/routes'
 import { useAuth } from '@/modules/auth/composables/useAuth'
 import { AuthRouteNames, AuthRoutePaths } from '@/modules/auth/config/routes'
-import { BillingRoutePaths } from '@/modules/billing/routes'
-import { GearRoutePath } from '@/modules/gear/routes'
 import { SettingsRoutePaths } from '@/modules/settings/routes'
 import { useUser } from '@/modules/user/composables/useUser'
 import { UserRoutePaths } from '@/modules/user/routes'
 import DarkModeToggle from '@/shared/components/DarkModeToggle.vue'
 import { usePermissions } from '@/shared/composables/usePermissions'
 import LocaleToggle from '@/shared/i18n/components/LocaleToggle.vue'
-import HoverLink from '../ui/hover-link/HoverLink.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -26,7 +23,6 @@ const { profile } = useUser()
 const { canAccessAdminPanel } = usePermissions()
 const { logout, user: authUser } = useAuth()
 
-// Use auth user if backend is enabled, otherwise use profile from localStorage
 const user = computed(() => authUser.value ?? profile.value)
 
 interface Link {
@@ -48,43 +44,10 @@ const coreLinks = computed<Link[]>(() => [
     icon: SettingsIcon,
   },
   {
-    to: GearRoutePath.Settings,
-    label: t('gear.settings.page.title', 'Gear settings'),
-    icon: BackpackIcon,
-  },
-  {
-    to: BillingRoutePaths.billing,
-    label: t('billing.title', 'Billing & Subscription'),
-    icon: CreditCard,
-  },
-  {
     to: AdminRoutePaths.dashboard,
     label: t('admin.dashboard.title', 'Admin Dashboard'),
     icon: ShieldIcon,
     hidden: !canAccessAdminPanel.value,
-  }
-])
-
-const navLinks = computed<Link[]>(() => [
-  {
-    to: GearRoutePath.Containers,
-    label: t('gear.page.title', 'Gear'),
-    icon: BackpackIcon,
-  },
-  {
-    to: GearRoutePath.AllItems,
-    label: t('gear.allItems.navTitle', 'All Items'),
-    icon: PackageIcon,
-  },
-  {
-    to: GearRoutePath.ShoppingPlanning,
-    label: t('gear.shopping.navTitle', 'Shopping'),
-    icon: ShoppingCartIcon,
-  },
-  {
-    to: GearRoutePath.PublicContainers,
-    label: t('gear.publicContainers.navTitle', 'Public Browser'),
-    icon: GlobeIcon,
   },
 ])
 
@@ -109,14 +72,6 @@ const handleLogout = async () => {
           <LogoText />
         </RouterLink>
       </div>
-
-      <nav v-if="navLinks.length > 0" class="hidden md:flex items-center gap-6 text-sm ml-6">
-        <template v-for="link in navLinks" :key="link.to">
-          <HoverLink :to="link.to">
-            {{ link.label }}
-          </HoverLink>
-        </template>
-      </nav>
 
       <div class="flex flex-1 items-center justify-end space-x-2 mr-6">
         <nav class="flex items-center space-x-2">

@@ -1,6 +1,6 @@
 {
-  "name": "gear-stack",
-  "version": "2.47.1",
+  "name": "ops-monitor",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "engines": {

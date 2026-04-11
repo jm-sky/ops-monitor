@@ -44,9 +44,7 @@ async def get_applied_migrations() -> List[str]:
         List of migration version strings (e.g., ['001', '002'])
     """
     async with AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(SchemaMigration.version).order_by(SchemaMigration.version)
-        )
+        result = await session.execute(select(SchemaMigration.version).order_by(SchemaMigration.version))
         return [row[0] for row in result.fetchall()]
 
 
@@ -60,9 +58,7 @@ async def is_migration_applied(version: str) -> bool:
         True if migration has been applied, False otherwise
     """
     async with AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(SchemaMigration).where(SchemaMigration.version == version)
-        )
+        result = await session.execute(select(SchemaMigration).where(SchemaMigration.version == version))
         return result.scalar_one_or_none() is not None
 
 
@@ -86,9 +82,7 @@ async def unmark_migration(version: str) -> None:
         version: Migration version string (e.g., '001')
     """
     async with AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(SchemaMigration).where(SchemaMigration.version == version)
-        )
+        result = await session.execute(select(SchemaMigration).where(SchemaMigration.version == version))
         migration = result.scalar_one_or_none()
         if migration:
             await session.delete(migration)

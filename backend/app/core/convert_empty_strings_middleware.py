@@ -12,11 +12,7 @@ import json
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-try:
-    from app.modules.billing.constants import WEBHOOK_PATHS
-except ImportError:
-    # Fallback if billing module is not available
-    WEBHOOK_PATHS = []
+WEBHOOK_PATHS: list[str] = []
 
 
 def _convert_empty_strings_to_none(obj: Any) -> Any:
@@ -51,9 +47,7 @@ class ConvertEmptyStringsToNoneMiddleware:
 
     ALLOWED_METHODS = ("POST", "PUT", "PATCH")
 
-    def __init__(
-        self, app: Callable[[dict[str, Any], Callable, Callable], Awaitable[None]]
-    ) -> None:
+    def __init__(self, app: Callable[[dict[str, Any], Callable, Callable], Awaitable[None]]) -> None:
         """Initialize middleware with ASGI app."""
         self.app = app
 

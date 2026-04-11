@@ -89,9 +89,7 @@ router = APIRouter()
     tags=["Authentication"],
 )
 @rate_limit("5/minute")  # Prevent registration abuse
-@recaptcha_protected(
-    "register"
-)  # Disabled by default, enable via RECAPTCHA_ENABLED=true
+@recaptcha_protected("register")  # Disabled by default, enable via RECAPTCHA_ENABLED=true
 async def register(
     user_data: UserRegister,
     auth_service: AuthServiceDep,
@@ -109,9 +107,7 @@ async def register(
     try:
         # Determine locale for email
         accept_language = request.headers.get("Accept-Language")
-        locale = await determine_email_locale(
-            db=db, user_id=None, accept_language=accept_language
-        )
+        locale = await determine_email_locale(db=db, user_id=None, accept_language=accept_language)
         translations = get_translations(locale)
 
         await auth_service.register_user(
@@ -121,9 +117,7 @@ async def register(
             locale=locale,
             translations=translations,
         )
-        return MessageResponse(
-            message="Registration successful. Please check your email to verify your account."
-        )
+        return MessageResponse(message="Registration successful. Please check your email to verify your account.")
     except UserAlreadyExistsError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -139,9 +133,7 @@ async def register(
 )
 @rate_limit("10/minute")  # CRITICAL: Prevent brute force attacks
 @recaptcha_protected("login")  # Disabled by default, enable via RECAPTCHA_ENABLED=true
-async def login(
-    credentials: UserLogin, auth_service: AuthServiceDep, request: Request
-) -> LoginResponseType:
+async def login(credentials: UserLogin, auth_service: AuthServiceDep, request: Request) -> LoginResponseType:
     """
     Login user and return tokens or 2FA challenge.
 
@@ -155,13 +147,9 @@ async def login(
     """
     try:
         # Debug: Log what type of auth service we're using
-        logger.info(
-            f"Login attempt for {credentials.email}, auth_service type: {type(auth_service).__name__}"
-        )
+        logger.info(f"Login attempt for {credentials.email}, auth_service type: {type(auth_service).__name__}")
 
-        result = await auth_service.login_user(
-            email=credentials.email, password=credentials.password
-        )
+        result = await auth_service.login_user(email=credentials.email, password=credentials.password)
 
         # Debug: Log what we're returning
         if hasattr(result, "requiresTwoFactor"):
@@ -188,9 +176,7 @@ async def login(
     tags=["Authentication"],
 )
 @rate_limit("20/minute")  # Prevent token refresh abuse
-async def refresh_token(
-    token_data: TokenRefresh, auth_service: AuthServiceDep, request: Request
-) -> dict:
+async def refresh_token(token_data: TokenRefresh, auth_service: AuthServiceDep, request: Request) -> dict:
     """
     Refresh access token.
 
@@ -259,9 +245,7 @@ async def logout(
     tags=["Authentication"],
 )
 @rate_limit("3/minute")  # CRITICAL: Prevent email enumeration and spam
-@recaptcha_protected(
-    "forgot_password"
-)  # Disabled by default, enable via RECAPTCHA_ENABLED=true
+@recaptcha_protected("forgot_password")  # Disabled by default, enable via RECAPTCHA_ENABLED=true
 async def forgot_password(
     request_data: ForgotPasswordRequest,
     auth_service: AuthServiceDep,
@@ -281,9 +265,7 @@ async def forgot_password(
     # Get user_id from email if user exists (for locale detection)
     user = await auth_service.user_repository.get_user_by_email(request_data.email)
     user_id = user.id if user else None
-    locale = await determine_email_locale(
-        db=db, user_id=user_id, accept_language=accept_language
-    )
+    locale = await determine_email_locale(db=db, user_id=user_id, accept_language=accept_language)
     translations = get_translations(locale)
 
     # Always return success message to prevent email enumeration
@@ -292,9 +274,7 @@ async def forgot_password(
         locale=locale,
         translations=translations,
     )
-    return MessageResponse(
-        message="If the email exists, a password reset link has been sent"
-    )
+    return MessageResponse(message="If the email exists, a password reset link has been sent")
 
 
 @router.post(
@@ -305,9 +285,7 @@ async def forgot_password(
     tags=["Authentication"],
 )
 @rate_limit("5/minute")  # Prevent token brute force
-async def reset_password(
-    request_data: ResetPasswordRequest, auth_service: AuthServiceDep, request: Request
-) -> MessageResponse:
+async def reset_password(request_data: ResetPasswordRequest, auth_service: AuthServiceDep, request: Request) -> MessageResponse:
     """
     Reset password with token.
 
@@ -351,9 +329,7 @@ async def change_password(
     try:
         # Determine locale for email
         accept_language = request.headers.get("Accept-Language")
-        locale = await determine_email_locale(
-            db=db, user_id=current_user.id, accept_language=accept_language
-        )
+        locale = await determine_email_locale(db=db, user_id=current_user.id, accept_language=accept_language)
         translations = get_translations(locale)
 
         # Get client IP address for security notification
@@ -373,9 +349,7 @@ async def change_password(
             detail="Current password is incorrect",
         )
     except UserNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
 
 @router.get(
@@ -423,9 +397,7 @@ async def verify_email(
         except Exception:
             pass  # Will use default locale
 
-        locale = await determine_email_locale(
-            db=db, user_id=user_id, accept_language=accept_language
-        )
+        locale = await determine_email_locale(db=db, user_id=user_id, accept_language=accept_language)
         translations = get_translations(locale)
 
         await auth_service.verify_email(
@@ -460,9 +432,7 @@ async def resend_email_verification(
     # Get user_id from email if user exists (for locale detection)
     user = await auth_service.user_repository.get_user_by_email(request_data.email)
     user_id = user.id if user else None
-    locale = await determine_email_locale(
-        db=db, user_id=user_id, accept_language=accept_language
-    )
+    locale = await determine_email_locale(db=db, user_id=user_id, accept_language=accept_language)
     translations = get_translations(locale)
 
     await auth_service.resend_email_verification(
@@ -470,9 +440,7 @@ async def resend_email_verification(
         locale=locale,
         translations=translations,
     )
-    return MessageResponse(
-        message="If the email exists, a new verification link has been sent."
-    )
+    return MessageResponse(message="If the email exists, a new verification link has been sent.")
 
 
 @router.delete(
@@ -506,30 +474,8 @@ async def delete_account(
     try:
         # Determine locale for email (before account is deleted)
         accept_language = request.headers.get("Accept-Language")
-        locale = await determine_email_locale(
-            db=db, user_id=current_user.id, accept_language=accept_language
-        )
+        locale = await determine_email_locale(db=db, user_id=current_user.id, accept_language=accept_language)
         translations = get_translations(locale)
-
-        # Delete all user images from storage (before account deletion)
-        try:
-            from app.modules.gear.repository import GearRepository
-            from app.modules.gear.service import GearService
-
-            gear_repository = GearRepository(db)
-            gear_service = GearService(gear_repository)
-            deleted_images_count = await gear_service.delete_all_user_images(
-                current_user.id
-            )
-            if deleted_images_count > 0:
-                logger.info(
-                    f"Deleted {deleted_images_count} image(s) for user {current_user.id} during account deletion"
-                )
-        except Exception as e:
-            # Log error but don't fail account deletion if image deletion fails
-            logger.error(
-                f"Failed to delete user images during account deletion (user_id={current_user.id}): {e}"
-            )
 
         await auth_service.delete_account(
             user_id=current_user.id,
@@ -549,16 +495,12 @@ async def delete_account(
                 expires_at=expires_at,
                 reason="account_deleted",
             )
-            logger.info(
-                f"Token blacklisted after account deletion: user_id={current_user.id}"
-            )
+            logger.info(f"Token blacklisted after account deletion: user_id={current_user.id}")
         return MessageResponse(message="Account has been deleted successfully")
     except InvalidCredentialsError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except UserNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
 
 # OAuth Endpoints
@@ -572,9 +514,7 @@ async def delete_account(
     tags=["Authentication", "OAuth"],
 )
 @rate_limit("10/minute")
-async def get_oauth_auth_url(
-    request_data: OAuthAuthUrlRequest, request: Request
-) -> OAuthAuthUrlResponse:
+async def get_oauth_auth_url(request_data: OAuthAuthUrlRequest, request: Request) -> OAuthAuthUrlResponse:
     """
     Generate OAuth authorization URL.
 
@@ -615,19 +555,13 @@ async def oauth_callback(
     try:
         # Exchange code for token
         logger.info(f"OAuth callback: Exchanging code for token (provider: {provider})")
-        token_response = await oauth_service.exchange_code_for_token(
-            provider, callback_data.code
-        )
+        token_response = await oauth_service.exchange_code_for_token(provider, callback_data.code)
         logger.info(f"OAuth callback: Token exchange successful")
 
         # Get user info from provider
         logger.info(f"OAuth callback: Fetching user info from {provider}")
-        user_info = await oauth_service.get_user_info(
-            provider, token_response.accessToken
-        )
-        logger.info(
-            f"OAuth callback: User info received - email: {user_info.email}, provider_id: {user_info.providerId}"
-        )
+        user_info = await oauth_service.get_user_info(provider, token_response.accessToken)
+        logger.info(f"OAuth callback: User info received - email: {user_info.email}, provider_id: {user_info.providerId}")
 
         # Login or register user via OAuth
         logger.info(f"OAuth callback: Calling auth_service.login_with_oauth")
@@ -663,12 +597,8 @@ async def get_oauth_connections(
     Security features:
     - ✅ Authentication required (JWT token via CurrentUser)
     """
-    connections = await auth_service.user_repository.get_oauth_connections(
-        current_user.id
-    )
-    return OAuthConnectionsListResponse(
-        connections=[OAuthConnectionResponse(**conn) for conn in connections]
-    )
+    connections = await auth_service.user_repository.get_oauth_connections(current_user.id)
+    return OAuthConnectionsListResponse(connections=[OAuthConnectionResponse(**conn) for conn in connections])
 
 
 @router.delete(
@@ -692,14 +622,10 @@ async def delete_oauth_connection(
     - ✅ Authentication required (JWT token)
     - ✅ Rate limiting: 10 requests/minute
     """
-    deleted = await auth_service.user_repository.delete_oauth_connection(
-        current_user.id, provider
-    )
+    deleted = await auth_service.user_repository.delete_oauth_connection(current_user.id, provider)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"OAuth connection for provider '{provider}' not found",
         )
-    return MessageResponse(
-        message=f"OAuth connection for {provider} has been removed successfully"
-    )
+    return MessageResponse(message=f"OAuth connection for {provider} has been removed successfully")

@@ -31,15 +31,13 @@ async def table_exists(conn, table_name: str) -> bool:
         True if table exists, False otherwise
     """
     result = await conn.execute(
-        text(
-            """
+        text("""
             SELECT EXISTS (
                 SELECT FROM information_schema.tables
                 WHERE table_schema = 'public'
                 AND table_name = :table_name
             );
-        """
-        ),
+        """),
         {"table_name": table_name},
     )
     return result.scalar() is True
@@ -57,8 +55,7 @@ async def column_exists(conn, table_name: str, column_name: str) -> bool:
         True if column exists, False otherwise
     """
     result = await conn.execute(
-        text(
-            """
+        text("""
             SELECT EXISTS (
                 SELECT 1
                 FROM information_schema.columns
@@ -66,8 +63,7 @@ async def column_exists(conn, table_name: str, column_name: str) -> bool:
                 AND table_name = :table_name
                 AND column_name = :column_name
             );
-        """
-        ),
+        """),
         {"table_name": table_name, "column_name": column_name},
     )
     return result.scalar() is True
@@ -83,23 +79,15 @@ async def upgrade() -> None:
         if containers_exist:
             if not await column_exists(conn, "gear_containers", "is_hidden_by_reports"):
                 print("Adding is_hidden_by_reports column to gear_containers...")
-                await conn.execute(
-                    text(
-                        """
+                await conn.execute(text("""
                         ALTER TABLE gear_containers
                         ADD COLUMN is_hidden_by_reports BOOLEAN NOT NULL DEFAULT FALSE;
-                    """
-                    )
-                )
+                    """))
                 # Create index for better query performance
-                await conn.execute(
-                    text(
-                        """
+                await conn.execute(text("""
                         CREATE INDEX IF NOT EXISTS ix_gear_containers_is_hidden_by_reports
                         ON gear_containers(is_hidden_by_reports);
-                    """
-                    )
-                )
+                    """))
                 print("✓ Added is_hidden_by_reports column to gear_containers")
             else:
                 print("✓ is_hidden_by_reports column already exists in gear_containers")
@@ -115,8 +103,7 @@ async def upgrade() -> None:
 
         print("Creating content_reports table...")
         await conn.execute(
-            text(
-                """
+            text("""
                 CREATE TABLE content_reports (
                     id VARCHAR(36) PRIMARY KEY,
                     container_id VARCHAR(36) NOT NULL,
@@ -146,44 +133,27 @@ async def upgrade() -> None:
                     CONSTRAINT check_report_status
                         CHECK (status IN ('pending', 'reviewed', 'dismissed', 'action_taken'))
                 );
-            """
-            ),
+            """),
         )
 
         # Create indexes
         print("Creating indexes...")
-        await conn.execute(
-            text(
-                """
+        await conn.execute(text("""
                 CREATE INDEX ix_content_reports_container_id
                 ON content_reports(container_id);
-            """
-            )
-        )
-        await conn.execute(
-            text(
-                """
+            """))
+        await conn.execute(text("""
                 CREATE INDEX ix_content_reports_reporter_user_id
                 ON content_reports(reporter_user_id);
-            """
-            )
-        )
-        await conn.execute(
-            text(
-                """
+            """))
+        await conn.execute(text("""
                 CREATE INDEX ix_content_reports_status
                 ON content_reports(status);
-            """
-            )
-        )
-        await conn.execute(
-            text(
-                """
+            """))
+        await conn.execute(text("""
                 CREATE INDEX ix_content_reports_container_status
                 ON content_reports(container_id, status);
-            """
-            )
-        )
+            """))
 
         print("✓ Created content_reports table with indexes")
 
@@ -209,22 +179,14 @@ async def downgrade() -> None:
         if containers_exist:
             if await column_exists(conn, "gear_containers", "is_hidden_by_reports"):
                 # Drop index first
-                await conn.execute(
-                    text(
-                        """
+                await conn.execute(text("""
                         DROP INDEX IF EXISTS ix_gear_containers_is_hidden_by_reports;
-                    """
-                    )
-                )
+                    """))
                 # Drop column
-                await conn.execute(
-                    text(
-                        """
+                await conn.execute(text("""
                         ALTER TABLE gear_containers
                         DROP COLUMN IF EXISTS is_hidden_by_reports;
-                    """
-                    )
-                )
+                    """))
                 print("✓ Removed is_hidden_by_reports column from gear_containers")
             else:
                 print("✓ is_hidden_by_reports column does not exist in gear_containers")

@@ -51,21 +51,12 @@ COMMAND_GROUPS = {
             "toggle-owner": "Toggle owner status for a user",
         },
     },
-    "tenants": {
-        "name": "Tenant Management",
-        "commands": {
-            "create": "Create a new tenant",
-            "assign": "Assign user to tenant",
-            "list": "List all tenants",
-        },
-    },
     "test": {
         "name": "Testing & Debugging",
         "commands": {
             "sentry": "Test Sentry error reporting",
             "storage": "Test storage adapter",
             "email": "Test email sending",
-            "ai": "Test AI module (OpenRouter)",
         },
     },
 }
@@ -98,35 +89,6 @@ COMMAND_ARGUMENTS = {
         {
             "name": "version",
             "prompt": "Enter migration version (e.g., '020'):",
-            "type": "text",
-            "arg_type": "positional",
-        },
-    ],
-    "tenants.create": [
-        {
-            "name": "name",
-            "prompt": "Enter tenant name:",
-            "type": "text",
-            "arg_type": "positional",
-        },
-        {
-            "name": "email",
-            "prompt": "Enter owner email:",
-            "type": "text",
-            "arg_type": "option",
-            "flag": "--owner-email",
-        },
-    ],
-    "tenants.assign": [
-        {
-            "name": "tenant_id",
-            "prompt": "Enter tenant ID:",
-            "type": "text",
-            "arg_type": "positional",
-        },
-        {
-            "name": "email",
-            "prompt": "Enter user email:",
             "type": "text",
             "arg_type": "positional",
         },
@@ -280,7 +242,7 @@ def show_group_interactive_menu(group_key: str, group_info: dict) -> None:
 def _show_interactive_menu() -> None:
     """Show interactive menu for command selection using arrow keys."""
     console.print()
-    console.print(Panel.fit("[bold cyan]Gear Stack CLI - Interactive Mode[/bold cyan]", border_style="cyan"))
+    console.print(Panel.fit("[bold cyan]Ops Monitor CLI - Interactive Mode[/bold cyan]", border_style="cyan"))
     console.print()
 
     # Prepare choices for questionary

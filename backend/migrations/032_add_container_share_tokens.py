@@ -22,15 +22,13 @@ from app.core.database import engine
 async def table_exists(conn, table_name: str) -> bool:
     """Check if a table exists in the database."""
     result = await conn.execute(
-        text(
-            """
+        text("""
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
                 WHERE table_schema = 'public' 
                 AND table_name = :table_name
             );
-        """
-        ),
+        """),
         {"table_name": table_name},
     )
     return result.scalar() is True
@@ -44,9 +42,7 @@ async def upgrade() -> None:
         tokens_exist = await table_exists(conn, "container_share_tokens")
         if not tokens_exist:
             print("Creating container_share_tokens table...")
-            await conn.execute(
-                text(
-                    """
+            await conn.execute(text("""
                     CREATE TABLE container_share_tokens (
                         token VARCHAR(255) PRIMARY KEY,
                         container_id VARCHAR(36) NOT NULL,
@@ -61,42 +57,24 @@ async def upgrade() -> None:
                             FOREIGN KEY (user_id) 
                             REFERENCES users(id)
                     );
-                """
-                )
-            )
+                """))
             # Create indexes for better query performance
-            await conn.execute(
-                text(
-                    """
+            await conn.execute(text("""
                     CREATE INDEX IF NOT EXISTS ix_container_share_tokens_token 
                     ON container_share_tokens(token);
-                """
-                )
-            )
-            await conn.execute(
-                text(
-                    """
+                """))
+            await conn.execute(text("""
                     CREATE INDEX IF NOT EXISTS ix_container_share_tokens_container_id 
                     ON container_share_tokens(container_id);
-                """
-                )
-            )
-            await conn.execute(
-                text(
-                    """
+                """))
+            await conn.execute(text("""
                     CREATE INDEX IF NOT EXISTS ix_container_share_tokens_user_id 
                     ON container_share_tokens(user_id);
-                """
-                )
-            )
-            await conn.execute(
-                text(
-                    """
+                """))
+            await conn.execute(text("""
                     CREATE INDEX IF NOT EXISTS ix_container_share_tokens_expires_at 
                     ON container_share_tokens(expires_at);
-                """
-                )
-            )
+                """))
             print("✓ Created container_share_tokens table")
         else:
             print("✓ container_share_tokens table already exists")
@@ -110,13 +88,9 @@ async def downgrade() -> None:
         tokens_exist = await table_exists(conn, "container_share_tokens")
         if tokens_exist:
             print("Dropping container_share_tokens table...")
-            await conn.execute(
-                text(
-                    """
+            await conn.execute(text("""
                     DROP TABLE IF EXISTS container_share_tokens CASCADE;
-                """
-                )
-            )
+                """))
             print("✓ Dropped container_share_tokens table")
         else:
             print("✓ container_share_tokens table does not exist")
@@ -125,9 +99,7 @@ async def downgrade() -> None:
 async def main() -> None:
     """Run migration based on command line argument."""
     if len(sys.argv) < 2:
-        print(
-            "Usage: python migrations/032_add_container_share_tokens.py [upgrade|downgrade]"
-        )
+        print("Usage: python migrations/032_add_container_share_tokens.py [upgrade|downgrade]")
         sys.exit(1)
 
     command = sys.argv[1].lower()
@@ -137,9 +109,7 @@ async def main() -> None:
         await downgrade()
     else:
         print(f"Unknown command: {command}")
-        print(
-            "Usage: python migrations/032_add_container_share_tokens.py [upgrade|downgrade]"
-        )
+        print("Usage: python migrations/032_add_container_share_tokens.py [upgrade|downgrade]")
         sys.exit(1)
 
 
