@@ -36,7 +36,6 @@ COMMAND_GROUPS = {
             "migrate-graceful": "Run migrations gracefully (ignore errors)",
             "migrate-unmark": "Unmark a migration (allows re-running)",
             "seed": "Seed database with initial data",
-            "seed-remove": "Remove seeded data",
         },
     },
     "users": {
@@ -72,16 +71,7 @@ COMMAND_ARGUMENTS = {
             "name": "seeder",
             "prompt": "Select seeder (use ↑↓ arrow keys, Enter to confirm):",
             "type": "select",
-            "choices": ["catalogue"],
-            "arg_type": "positional",
-        },
-    ],
-    "db.seed-remove": [
-        {
-            "name": "seeder",
-            "prompt": "Select seeder to remove (use ↑↓ arrow keys, Enter to confirm):",
-            "type": "select",
-            "choices": ["catalogue"],
+            "choices": ["sites"],
             "arg_type": "positional",
         },
     ],

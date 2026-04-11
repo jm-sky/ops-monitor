@@ -14,7 +14,7 @@ Default port: **9100**
 ## Install (systemd)
 
 ```bash
-sudo bash install.sh
+sudo bash scripts/agent-install.sh
 # Then edit /opt/ops-monitor-agent/.env — set AGENT_TOKEN
 sudo systemctl restart ops-monitor-agent
 ```

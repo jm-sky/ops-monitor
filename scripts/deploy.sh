@@ -1,44 +1,28 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Deploy ops-monitor to production server.
+# Run from the project root directory.
+set -euo pipefail
 
-# Gear Stack Complete Deployment Script
-# This script orchestrates the complete deployment by pulling latest changes,
-# building and deploying the frontend, and restarting/migrating the backend
-#
-# Usage: scripts/deploy.sh
+DIST_DIR=/var/www/ops-monitor/dist
+BACKEND_DIR="$(cd "$(dirname "$0")/backend" && pwd)"
 
-set -e  # Exit on any error
+echo "==> Building frontend..."
+pnpm install --frozen-lockfile
+pnpm build
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+echo "==> Deploying frontend to $DIST_DIR..."
+mkdir -p "$DIST_DIR"
+rsync -a --delete dist/ "$DIST_DIR/"
 
-# Configuration
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SCRIPTS_DIR="$PROJECT_DIR/scripts"
+echo "==> Starting/updating backend..."
+docker compose -f "$BACKEND_DIR/docker-compose.yml" pull --quiet
+docker compose -f "$BACKEND_DIR/docker-compose.yml" up -d --build
 
-echo -e "${GREEN}🚀 Starting complete Gear Stack deployment...${NC}"
+echo "==> Running migrations..."
+docker exec ops-monitor-app python -m cli db migrate
 
-# Prompt for sudo password upfront
-echo -e "${YELLOW}🔐 Requesting sudo access...${NC}"
-sudo -v
-
-# Keep sudo alive in background
-while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
-
-# Step 1: Pull latest changes
-echo -e "${YELLOW}📦 Step 1: Pulling latest changes...${NC}"
-cd "$PROJECT_DIR"
-git pull
-
-# Step 2: Build and deploy frontend
-echo -e "${YELLOW}🔨 Step 2: Building and deploying frontend...${NC}"
-"$SCRIPTS_DIR/frontend_build_deploy.sh"
-
-# Step 3: Restart backend and migrate
-echo -e "${YELLOW}🐳 Step 3: Restarting backend and running migrations...${NC}"
-"$SCRIPTS_DIR/backend_restart_migrate.sh"
+echo "==> Reloading Caddy..."
+caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || systemctl reload caddy
 
 echo ""
-echo -e "${GREEN}✅ Complete deployment finished successfully!${NC}"
+echo "Done. https://ops-monitor.dev-made.it"

@@ -1,0 +1,30 @@
+[
+  {
+    "name": "gear-stack",
+    "description": "Gear Stack – gear management app",
+    "health_url": "http://localhost:8007/api/health",
+    "system_url": "http://localhost:9100/system",
+    "token": "",
+    "enabled": true,
+    "polling": {
+      "health": 300,
+      "system": 300,
+      "updates": 43200,
+      "reboot": 1800
+    }
+  },
+  {
+    "name": "zbory-chwz",
+    "description": "Zbory CHWZ app",
+    "health_url": "http://localhost:8001/api/health",
+    "system_url": "http://localhost:9100/system",
+    "token": "",
+    "enabled": true,
+    "polling": {
+      "health": 300,
+      "system": 300,
+      "updates": 43200,
+      "reboot": 1800
+    }
+  }
+]

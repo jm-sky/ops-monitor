@@ -42,3 +42,9 @@ test-results/
 backups/
 *.sql
 playwright-report/*
+
+# Production config (keep .example files, ignore actuals)
+Caddyfile
+docker-compose.override.yml
+.env.prod
+.env.production

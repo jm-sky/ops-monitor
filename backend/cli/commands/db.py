@@ -524,7 +524,63 @@ def migrate_unmark(
 
 @db_app.command("seed")
 def seed_database(
-    seeder: str = typer.Argument(..., help="Seeder name"),
+    seeder: str = typer.Argument(..., help="Seeder name (e.g. 'sites')"),
 ) -> None:
     """Seed database with initial data."""
-    console.print(f"[yellow]No seeders available yet for: {seeder}[/yellow]")
+
+    async def _seed_sites() -> None:
+        import json
+
+        from app.core.database import get_engine
+        from sqlalchemy import text
+
+        seeds_file = Path(__file__).resolve().parents[2] / "seeds" / "sites.json"
+        if not seeds_file.exists():
+            console.print(f"[red]Seeds file not found:[/red] {seeds_file}")
+            raise typer.Exit(1)
+
+        sites = json.loads(seeds_file.read_text())
+        engine = get_engine()
+
+        async with engine.begin() as conn:
+            inserted = 0
+            skipped = 0
+            for site in sites:
+                polling = site.get("polling", {})
+                result = await conn.execute(
+                    text("""
+                        INSERT INTO sites (
+                            name, description, health_url, system_url, token, enabled,
+                            polling_health, polling_system, polling_updates, polling_reboot
+                        ) VALUES (
+                            :name, :description, :health_url, :system_url, :token, :enabled,
+                            :polling_health, :polling_system, :polling_updates, :polling_reboot
+                        )
+                        ON CONFLICT (name) DO NOTHING
+                        """),
+                    {
+                        "name": site["name"],
+                        "description": site.get("description"),
+                        "health_url": site.get("health_url"),
+                        "system_url": site.get("system_url"),
+                        "token": site.get("token", ""),
+                        "enabled": site.get("enabled", True),
+                        "polling_health": polling.get("health", 300),
+                        "polling_system": polling.get("system", 300),
+                        "polling_updates": polling.get("updates", 43200),
+                        "polling_reboot": polling.get("reboot", 1800),
+                    },
+                )
+                if result.rowcount:
+                    console.print(f"[green]✓ Inserted site:[/green] {site['name']}")
+                    inserted += 1
+                else:
+                    console.print(f"[yellow]○ Already exists (skipped):[/yellow] {site['name']}")
+                    skipped += 1
+
+        console.print(f"\n[bold green]Done.[/bold green] Inserted: {inserted}, Skipped: {skipped}")
+
+    if seeder == "sites":
+        asyncio.run(_seed_sites())
+    else:
+        console.print(f"[red]Unknown seeder:[/red] {seeder}. Available: sites")
