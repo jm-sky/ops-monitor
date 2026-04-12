@@ -1,12 +1,13 @@
 """Migration 055: Create sites table for monitor module."""
 
-from app.core.database import get_engine
+from sqlalchemy import text
+
+from app.core.database import engine
 
 
 async def upgrade() -> None:
-    engine = get_engine()
     async with engine.begin() as conn:
-        await conn.execute(__import__("sqlalchemy", fromlist=["text"]).text("""
+        await conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS sites (
                     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     name            VARCHAR(255) NOT NULL UNIQUE,
@@ -27,6 +28,5 @@ async def upgrade() -> None:
 
 
 async def downgrade() -> None:
-    engine = get_engine()
     async with engine.begin() as conn:
-        await conn.execute(__import__("sqlalchemy", fromlist=["text"]).text("DROP TABLE IF EXISTS sites"))
+        await conn.execute(text("DROP TABLE IF EXISTS sites"))
