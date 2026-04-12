@@ -90,15 +90,7 @@ export function useLogin(service?: IAuthService) {
         if (!data.requiresEmailVerification) {
           await queryClient.invalidateQueries({ queryKey: authQueryKeys.me() })
 
-          // Check if data migration should be prompted (localStorage -> API)
-          // This is done asynchronously and doesn't block login
-          try {
-            const { checkAndOpen } = await import('@/modules/gear/composables/useDataMigrationModal').then(m => m.useDataMigrationModal())
-            checkAndOpen()
-          } catch (error) {
-            // Silently fail if migration module is not available
-            console.debug('Migration check skipped:', error)
-          }
+  
         }
       }
       // If 2FA is required, don't set user or invalidate queries yet

@@ -1,13 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import PremiumFeatureBadge from '@/shared/components/PremiumFeatureBadge.vue'
-import { usePermissions } from '@/shared/composables/usePermissions'
 
 const { t } = useI18n()
-const { canUsePremiumFeatures } = usePermissions()
 
 const props = defineProps<{
   modelValue?: string
@@ -16,8 +12,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
-
-const canUseHighQuality = computed(() => canUsePremiumFeatures.value)
 </script>
 
 <template>
@@ -26,12 +20,11 @@ const canUseHighQuality = computed(() => canUsePremiumFeatures.value)
     :model-value="props.modelValue"
     @update:model-value="value => emit('update:modelValue', value)"
   >
-    <div class="flex items-center gap-2" :class="{ 'opacity-50 cursor-not-allowed': !canUseHighQuality }">
-      <RadioGroupItem id="high-quality" value="high_quality" :disabled="!canUseHighQuality" />
+    <div class="flex items-center gap-2">
+      <RadioGroupItem id="high-quality" value="high_quality" />
       <div class="flex-1">
         <Label for="high-quality" class="text-sm font-medium cursor-pointer">
           {{ t('settings.preferences.imageProcessingMode.options.highQuality') }}
-          <PremiumFeatureBadge v-if="!canUseHighQuality" class="ml-2" />
         </Label>
         <p class="text-xs text-muted-foreground">
           {{ t('settings.preferences.imageProcessingMode.options.highQualityDescription') }}

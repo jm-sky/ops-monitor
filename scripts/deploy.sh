@@ -1,28 +1,31 @@
 #!/usr/bin/env bash
 # Deploy ops-monitor to production server.
-# Run from the project root directory.
+# Run from the project root: bash scripts/deploy.sh
 set -euo pipefail
 
-DIST_DIR=/var/www/ops-monitor/dist
-BACKEND_DIR="$(cd "$(dirname "$0")/backend" && pwd)"
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
-echo "==> Building frontend..."
-pnpm install --frozen-lockfile
-pnpm build
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPTS_DIR="$PROJECT_DIR/scripts"
 
-echo "==> Deploying frontend to $DIST_DIR..."
-mkdir -p "$DIST_DIR"
-rsync -a --delete dist/ "$DIST_DIR/"
+echo -e "${GREEN}Starting ops-monitor deployment...${NC}"
 
-echo "==> Starting/updating backend..."
-docker compose -f "$BACKEND_DIR/docker-compose.yml" pull --quiet
-docker compose -f "$BACKEND_DIR/docker-compose.yml" up -d --build
+echo -e "${YELLOW}Requesting sudo access...${NC}"
+sudo -v
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
-echo "==> Running migrations..."
-docker exec ops-monitor-app python -m cli db migrate
+echo -e "${YELLOW}Step 1: Pulling latest changes...${NC}"
+cd "$PROJECT_DIR"
+git pull
 
-echo "==> Reloading Caddy..."
-caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || systemctl reload caddy
+echo -e "${YELLOW}Step 2: Building and deploying frontend...${NC}"
+"$SCRIPTS_DIR/frontend_build_deploy.sh"
+
+echo -e "${YELLOW}Step 3: Restarting backend and running migrations...${NC}"
+"$SCRIPTS_DIR/backend_restart_migrate.sh"
 
 echo ""
-echo "Done. https://ops-monitor.dev-made.it"
+echo -e "${GREEN}Deployment complete. https://ops-monitor.dev-made.it${NC}"

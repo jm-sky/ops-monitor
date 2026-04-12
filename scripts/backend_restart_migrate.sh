@@ -1,48 +1,32 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Rebuild and restart the ops-monitor backend, then run migrations.
+# Called by deploy.sh — can also be run standalone from the project root.
+set -euo pipefail
 
-# Backend Restart and Migrate Script
-# This script restarts the backend Docker Compose services and runs database migrations
-#
-# Usage: scripts/backend_restart_migrate.sh
-
-set -e  # Exit on any error
-
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Configuration
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_DIR="$PROJECT_DIR/backend"
 COMPOSE_FILE="docker-compose.dev.yml"
 
-echo -e "${GREEN}🐳 Starting backend restart and migration...${NC}"
+echo -e "${GREEN}Restarting backend...${NC}"
 
-if [ -d "$BACKEND_DIR" ] && [ -f "$BACKEND_DIR/$COMPOSE_FILE" ]; then
-  cd "$BACKEND_DIR"
+cd "$BACKEND_DIR"
 
-  echo -e "${YELLOW}🔨 Building app image...${NC}"
-  docker compose -f "$COMPOSE_FILE" build app
+echo -e "${YELLOW}Step 1: Building app image...${NC}"
+docker compose -f "$COMPOSE_FILE" build app
 
-  echo ""
-  echo -e "${YELLOW}🔄 Restarting app container...${NC}"
-  docker compose -f "$COMPOSE_FILE" up -d --force-recreate app
+echo -e "${YELLOW}Step 2: Recreating app container...${NC}"
+docker compose -f "$COMPOSE_FILE" up -d --force-recreate app
 
-  echo ""
-  echo -e "${YELLOW}⏳ Waiting for app to be healthy...${NC}"
-  sleep 5
+echo -e "${YELLOW}Step 3: Waiting for app to be healthy...${NC}"
+sleep 5
 
-  echo ""
-  echo -e "${YELLOW}🔄 Running database migrations...${NC}"
-  docker compose -f "$COMPOSE_FILE" exec app python cli.py db migrate
+echo -e "${YELLOW}Step 4: Running migrations...${NC}"
+docker compose -f "$COMPOSE_FILE" exec app python -m cli db migrate
 
-  echo -e "${GREEN}✅ Backend restarted and migrations applied${NC}"
-else
-  echo -e "${YELLOW}⚠️  Backend not found or docker-compose.dev.yml missing, skipping backend deployment${NC}"
-  exit 0
-fi
-
-echo -e "${GREEN}✅ Backend restart and migration completed successfully!${NC}"
+echo -e "${GREEN}Backend restarted and migrations applied${NC}"
 

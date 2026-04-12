@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MoreHorizontal, Shield, Sparkles, Trash2, User, Users } from 'lucide-vue-next'
+import { MoreHorizontal, Shield, Trash2, User, Users } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
@@ -187,10 +187,9 @@ onMounted(() => {
           <UserRoleBadge
             :is-admin="row.original.isAdmin"
             :is-owner="row.original.isOwner"
-            :is-premium="row.original.isPremium"
             :show-icon="false"
           />
-          <Badge v-if="!row.original.isAdmin && !row.original.isOwner && !row.original.isPremium" variant="secondary">
+          <Badge v-if="!row.original.isAdmin && !row.original.isOwner" variant="secondary">
             {{ t('admin.users.user', 'User') }}
           </Badge>
         </template>
@@ -229,19 +228,11 @@ onMounted(() => {
             <DropdownMenuContent align="end">
               <!-- Make User - disabled for Owner users or if already a regular user -->
               <DropdownMenuItem
-                :disabled="row.original.isOwner || (!row.original.isAdmin && !row.original.isPremium)"
+                :disabled="row.original.isOwner || !row.original.isAdmin"
                 @click="changeUserRole(row.original, 'user')"
               >
                 <User class="size-4" />
                 <span>{{ t('admin.users.makeUser', 'Make User') }}</span>
-              </DropdownMenuItem>
-              <!-- Make Premium User - disabled for Owner users or if already premium -->
-              <DropdownMenuItem
-                :disabled="row.original.isOwner || row.original.isPremium"
-                @click="changeUserRole(row.original, 'premium')"
-              >
-                <Sparkles class="size-4" />
-                <span>{{ t('admin.users.makePremium', 'Make Premium User') }}</span>
               </DropdownMenuItem>
               <!-- Make Admin - disabled for Owner users or if already admin -->
               <DropdownMenuItem
