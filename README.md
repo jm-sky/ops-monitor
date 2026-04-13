@@ -103,6 +103,10 @@ ops-monitor/
 
 ### App `/health` (self-reporting)
 
+See **[docs/health-schema.md](docs/health-schema.md)** for the full specification, including component fields, on-demand integration handling, and the `stale` freshness pattern.
+
+Quick reference:
+
 ```json
 {
   "schema_version": 1,
@@ -110,14 +114,12 @@ ops-monitor/
   "version": "1.2.3",
   "environment": "production",
   "components": {
-    "database": {
-      "status": "failed",
-      "reason": "Connection timeout after 5s",
-      "since": "2026-04-11T09:45:00Z"
-    },
-    "cache": { "status": "ok" }
+    "database": { "status": "ok" },
+    "cache": { "status": "degraded", "reason": "High miss rate", "since": "2026-04-13T08:00:00Z" },
+    "frontend": { "status": "ok" },
+    "ocr": { "status": "ok", "checked_at": "2026-04-11T14:23:00Z", "stale": true }
   },
-  "last_activity": "2026-04-11T10:00:00Z",
+  "last_activity": "2026-04-13T10:00:00Z",
   "errors": []
 }
 ```
