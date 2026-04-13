@@ -10,7 +10,7 @@ ops-monitor.dev-made.it {
 
   # Security headers
   header {
-    >Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ops-monitor.dev-made.it; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    >Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ops-monitor.dev-made.it https://*.sentry.io; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
     >X-Frame-Options "DENY"
     >X-Content-Type-Options "nosniff"
     >X-XSS-Protection "1; mode=block"
