@@ -1,136 +1,72 @@
-# Ops-Agent
+# Ops Monitor Agent
 
-A FastAPI application: Ops-Agent
+Lightweight psutil agent. Runs on each monitored server, exposes `/health` and `/system` over HTTP. Pull-only — the central ops-monitor service polls it.
 
-## Setup
+## Endpoints
 
-### Prerequisites
+| Endpoint | Auth | Description |
+|---|---|---|
+| `GET /health` | none | Liveness probe |
+| `GET /system` | Bearer token | Full system metrics |
 
-- Python 3.11 or higher
-- pip or poetry for package management
+Default port: **9100**
 
-### Installation
+## Install (systemd)
 
-1. Clone the repository (or navigate to your project directory)
-
-2. Create a virtual environment:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+sudo bash scripts/agent-install.sh
+# Then edit /opt/ops-monitor-agent/.env — set AGENT_TOKEN
+sudo systemctl restart ops-monitor-agent
 ```
 
-3. Install dependencies:
+## Run manually
+
 ```bash
 pip install -r requirements.txt
+cp .env.example .env   # set AGENT_TOKEN
+python agent.py
 ```
 
-4. Configure environment variables:
-```bash
-cp .env.example .env
-# Edit .env and update with your configuration
-```
-
-5. Initialize the database:
-```bash
-# Run migrations if using Alembic
-alembic upgrade head
-
-# Or for simple setup with SQLite (tables will be created automatically on first run)
-```
-
-### Running the Application
-
-Development mode with auto-reload:
-```bash
-uvicorn main:app --reload
-```
-
-Or:
-```bash
-python main.py
-```
-
-The API will be available at:
-- Main API: http://localhost:8000
-- Interactive docs (Swagger): http://localhost:8000/docs
-- Alternative docs (ReDoc): http://localhost:8000/redoc
-
-## Project Structure
-
-```
-.
-├── main.py                 # Application entry point
-├── app/
-│   ├── __init__.py
-│   ├── core/              # Core utilities
-│   │   ├── config.py      # Configuration management
-│   │   ├── database.py    # Database setup
-│   │   └── __init__.py
-│   └── modules/           # Feature modules
-│       └── __init__.py
-├── requirements.txt       # Python dependencies
-├── .env                  # Environment variables (not in git)
-├── .gitignore
-├── .flake8               # Flake8 linter configuration
-├── .pylintrc             # Pylint configuration
-├── pyproject.toml        # Project metadata and tool configuration
-└── README.md
-```
-
-## Adding Modules
-
-This project uses `fastapi-blocks-registry` for modular architecture. To add pre-built modules:
+## Docker
 
 ```bash
-# List available modules
-fastapi-registry list
-
-# Add a module (e.g., auth)
-fastapi-registry add auth
-
-# Get module information
-fastapi-registry info auth
-```
-
-## API Documentation
-
-Once the server is running, visit:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
-## Development
-
-### Running Tests
-
-```bash
-pytest
-```
-
-### Code Formatting
-
-```bash
-black .
-```
-
-### Linting
-
-```bash
-ruff check .
+docker build -t ops-monitor-agent .
+docker run -d \
+  -p 9100:9100 \
+  -e AGENT_TOKEN=your-secret \
+  --name ops-monitor-agent \
+  ops-monitor-agent
 ```
 
 ## Environment Variables
 
-Key environment variables (see `.env` file):
+| Variable | Default | Description |
+|---|---|---|
+| `AGENT_TOKEN` | _(empty)_ | Static Bearer token. Empty = no auth (dev only) |
+| `AGENT_HOST` | `0.0.0.0` | Listen address |
+| `AGENT_PORT` | `9100` | Listen port |
 
-- `PROJECT_NAME`: Application name
-- `DATABASE_URL`: Database connection string
-- `SECRET_KEY`: Secret key for security (change in production!)
-- `CORS_ORIGINS`: Allowed CORS origins (JSON array format: `["http://localhost:3000","http://localhost:5173"]`)
-- `CORS_METHODS`: Allowed HTTP methods (JSON array format: `["GET","POST"]` or `["*"]` for all)
-- `CORS_HEADERS`: Allowed HTTP headers (JSON array format: `["*"]` for all)
-- `ENVIRONMENT`: Environment (development/production)
+## `/system` Response
 
-## License
+```json
+{
+  "cpu_percent": 42.5,
+  "memory": { "total_mb": 16384, "used_mb": 8192, "percent": 50.0 },
+  "disk": { "total_gb": 500.0, "used_gb": 200.0, "percent": 40.0 },
+  "load_avg": [0.5, 0.8, 1.2],
+  "uptime_seconds": 123456,
+  "reboot_required": true,
+  "reboot_reason": "linux-image-6.8.0-107-generic",
+  "reboot_detected_at": "2026-04-11T08:00:00+00:00",
+  "updates_available": 12,
+  "security_updates": 3,
+  "system_state": "outdated",
+  "timestamp": "2026-04-11T10:00:00+00:00"
+}
+```
 
-[Your License Here]
+Reboot detection and update counts are Debian/Ubuntu specific (`/var/run/reboot-required`, APT notifier files). On other platforms these fields return `false`/`null`/`0` gracefully.
 
+## Registration
+
+Add the server to ops-monitor via the dashboard (Sites → Add) or directly in the DB. Set the same `AGENT_TOKEN` value in both places.

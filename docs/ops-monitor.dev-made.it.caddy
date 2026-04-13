@@ -1,0 +1,77 @@
+# Caddy config for ops-monitor.dev-made.it
+# Deploy: cp docs/ops-monitor.dev-made.it.caddy /etc/caddy/sites-available/
+#         ln -s /etc/caddy/sites-available/ops-monitor.dev-made.it.caddy \
+#                /etc/caddy/sites-enabled/ops-monitor.dev-made.it.caddy
+#         systemctl reload caddy
+
+ops-monitor.dev-made.it {
+  root * /var/www/ops-monitor/dist
+  tls jan.madeyski@saasbase.ovh
+
+  # Security headers
+  header {
+    >Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ops-monitor.dev-made.it; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    >X-Frame-Options "DENY"
+    >X-Content-Type-Options "nosniff"
+    >X-XSS-Protection "1; mode=block"
+    >Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    >Referrer-Policy "strict-origin-when-cross-origin"
+    >Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    -Server
+  }
+
+  encode gzip zstd
+
+  # Hashed assets — 1 year cache (Vite adds content hash to filename)
+  @hashed_assets {
+    path /assets/*.js
+    path /assets/*.css
+    path /assets/*.woff2
+    path /assets/*.woff
+    path /assets/*.ttf
+    path /assets/*.eot
+    path /webfonts/*
+  }
+  header @hashed_assets Cache-Control "public, max-age=31536000, immutable"
+
+  # HTML — never cache (SPA entry point must stay fresh)
+  @html {
+    path /
+    path /*.html
+  }
+  header @html {
+    Cache-Control "no-cache, no-store, must-revalidate"
+    Pragma "no-cache"
+    Expires "0"
+  }
+
+  # Other static assets — short cache
+  @static {
+    path /favicon.ico
+    path /robots.txt
+    path /*.png
+    path /*.jpg
+    path /*.jpeg
+    path /*.gif
+    path /*.svg
+    path /*.ico
+    path /pwa-*.png
+    path /manifest.webmanifest
+  }
+  header @static Cache-Control "public, max-age=3600"
+
+  # API → FastAPI backend
+  handle /api/* {
+    reverse_proxy 127.0.0.1:8000 {
+      header_up X-Real-IP {remote_host}
+      header_up X-Forwarded-For {remote_host}
+      header_up X-Forwarded-Proto {scheme}
+    }
+  }
+
+  # SPA — serve frontend, fallback to index.html for client-side routing
+  handle {
+    try_files {path} /index.html
+    file_server
+  }
+}
