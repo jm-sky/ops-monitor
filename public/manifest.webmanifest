@@ -1,7 +1,7 @@
 {
-  "name": "Gear Stack",
-  "short_name": "Gear Stack",
-  "description": "Gear Stack for managing survival gear and bug-out bag equipment.",
+  "name": "Ops Monitor",
+  "short_name": "Ops Monitor",
+  "description": "Ops Monitor – central infrastructure monitoring dashboard.",
   "theme_color": "#18181b",
   "background_color": "#ffffff",
   "display": "standalone",

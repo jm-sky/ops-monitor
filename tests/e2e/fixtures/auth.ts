@@ -14,6 +14,7 @@ const TEST_USER = {
   email: process.env.E2E_TEST_USER_EMAIL || 'e2e-test@example.com',
   password: process.env.E2E_TEST_USER_PASSWORD || 'E2eTestPassword123!',
 }
+const TOKEN_STORAGE_KEY = `${process.env.VITE_APP_ID || 'ops-monitor'}:token`
 
 type AuthFixtures = {
   authenticatedPage: Page
@@ -40,7 +41,7 @@ export const test = base.extend<AuthFixtures>({
     await page.waitForURL('**/dashboard', { timeout: 15000 })
 
     // Verify token is stored
-    const token = await page.evaluate(() => localStorage.getItem('gear-stack:token'))
+    const token = await page.evaluate((tokenStorageKey) => localStorage.getItem(tokenStorageKey), TOKEN_STORAGE_KEY)
     if (!token) {
       throw new Error('Login failed - no token in localStorage')
     }

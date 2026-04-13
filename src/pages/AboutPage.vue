@@ -11,51 +11,51 @@ const { t } = useI18n()
 const copied = ref(false)
 
 const aiContextMarkdown = computed(() => {
-  return `# Gear Stack - AI Context
+  return `# Ops Monitor - AI Context
 
 ## Overview
-Gear Stack is a full-stack web application for managing survival gear, bug-out bags, and outdoor equipment. It's designed for outdoor enthusiasts, preppers, and survival gear collectors.
+Ops Monitor is a full-stack web application for monitoring infrastructure health, incidents, and service status. It's designed for operations teams and administrators who need centralized system visibility.
 
 ## Key Capabilities
 - **Multi-User Platform** - Secure user accounts with authentication and authorization
 - **Hybrid Architecture** - Works offline with localStorage, syncs with cloud when online
-- **Advanced Organization** - Hierarchical container system with nested items and weight tracking
+- **Advanced Visibility** - Unified service and endpoint health tracking across your environment
 - **Rich Metadata** - Track weight, expiration dates, priorities, brands, and custom categories
 - **Data Portability** - Import/export functionality with AI-ready markdown format
 
 ## Core Features
 
-### Container System
-- Multiple container types (Bug-out bags, EDC kits, get-home bags, medical kits, camping gear, custom)
-- Hierarchical organization - containers can contain other containers (nested packs, pouches in bags)
-- Visual distinction - assign colors to containers (10+ colors)
+### Monitoring Scope
+- Multiple monitored targets (services, hosts, endpoints, and custom checks)
+- Logical grouping by environment, team, or service domain
+- Visual distinction with labels and color-based status cues
 - Container metadata - type, description, base weight, color coding
 - Cycle detection - prevents circular references
 
-### Item Management
-- Rich item data: name, quantity, weight (g, kg, oz, lb), category, priority, status (owned/missing/to buy), brand, notes, expiration date
-- Smart categorization - automatic category recognition (water, fire, food, shelter, first aid, tools, navigation, communication, clothing, hygiene, light, other)
-- Status tracking - owned, missing, or to buy
+### Incident & Check Management
+- Rich check data: name, type, severity, status, ownership, tags, notes, and timestamps
+- Smart categorization by infrastructure layer, service type, and incident domain
+- Status tracking for healthy, degraded, failed, and maintenance states
 - Priority levels - low, medium, high, critical
-- Expiration tracking for consumables
+- SLA and escalation deadline tracking
 
 ### Analytics & Insights
-- Weight calculations - total pack weight with recursive calculation for nested containers
-- Category-based weight distribution
-- Base weight vs. consumables tracking
-- Readiness indicators - kit completeness percentage
-- Donut charts - visual breakdown by category
-- Item statistics by status, category, or priority
+- Health analytics across services and checks
+- Category-based status distribution
+- Service uptime and incident trend tracking
+- Readiness indicators based on operational health
+- Visual charts for status and incident categories
+- Operational statistics by status, category, or priority
 
 ### Search & Filtering
-- Smart search - find items by name, brand, or notes across all containers
-- Multi-criteria filtering - by category, status, priority, or container
-- Sorting options - by name, weight, expiration date, or priority
-- Highlight expired items - visual warnings
+- Smart search for services, checks, and incidents by name, tag, or notes
+- Multi-criteria filtering by environment, status, severity, owner, or service
+- Sorting options by name, status, last change, severity, or uptime
+- Highlight active incidents with clear visual warnings
 
 ### Import/Export
 - JSON export/import - full data backup and restore
-- AI-ready markdown export - structured format with metadata, nested container support, calculated weights
+- AI-ready markdown export with structured monitoring context for analysis and triage
 - CSV export - for spreadsheet applications
 - Cross-device transfer
 
@@ -134,10 +134,10 @@ const handleCopy = async () => {
     <div class="space-y-8">
       <div class="space-y-2">
         <h1 class="text-3xl font-bold tracking-tight">
-          {{ t('about.title', 'About Gear Stack') }}
+          {{ t('about.title', 'About Ops Monitor') }}
         </h1>
         <p class="text-muted-foreground">
-          {{ t('about.subtitle', 'A comprehensive web application for managing survival gear, bug-out bags, and outdoor equipment') }}
+          {{ t('about.subtitle', 'A comprehensive web application for monitoring infrastructure, services, and operational health') }}
         </p>
       </div>
 
@@ -174,7 +174,7 @@ const handleCopy = async () => {
           {{ t('about.overview.title', 'Overview') }}
         </h2>
         <p class="text-muted-foreground">
-          {{ t('about.overview.description', 'Gear Stack is a full-stack application designed for outdoor enthusiasts, preppers, and survival gear collectors. It combines an intuitive front-end interface with a robust backend to provide secure multi-user gear management with cloud synchronization across devices.') }}
+          {{ t('about.overview.description', 'Ops Monitor is a full-stack application designed for operations teams and administrators. It combines an intuitive front-end interface with a robust backend to provide secure multi-user monitoring with centralized visibility across systems.') }}
         </p>
       </section>
 
@@ -203,7 +203,7 @@ const handleCopy = async () => {
               {{ t('about.coreFeatures.containers.title', 'Container System') }}
             </h3>
             <ul class="list-disc list-inside space-y-1 text-muted-foreground ml-4">
-              <li>{{ t('about.coreFeatures.containers.multiple', 'Multiple container types (Bug-out bags, EDC kits, get-home bags, medical kits, camping gear, and custom types)') }}</li>
+              <li>{{ t('about.coreFeatures.containers.multiple', 'Multiple monitored targets (services, hosts, endpoints, and custom checks)') }}</li>
               <li>{{ t('about.coreFeatures.containers.hierarchical', 'Hierarchical organization - containers can contain other containers (nested packs, pouches in bags)') }}</li>
               <li>{{ t('about.coreFeatures.containers.colors', 'Visual distinction - assign colors to containers for quick identification (10+ colors)') }}</li>
               <li>{{ t('about.coreFeatures.containers.metadata', 'Container metadata - type, description, base weight, color coding') }}</li>
@@ -363,7 +363,7 @@ const handleCopy = async () => {
           {{ t('aiContext.title', 'AI Context') }}
         </h2>
         <p class="text-muted-foreground">
-          {{ t('aiContext.subtitle', 'Short description of Gear Stack in Markdown format for AI assistants like ChatGPT') }}
+          {{ t('aiContext.subtitle', 'Short description of Ops Monitor in Markdown format for AI assistants like ChatGPT') }}
         </p>
 
         <Card>
@@ -374,7 +374,7 @@ const handleCopy = async () => {
                   {{ t('aiContext.card.title', 'Copy Context to Clipboard') }}
                 </CardTitle>
                 <CardDescription>
-                  {{ t('aiContext.card.description', 'Click the button below to copy the context description. You can then paste it into ChatGPT or other AI assistants to provide context about Gear Stack.') }}
+                  {{ t('aiContext.card.description', 'Click the button below to copy the context description. You can then paste it into ChatGPT or other AI assistants to provide context about Ops Monitor.') }}
                 </CardDescription>
               </div>
               <Button @click="handleCopy">

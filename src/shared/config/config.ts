@@ -22,9 +22,9 @@ export interface IAiModel {
 
 export const config = {
   app: {
-    id: import.meta.env.VITE_APP_ID ?? 'gear-stack',
-    name: import.meta.env.VITE_APP_NAME ?? 'Gear Stack',
-    description: import.meta.env.VITE_APP_DESCRIPTION ?? 'Gear Stack for managing survival gear and bug-out bag equipment.',
+    id: import.meta.env.VITE_APP_ID ?? 'ops-monitor',
+    name: import.meta.env.VITE_APP_NAME ?? 'Ops Monitor',
+    description: import.meta.env.VITE_APP_DESCRIPTION ?? 'Ops Monitor for tracking infrastructure health, service status, and incidents.',
   },
   i18n: {
     defaultLocale: (import.meta.env.VITE_DEFAULT_LOCALE ?? 'en') as SupportedLocale,

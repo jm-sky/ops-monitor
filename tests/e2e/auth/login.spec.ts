@@ -1,5 +1,7 @@
 import { expect, test } from '../fixtures/auth'
 
+const TOKEN_STORAGE_KEY = `${process.env.VITE_APP_ID || 'ops-monitor'}:token`
+
 test.describe('E2E - Login', () => {
   test('should login with correct credentials via form', async ({ page, testUser }) => {
     // Navigate to login page
@@ -23,7 +25,7 @@ test.describe('E2E - Login', () => {
     expect(page.url()).toContain('/dashboard')
 
     // Verify token is stored in localStorage
-    const token = await page.evaluate(() => localStorage.getItem('gear-stack:token'))
+    const token = await page.evaluate((tokenStorageKey) => localStorage.getItem(tokenStorageKey), TOKEN_STORAGE_KEY)
     expect(token).toBeTruthy()
     expect(token?.length).toBeGreaterThan(0)
   })
@@ -47,7 +49,7 @@ test.describe('E2E - Login', () => {
     expect(page.url()).toContain('/auth/login')
 
     // Token should not be stored
-    const token = await page.evaluate(() => localStorage.getItem('gear-stack:token'))
+    const token = await page.evaluate((tokenStorageKey) => localStorage.getItem(tokenStorageKey), TOKEN_STORAGE_KEY)
     expect(token).toBeNull()
   })
 

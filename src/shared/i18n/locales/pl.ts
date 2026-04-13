@@ -105,7 +105,7 @@ export default {
     dashboard: 'Panel',
     profile: 'Profil',
     settings: 'Ustawienia',
-    myGear: 'Mój sprzęt',
+    myGear: 'Monitoring',
     public: 'Publiczne',
   },
   footer: {
@@ -186,10 +186,10 @@ export default {
     subtitle: 'Jak chronimy Twoje dane',
     dataCollection: {
       title: 'Zbieranie danych',
-      description: 'Aplikacja Gear Stack zbiera następujące dane:',
+      description: 'Aplikacja Ops Monitor zbiera następujące dane:',
       items: {
         account: 'Dane konta: email, imię i nazwisko (wymagane do utworzenia konta)',
-        gear: 'Dane dotyczące sprzętu: kontenery, przedmioty, wagi, statusy (przechowywane w bazie danych)',
+        gear: 'Dane monitoringu: usługi, endpointy, snapshoty statusu i powiązane metadane (przechowywane w bazie danych)',
         settings: 'Ustawienia aplikacji: preferencje językowe, jednostki wagowe, inne ustawienia',
         usage: 'Dane użytkowania: logi dostępu, akcje podejmowane w aplikacji (w celu zapewnienia bezpieczeństwa i poprawy usługi)',
       },
@@ -256,7 +256,7 @@ export default {
     subtitle: 'Warunki korzystania z serwisu',
     acceptance: {
       title: 'Akceptacja warunków',
-      description: 'Korzystając z aplikacji Gear Stack, akceptujesz niniejsze warunki korzystania. Jeśli nie zgadzasz się z którymkolwiek z poniższych warunków, nie powinieneś korzystać z serwisu.',
+      description: 'Korzystając z aplikacji Ops Monitor, akceptujesz niniejsze warunki korzystania. Jeśli nie zgadzasz się z którymkolwiek z poniższych warunków, nie powinieneś korzystać z serwisu.',
     },
     account: {
       title: 'Konto użytkownika',
@@ -325,8 +325,8 @@ export default {
     },
   },
   landing: {
-    title: 'Gear Stack',
-    subtitle: 'Organizuj i zarządzaj swoim sprzętem survivalowym i wyposażeniem bug-out bag',
+    title: 'Ops Monitor',
+    subtitle: 'Monitoruj stan infrastruktury, incydenty i status usług w jednym miejscu',
     welcomeBack: 'Witaj ponownie, {name}!',
     feature1: {
       title: 'Organizuj',
@@ -349,7 +349,7 @@ export default {
     },
     stats: {
       totalUsers: 'Wszyscy użytkownicy',
-      totalContainers: 'Wszystkie kontenery',
+      totalContainers: 'Wszystkie usługi',
       totalItems: 'Wszystkie przedmioty',
       newThisMonth: 'w tym miesiącu',
     },
@@ -358,7 +358,7 @@ export default {
     title: 'Strona nie została znaleziona',
     description: 'Strona, której szukasz, nie istnieje.',
     suggestions: 'Oto kilka pomocnych linków:',
-    goToContainers: 'Przejdź do Kontenerów',
+    goToContainers: 'Przejdź do monitoringu',
     goToDashboard: 'Przejdź do Dashboardu',
     goToSettings: 'Przejdź do Ustawień',
   },
@@ -415,14 +415,14 @@ export default {
     },
   },
   about: {
-    title: 'O aplikacji Gear Stack',
-    subtitle: 'Kompleksowa aplikacja internetowa do zarządzania sprzętem survivalowym, plecakami bug-out i wyposażeniem outdoorowym',
+    title: 'O aplikacji Ops Monitor',
+    subtitle: 'Kompleksowa aplikacja internetowa do monitorowania infrastruktury, usług i stanu operacyjnego',
     tableOfContents: {
       title: 'Spis treści',
     },
     overview: {
       title: 'Przegląd',
-      description: 'Gear Stack to aplikacja full-stack zaprojektowana dla entuzjastów outdooru, preppersów i kolekcjonerów sprzętu survivalowego. Łączy intuicyjny interfejs front-end z solidnym backendem, zapewniając bezpieczne zarządzanie sprzętem dla wielu użytkowników z synchronizacją w chmurze między urządzeniami.',
+      description: 'Ops Monitor to aplikacja full-stack zaprojektowana dla zespołów operacyjnych i administratorów. Łączy intuicyjny interfejs front-end z solidnym backendem, zapewniając bezpieczny monitoring dla wielu użytkowników i scentralizowany wgląd w stan systemów.',
     },
     capabilities: {
       title: 'Kluczowe możliwości',
@@ -436,7 +436,7 @@ export default {
       title: 'Główne funkcje',
       containers: {
         title: 'System kontenerów',
-        multiple: 'Wiele typów kontenerów (plecaki bug-out, zestawy EDC, torby get-home, apteczki, sprzęt campingowy i niestandardowe typy)',
+        multiple: 'Wiele monitorowanych celów (usługi, hosty, endpointy i niestandardowe kontrole)',
         hierarchical: 'Organizacja hierarchiczna - kontenery mogą zawierać inne kontenery (zagnieżdżone plecaki, saszetki w torbach)',
         colors: 'Wizualne rozróżnienie - przypisywanie kolorów do kontenerów dla szybkiej identyfikacji (10+ kolorów)',
         metadata: 'Metadane kontenerów - typ, opis, waga bazowa, kodowanie kolorów',
@@ -517,10 +517,10 @@ export default {
   },
   aiContext: {
     title: 'Kontekst AI',
-    subtitle: 'Krótki opis Gear Stack w formacie Markdown dla asystentów AI takich jak ChatGPT',
+    subtitle: 'Krótki opis Ops Monitor w formacie Markdown dla asystentów AI takich jak ChatGPT',
     card: {
       title: 'Skopiuj kontekst do schowka',
-      description: 'Kliknij przycisk poniżej, aby skopiować opis kontekstu. Następnie możesz wkleić go do ChatGPT lub innych asystentów AI, aby zapewnić kontekst o Gear Stack.',
+      description: 'Kliknij przycisk poniżej, aby skopiować opis kontekstu. Następnie możesz wkleić go do ChatGPT lub innych asystentów AI, aby zapewnić kontekst o Ops Monitor.',
     },
     copied: 'Kontekst skopiowany do schowka',
   },
