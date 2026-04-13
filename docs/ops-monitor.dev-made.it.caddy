@@ -69,6 +69,9 @@ ops-monitor.dev-made.it {
     }
   }
 
-  file_server
-  try_files {path} /index.html
+  # SPA — serve frontend, fallback to index.html for client-side routing
+  handle {
+    try_files {path} /index.html
+    file_server
+  }
 }
