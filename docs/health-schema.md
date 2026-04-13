@@ -75,18 +75,19 @@ The top-level `status` must reflect the worst status across all components — i
 
 ## Standard Component Names
 
-Use these names for common components to ensure consistent display in ops-monitor:
+Use these names for common components to ensure consistent display in ops-monitor.
+Ops-monitor assigns a fixed icon to each standard name.
 
-| Name | Description |
-|---|---|
-| `database` | Primary database (PostgreSQL, MySQL, etc.). |
-| `cache` | Cache layer (Redis, Memcached, etc.). |
-| `frontend` | Vue/React frontend — verified by checking for an HTTP 200 response. |
-| `queue` | Job/message queue (RabbitMQ, SQS, etc.). |
-| `storage` | File/object storage (S3, local disk, etc.). |
-| `mail` | Email delivery service. |
+| Icon | Name | Description |
+|---|---|---|
+| 🗄️ | `database` | Primary database (PostgreSQL, MySQL, etc.). |
+| ⚡ | `cache` | Cache layer (Redis, Memcached, etc.). |
+| 🖥️ | `frontend` | Vue/React frontend — verified by checking for an HTTP 200 response. |
+| 📬 | `queue` | Job/message queue (RabbitMQ, SQS, etc.). |
+| 📦 | `storage` | File/object storage (S3, local disk, etc.). |
+| 📧 | `mail` | Email delivery service. |
 
-Any additional integration or service can be added under a descriptive name (e.g. `ocr`, `payments`, `maps`).
+Any additional integration or service can be added under a descriptive name (e.g. `ocr`, `payments`, `maps`). Custom component names will use a generic 🔌 icon.
 
 ---
 
