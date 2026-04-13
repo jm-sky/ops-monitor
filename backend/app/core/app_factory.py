@@ -133,7 +133,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # except Exception as e:
     #     logger.error(f"Failed to initialize database: {e}")
 
+    # Start monitor poller
+    try:
+        from app.modules.monitor.scheduler import poller
+
+        poller.start()
+    except Exception as e:
+        logger.error("Failed to start monitor poller: %s", e)
+
     yield
+
+    # Stop monitor poller
+    try:
+        from app.modules.monitor.scheduler import poller
+
+        await poller.stop()
+    except Exception as e:
+        logger.error("Failed to stop monitor poller: %s", e)
 
     # Shutdown
     logger.info("Shutting down application")

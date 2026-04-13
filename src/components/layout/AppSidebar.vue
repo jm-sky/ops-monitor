@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Info, LayoutDashboard, Settings } from 'lucide-vue-next'
+import { Activity, Info, LayoutDashboard, Settings } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import {
@@ -15,6 +15,7 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar'
 import { AuthRoutePaths } from '@/modules/auth/config/routes'
+import { MonitorRoutePaths } from '@/modules/monitor/routes'
 import { PublicRoutePaths } from '@/router/publicRoutes'
 
 const { t } = useI18n()
@@ -24,6 +25,11 @@ const mainLinks = [
     to: AuthRoutePaths.dashboard,
     label: t('navigation.dashboard', 'Dashboard'),
     icon: LayoutDashboard,
+  },
+  {
+    to: MonitorRoutePaths.monitor,
+    label: t('navigation.monitor', 'Monitor'),
+    icon: Activity,
   },
   {
     to: '/settings',
