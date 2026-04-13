@@ -9,6 +9,7 @@ Endpoints:
 """
 
 import os
+import subprocess
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -87,6 +88,7 @@ def _get_update_info() -> dict:
 
     updates_available = 0
     security_updates = 0
+    security_packages: list[str] = []
 
     try:
         notifier = Path("/var/lib/update-notifier/updates-available")
@@ -102,9 +104,25 @@ def _get_update_info() -> dict:
     except Exception:
         pass
 
+    try:
+        proc = subprocess.run(
+            ["apt", "list", "--upgradable"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        for line in proc.stdout.splitlines():
+            if "/" in line and "security" in line.lower():
+                security_packages.append(line.split("/")[0])
+        if security_packages:
+            security_updates = len(security_packages)
+    except Exception:
+        pass
+
     result = {
         "updates_available": updates_available + security_updates,
         "security_updates": security_updates,
+        "security_packages": security_packages,
         "system_state": "up_to_date" if (updates_available + security_updates) == 0 else "outdated",
     }
     _updates_cache = {"_ts": now, **result}
