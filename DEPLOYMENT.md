@@ -1,11 +1,11 @@
 # Deployment Setup Guide
 
-This guide explains how to set up and deploy the Gear Stack application with support for both manual deployment (main user) and automated GitHub Actions deployment (`deploy` user).
+This guide explains how to set up and deploy the Ops Monitor application with support for both manual deployment (main user) and automated GitHub Actions deployment (`deploy` user).
 
 ## Overview
 
-- **Project folder (git repository):** `/home/$USER/projects/gear-stack/`
-- **Deployment folder (Caddy serves from):** `/var/www/gear-stack/`
+- **Project folder (git repository):** `/home/$USER/projects/ops-monitor/`
+- **Deployment folder (Caddy serves from):** `/var/www/ops-monitor/`
 - **Users with deploy access:**
   - Main user (your username) - manual deployment
   - `deploy` - GitHub Actions automated deployment
@@ -21,8 +21,8 @@ You need to configure permissions for both users. Run these commands as root or 
 ```bash
 # Configuration variables - REPLACE WITH YOUR USERNAME
 PROJECT_USER="your-username"
-PROJECT_DIR="/home/$PROJECT_USER/projects/gear-stack"
-DEPLOY_DIR="/var/www/gear-stack"
+PROJECT_DIR="/home/$PROJECT_USER/projects/ops-monitor"
+DEPLOY_DIR="/var/www/ops-monitor"
 
 # Create deploy user if it doesn't exist
 sudo useradd -m -s /bin/bash deploy
@@ -54,13 +54,13 @@ Create a sudoers file to allow passwordless deployment commands:
 
 ```bash
 # Create sudoers file
-sudo tee /etc/sudoers.d/gear-stack-deploy > /dev/null <<'EOF'
-# Gear Stack Deployment Permissions
+sudo tee /etc/sudoers.d/ops-monitor-deploy > /dev/null <<'EOF'
+# Ops Monitor Deployment Permissions
 # Replace YOUR_USERNAME with your actual username
 
-# Both users can manage files in /var/www/gear-stack
-YOUR_USERNAME ALL=(ALL) NOPASSWD: /bin/rm -rf /var/www/gear-stack/*, /bin/cp -r * /var/www/gear-stack/, /usr/bin/chown -R caddy\:deploy /var/www/gear-stack
-deploy ALL=(ALL) NOPASSWD: /bin/rm -rf /var/www/gear-stack/*, /bin/cp -r * /var/www/gear-stack/, /usr/bin/chown -R caddy\:deploy /var/www/gear-stack
+# Both users can manage files in /var/www/ops-monitor
+YOUR_USERNAME ALL=(ALL) NOPASSWD: /bin/rm -rf /var/www/ops-monitor/*, /bin/cp -r * /var/www/ops-monitor/, /usr/bin/chown -R caddy\:deploy /var/www/ops-monitor
+deploy ALL=(ALL) NOPASSWD: /bin/rm -rf /var/www/ops-monitor/*, /bin/cp -r * /var/www/ops-monitor/, /usr/bin/chown -R caddy\:deploy /var/www/ops-monitor
 
 # Both users can reload Caddy (if needed)
 YOUR_USERNAME ALL=(ALL) NOPASSWD: /usr/bin/systemctl reload caddy
@@ -68,8 +68,8 @@ deploy ALL=(ALL) NOPASSWD: /usr/bin/systemctl reload caddy
 EOF
 
 # Set correct permissions and validate
-sudo chmod 440 /etc/sudoers.d/gear-stack-deploy
-sudo visudo -c -f /etc/sudoers.d/gear-stack-deploy
+sudo chmod 440 /etc/sudoers.d/ops-monitor-deploy
+sudo visudo -c -f /etc/sudoers.d/ops-monitor-deploy
 ```
 
 **Important:** Replace `YOUR_USERNAME` in the sudoers file with your actual username before saving. After running these commands, log out and log back in for group changes to take effect.
@@ -113,7 +113,7 @@ To add the SSH key secret:
 To deploy manually:
 
 ```bash
-cd /home/$USER/projects/gear-stack
+cd /home/$USER/projects/ops-monitor
 bash scripts/deploy.sh
 ```
 
@@ -121,7 +121,7 @@ This script will:
 1. Pull latest changes from git
 2. Install frontend dependencies with pnpm
 3. Build the frontend
-4. Deploy to `/var/www/gear-stack/`
+4. Deploy to `/var/www/ops-monitor/`
 5. Restart backend Docker containers and run migrations
 
 ## Automated Deployment (GitHub Actions)
@@ -151,10 +151,10 @@ The `scripts/deploy.sh` script performs the following:
 1. **Pull latest changes** - `git pull`
 2. **Install dependencies** - `pnpm install --frozen-lockfile`
 3. **Build frontend** - `pnpm build`
-4. **Deploy to /var/www/gear-stack/**
-   - Remove old files: `sudo rm -rf /var/www/gear-stack/*`
-   - Copy new build: `sudo cp -r dist/* /var/www/gear-stack/`
-   - Fix ownership: `sudo chown -R caddy:deploy /var/www/gear-stack`
+4. **Deploy to /var/www/ops-monitor/**
+   - Remove old files: `sudo rm -rf /var/www/ops-monitor/*`
+   - Copy new build: `sudo cp -r dist/* /var/www/ops-monitor/`
+   - Fix ownership: `sudo chown -R caddy:deploy /var/www/ops-monitor`
 5. **Restart backend and migrate**
    - Stop Docker Compose: `docker compose -f docker-compose.dev.yml down`
    - Start Docker Compose: `docker compose -f docker-compose.dev.yml up -d`
@@ -162,22 +162,22 @@ The `scripts/deploy.sh` script performs the following:
 
 ## Permission Structure
 
-### Project Directory (`/home/$USER/projects/gear-stack/`)
+### Project Directory (`/home/$USER/projects/ops-monitor/`)
 - Owner: `your-username:deploy`
 - Permissions: `g+rwX` (group read, write, execute)
 - SGID bit set: new files inherit `deploy` group
 
-### Deployment Directory (`/var/www/gear-stack/`)
+### Deployment Directory (`/var/www/ops-monitor/`)
 - Owner: `caddy:deploy`
 - Permissions: `775` (owner/group full, others read+execute)
 - SGID bit set: new files inherit `deploy` group
 
-### Sudoers Configuration (`/etc/sudoers.d/gear-stack-deploy`)
+### Sudoers Configuration (`/etc/sudoers.d/ops-monitor-deploy`)
 
 Both your main user and `deploy` can run these commands without password:
-- `sudo rm -rf /var/www/gear-stack/*`
-- `sudo cp -r * /var/www/gear-stack/`
-- `sudo chown -R caddy:deploy /var/www/gear-stack`
+- `sudo rm -rf /var/www/ops-monitor/*`
+- `sudo cp -r * /var/www/ops-monitor/`
+- `sudo chown -R caddy:deploy /var/www/ops-monitor`
 - `sudo systemctl reload caddy`
 
 ### Docker Access
@@ -201,8 +201,8 @@ Both users are in the `docker` group, allowing them to run Docker commands witho
 - The project directory should be readable by the `deploy` group
 
 ### Frontend not updating after deployment
-- Check Caddy is serving from `/var/www/gear-stack/`
-- Verify files were copied: `ls -la /var/www/gear-stack/`
+- Check Caddy is serving from `/var/www/ops-monitor/`
+- Verify files were copied: `ls -la /var/www/ops-monitor/`
 - Hard refresh browser (Ctrl+Shift+R) to clear cache
 
 ### Docker commands fail
@@ -215,7 +215,7 @@ Both users are in the `docker` group, allowing them to run Docker commands witho
 - The `deploy` user has limited sudo access (only specific commands via sudoers)
 - SSH key for `deploy` should be kept secure and only used for GitHub Actions
 - The sudoers configuration is validated with `visudo -c` during setup
-- Both users can only manage files in `/var/www/gear-stack/`, not system-wide
+- Both users can only manage files in `/var/www/ops-monitor/`, not system-wide
 
 ## Manual Commands
 
@@ -225,11 +225,11 @@ Both users are in the `docker` group, allowing them to run Docker commands witho
 sudo systemctl status caddy
 
 # Check backend containers
-cd /home/$USER/projects/gear-stack/backend
+cd /home/$USER/projects/ops-monitor/backend
 docker compose -f docker-compose.dev.yml ps
 
 # Check deployed frontend
-ls -la /var/www/gear-stack/
+ls -la /var/www/ops-monitor/
 ```
 
 ### Reload Caddy configuration
@@ -254,6 +254,6 @@ The FastAPI backend also adds cache headers as a fallback, but Caddy configurati
 # Output is shown directly in terminal
 
 # Backend logs
-cd /home/$USER/projects/gear-stack/backend
+cd /home/$USER/projects/ops-monitor/backend
 docker compose -f docker-compose.dev.yml logs -f
 ```

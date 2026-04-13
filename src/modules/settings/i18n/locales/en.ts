@@ -83,8 +83,8 @@ export const settingsEn = {
       },
     },
     preferences: {
-      title: 'Gear Preferences',
-      description: 'Manage your gear-specific preferences and settings',
+      title: 'Preferences',
+      description: 'Manage your application preferences and settings',
       save: 'Save',
       saved: 'Saved',
       preferredWeightUnit: {
