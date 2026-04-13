@@ -35,7 +35,9 @@ class AdminService:
             return str(dt.isoformat())
         return str(dt)
 
-    async def get_all_users(self, skip: int = 0, limit: int = 100) -> list[AdminUserResponse]:
+    async def get_all_users(
+        self, skip: int = 0, limit: int = 100
+    ) -> list[AdminUserResponse]:
         users_with_auth = await self.repository.get_all_users(skip=skip, limit=limit)
         result = []
         for user, _ in users_with_auth:
@@ -50,7 +52,8 @@ class AdminService:
                     isOwner=user.is_owner,
                     isPremium=user.is_premium,
                     isEmailVerified=user.is_email_verified,
-                    emailVerifiedAt=self._serialize_datetime(user.email_verified_at) or "",
+                    emailVerifiedAt=self._serialize_datetime(user.email_verified_at)
+                    or "",
                     createdAt=self._serialize_datetime(user.created_at) or "",
                     updatedAt=self._serialize_datetime(user.created_at) or "",
                 )
@@ -76,7 +79,9 @@ class AdminService:
             updatedAt=self._serialize_datetime(user.created_at) or "",
         )
 
-    async def update_user(self, user_id: str, user_data: UserUpdate, current_user: "User") -> AdminUserResponse | None:
+    async def update_user(
+        self, user_id: str, user_data: UserUpdate, current_user: "User"
+    ) -> AdminUserResponse | None:
         from fastapi import HTTPException, status
 
         target_user, _ = await self.repository.get_user_by_id(user_id)
@@ -84,10 +89,21 @@ class AdminService:
             return None
 
         if current_user.isAdmin and not current_user.isOwner:
-            if user_data.isOwner is True or (user_data.role and user_data.role == "owner"):
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Administrators cannot assign Owner role")
-            if target_user.is_owner and (user_data.isOwner is False or (user_data.role and user_data.role != "owner")):
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Administrators cannot modify Owner users")
+            if user_data.isOwner is True or (
+                user_data.role and user_data.role == "owner"
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Administrators cannot assign Owner role",
+                )
+            if target_user.is_owner and (
+                user_data.isOwner is False
+                or (user_data.role and user_data.role != "owner")
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Administrators cannot modify Owner users",
+                )
 
         is_admin = user_data.isAdmin
         is_owner = user_data.isOwner
@@ -136,7 +152,8 @@ class AdminService:
             isActive=updated_user.is_active,
             isAdmin=updated_user.is_admin,
             isEmailVerified=updated_user.is_email_verified,
-            emailVerifiedAt=self._serialize_datetime(updated_user.email_verified_at) or "",
+            emailVerifiedAt=self._serialize_datetime(updated_user.email_verified_at)
+            or "",
             createdAt=self._serialize_datetime(updated_user.created_at) or "",
             updatedAt=self._serialize_datetime(updated_user.created_at) or "",
         )
@@ -149,14 +166,26 @@ class AdminService:
             return False
 
         if settings.security.protected_user_email:
-            if target_user.email.lower() == settings.security.protected_user_email.lower():
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete protected user")
+            if (
+                target_user.email.lower()
+                == settings.security.protected_user_email.lower()
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Cannot delete protected user",
+                )
 
         if current_user.isAdmin and not current_user.isOwner:
             if target_user.is_owner:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Administrators cannot delete Owner users")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Administrators cannot delete Owner users",
+                )
 
         if target_user.is_admin and not current_user.isOwner:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only Owners can delete admin users")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only Owners can delete admin users",
+            )
 
         return await self.user_repository.delete_user(user_id)

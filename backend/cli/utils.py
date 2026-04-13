@@ -64,7 +64,9 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
     return True, ""
 
 
-def format_user_role(is_admin: bool = False, is_owner: bool = False, is_premium: bool = False) -> str:
+def format_user_role(
+    is_admin: bool = False, is_owner: bool = False, is_premium: bool = False
+) -> str:
     """Format user role for display with color.
 
     Args:
@@ -105,7 +107,11 @@ def format_email_verified(is_verified: bool) -> str:
     Returns:
         str: Formatted status string with Rich markup
     """
-    return "[green]✓ Verified[/green]" if is_verified else "[yellow]✗ Not verified[/yellow]"
+    return (
+        "[green]✓ Verified[/green]"
+        if is_verified
+        else "[yellow]✗ Not verified[/yellow]"
+    )
 
 
 def format_2fa_status(has_2fa: bool) -> str:

@@ -23,7 +23,7 @@ async def health_check() -> dict[str, str]:
     Returns:
         Status message
     """
-    return {"status": "healthy"}
+    return {"status": "ok"}
 
 
 # Register module routers

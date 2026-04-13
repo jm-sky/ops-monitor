@@ -16,6 +16,26 @@ logger = logging.getLogger(__name__)
 
 TIMEOUT = 10.0  # seconds per request
 
+_STATUS_MAP = {
+    "healthy": "ok",
+    "up": "ok",
+    "pass": "ok",
+    "ok": "ok",
+    "degraded": "degraded",
+    "warn": "degraded",
+    "warning": "degraded",
+    "down": "failed",
+    "error": "failed",
+    "fail": "failed",
+    "failed": "failed",
+}
+
+
+def _normalize_status(raw: str | None) -> str:
+    if not raw:
+        return "ok"
+    return _STATUS_MAP.get(str(raw).lower(), raw)
+
 
 class MonitorService:
     async def poll_due_sites(self, last_polled: dict[str, dict[str, datetime]]) -> None:
@@ -69,8 +89,17 @@ class MonitorService:
             async with httpx.AsyncClient(timeout=TIMEOUT) as client:
                 resp = await client.get(site.health_url, headers=headers)  # type: ignore[arg-type]
                 resp.raise_for_status()
-                raw_data = resp.json()
-                status = raw_data.get("status", "ok")
+                try:
+                    raw_data = resp.json()
+                except Exception:
+                    raise ValueError(
+                        f"Non-JSON response (content-type: {resp.headers.get('content-type', 'unknown')})"
+                    )
+                if not isinstance(raw_data, dict):
+                    raise ValueError(
+                        f"Expected JSON object, got {type(raw_data).__name__}"
+                    )
+                status = _normalize_status(raw_data.get("status"))
         except httpx.TimeoutException:
             error = "Connection timeout"
             status = "failed"

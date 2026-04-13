@@ -121,7 +121,10 @@ def prompt_for_arguments(command_path: str) -> list[str]:
             choices: list[str] = arg_config.get("choices", [])
             if not choices or not isinstance(choices, list):
                 return []
-            choice_objects = [questionary.Choice(title=str(choice), value=str(choice)) for choice in choices]
+            choice_objects = [
+                questionary.Choice(title=str(choice), value=str(choice))
+                for choice in choices
+            ]
             value: str | None = questionary.select(
                 arg_prompt,
                 choices=choice_objects,
@@ -180,7 +183,10 @@ def show_group_interactive_menu(group_key: str, group_info: dict) -> None:
 
     # Prepare choices for questionary
     commands_list = list(group_info["commands"].items())
-    choices = [questionary.Choice(title=f"{cmd_key:20s} - {cmd_desc}", value=cmd_key) for cmd_key, cmd_desc in commands_list]
+    choices = [
+        questionary.Choice(title=f"{cmd_key:20s} - {cmd_desc}", value=cmd_key)
+        for cmd_key, cmd_desc in commands_list
+    ]
 
     # Use questionary.select for arrow key navigation
     selected_command = questionary.select(
@@ -192,14 +198,29 @@ def show_group_interactive_menu(group_key: str, group_info: dict) -> None:
             [
                 ("qmark", "fg:#673ab7 bold"),  # token in front of the question
                 ("question", "bold"),  # question text
-                ("answer", "fg:#f44336 bold"),  # submitted answer text behind the question
-                ("pointer", "fg:#673ab7 bold"),  # pointer used in select and checkbox prompts
-                ("highlighted", "fg:#673ab7 bold"),  # pointed-at choice in select and checkbox prompts
+                (
+                    "answer",
+                    "fg:#f44336 bold",
+                ),  # submitted answer text behind the question
+                (
+                    "pointer",
+                    "fg:#673ab7 bold",
+                ),  # pointer used in select and checkbox prompts
+                (
+                    "highlighted",
+                    "fg:#673ab7 bold",
+                ),  # pointed-at choice in select and checkbox prompts
                 ("selected", "fg:#cc5454"),  # style for a selected item of a checkbox
                 ("separator", "fg:#cc5454"),  # separator in lists
-                ("instruction", ""),  # user instructions for select, rawselect, checkbox
+                (
+                    "instruction",
+                    "",
+                ),  # user instructions for select, rawselect, checkbox
                 ("text", ""),  # plain text
-                ("disabled", "fg:#858585 italic"),  # disabled choices for select and checkbox prompts
+                (
+                    "disabled",
+                    "fg:#858585 italic",
+                ),  # disabled choices for select and checkbox prompts
             ]
         ),
     ).ask()
@@ -216,9 +237,13 @@ def show_group_interactive_menu(group_key: str, group_info: dict) -> None:
     # Build command and execute
     console.print()
     if required_args:
-        console.print(f"[dim]Executing: [cyan]{group_key} {selected_command} {' '.join(required_args)}[/cyan][/dim]")
+        console.print(
+            f"[dim]Executing: [cyan]{group_key} {selected_command} {' '.join(required_args)}[/cyan][/dim]"
+        )
     else:
-        console.print(f"[dim]Executing: [cyan]{group_key} {selected_command}[/cyan][/dim]")
+        console.print(
+            f"[dim]Executing: [cyan]{group_key} {selected_command}[/cyan][/dim]"
+        )
     console.print()
 
     # Reconstruct sys.argv to pass to Typer
@@ -232,11 +257,21 @@ def show_group_interactive_menu(group_key: str, group_info: dict) -> None:
 def _show_interactive_menu() -> None:
     """Show interactive menu for command selection using arrow keys."""
     console.print()
-    console.print(Panel.fit("[bold cyan]Ops Monitor CLI - Interactive Mode[/bold cyan]", border_style="cyan"))
+    console.print(
+        Panel.fit(
+            "[bold cyan]Ops Monitor CLI - Interactive Mode[/bold cyan]",
+            border_style="cyan",
+        )
+    )
     console.print()
 
     # Prepare choices for questionary
-    choices = [questionary.Choice(title=f"{group_key:8s} - {group_info['name']}", value=group_key) for group_key, group_info in COMMAND_GROUPS.items()]
+    choices = [
+        questionary.Choice(
+            title=f"{group_key:8s} - {group_info['name']}", value=group_key
+        )
+        for group_key, group_info in COMMAND_GROUPS.items()
+    ]
 
     # Use questionary.select for arrow key navigation
     selected_group = questionary.select(
@@ -248,14 +283,29 @@ def _show_interactive_menu() -> None:
             [
                 ("qmark", "fg:#673ab7 bold"),  # token in front of the question
                 ("question", "bold"),  # question text
-                ("answer", "fg:#f44336 bold"),  # submitted answer text behind the question
-                ("pointer", "fg:#673ab7 bold"),  # pointer used in select and checkbox prompts
-                ("highlighted", "fg:#673ab7 bold"),  # pointed-at choice in select and checkbox prompts
+                (
+                    "answer",
+                    "fg:#f44336 bold",
+                ),  # submitted answer text behind the question
+                (
+                    "pointer",
+                    "fg:#673ab7 bold",
+                ),  # pointer used in select and checkbox prompts
+                (
+                    "highlighted",
+                    "fg:#673ab7 bold",
+                ),  # pointed-at choice in select and checkbox prompts
                 ("selected", "fg:#cc5454"),  # style for a selected item of a checkbox
                 ("separator", "fg:#cc5454"),  # separator in lists
-                ("instruction", ""),  # user instructions for select, rawselect, checkbox
+                (
+                    "instruction",
+                    "",
+                ),  # user instructions for select, rawselect, checkbox
                 ("text", ""),  # plain text
-                ("disabled", "fg:#858585 italic"),  # disabled choices for select and checkbox prompts
+                (
+                    "disabled",
+                    "fg:#858585 italic",
+                ),  # disabled choices for select and checkbox prompts
             ]
         ),
     ).ask()

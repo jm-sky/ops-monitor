@@ -45,13 +45,17 @@ def test_sentry() -> None:
         python -m cli test sentry
     """
     console.print("[yellow]Throwing unhandled exception to test Sentry...[/yellow]")
-    console.print("[red]This exception should be caught by Sentry if configured correctly.[/red]\n")
+    console.print(
+        "[red]This exception should be caught by Sentry if configured correctly.[/red]\n"
+    )
 
     try:
         import sentry_sdk
 
         # Capture exception with Sentry
-        sentry_sdk.capture_exception(RuntimeError("Test exception for Sentry integration - this is intentional!"))
+        sentry_sdk.capture_exception(
+            RuntimeError("Test exception for Sentry integration - this is intentional!")
+        )
 
         # Flush events to ensure they are sent before CLI exits
         console.print("[blue]Flushing Sentry events...[/blue]")
@@ -68,7 +72,9 @@ def test_sentry() -> None:
 
 @test_app.command("storage")
 def test_storage(
-    skip_cleanup: bool = typer.Option(False, "--skip-cleanup", help="Skip cleanup after test"),
+    skip_cleanup: bool = typer.Option(
+        False, "--skip-cleanup", help="Skip cleanup after test"
+    ),
 ) -> None:
     """Test storage adapter connectivity and operations.
 
@@ -95,7 +101,9 @@ async def _test_storage_async(skip_cleanup: bool) -> None:
     if settings.storage.type == "s3":
         console.print(f"[dim]S3 Bucket:[/dim] {settings.storage.s3_bucket}")
         console.print(f"[dim]S3 Region:[/dim] {settings.storage.s3_region}")
-        console.print(f"[dim]S3 Endpoint:[/dim] {settings.storage.s3_endpoint_url or 'Default (AWS)'}")
+        console.print(
+            f"[dim]S3 Endpoint:[/dim] {settings.storage.s3_endpoint_url or 'Default (AWS)'}"
+        )
     console.print()
 
     try:
@@ -142,7 +150,9 @@ async def _test_storage_async(skip_cleanup: bool) -> None:
             url = await adapter.get_url(test_path)
             console.print(f"    [dim]File URL: {url[:80]}...[/dim]")
         except NotImplementedError:
-            console.print("    [dim]URL generation not supported for this adapter[/dim]")
+            console.print(
+                "    [dim]URL generation not supported for this adapter[/dim]"
+            )
 
         # Cleanup
         if not skip_cleanup:
@@ -153,11 +163,15 @@ async def _test_storage_async(skip_cleanup: bool) -> None:
             else:
                 console.print("    [yellow]⚠ Failed to delete test file[/yellow]")
         else:
-            console.print(f"[5/5] [yellow]Skipping cleanup (file kept): {test_path}[/yellow]")
+            console.print(
+                f"[5/5] [yellow]Skipping cleanup (file kept): {test_path}[/yellow]"
+            )
 
         # Success summary
         console.print()
-        console.print("[bold green]✓ All storage tests passed successfully![/bold green]")
+        console.print(
+            "[bold green]✓ All storage tests passed successfully![/bold green]"
+        )
         console.print()
 
     except ImportError as e:
@@ -166,7 +180,9 @@ async def _test_storage_async(skip_cleanup: bool) -> None:
         console.print(f"[dim]Error: {e}[/dim]")
         if settings.storage.type == "s3":
             console.print()
-            console.print("[yellow]To use S3 storage, install required dependencies:[/yellow]")
+            console.print(
+                "[yellow]To use S3 storage, install required dependencies:[/yellow]"
+            )
             console.print("[cyan]  pip install aioboto3[/cyan]")
         console.print()
         raise typer.Exit(1)
@@ -192,7 +208,12 @@ async def _test_storage_async(skip_cleanup: bool) -> None:
 @test_app.command("email")
 def test_email(
     to: str = typer.Argument(..., help="Recipient email address"),
-    template: str = typer.Option("welcome", "--template", "-t", help="Email template to use (welcome, password_reset, etc.)"),
+    template: str = typer.Option(
+        "welcome",
+        "--template",
+        "-t",
+        help="Email template to use (welcome, password_reset, etc.)",
+    ),
 ) -> None:
     """Test email sending via configured SMTP adapter.
 
@@ -231,7 +252,9 @@ async def _test_email_async(to: str, template: str) -> None:
         console.print("    [green]✓ Email service initialized[/green]")
 
         # Prepare test data based on template
-        console.print(f"[2/3] [cyan]Sending test email (template: {template})...[/cyan]")
+        console.print(
+            f"[2/3] [cyan]Sending test email (template: {template})...[/cyan]"
+        )
 
         success = False
         if template == "welcome":
@@ -264,7 +287,9 @@ async def _test_email_async(to: str, template: str) -> None:
             )
         else:
             console.print(f"    [red]✗ Unknown template: {template}[/red]")
-            console.print(f"    [dim]Available templates: welcome, password_reset, email_verification, password_changed, account_deleted[/dim]")
+            console.print(
+                f"    [dim]Available templates: welcome, password_reset, email_verification, password_changed, account_deleted[/dim]"
+            )
             raise typer.Exit(1)
 
         # Check result
@@ -304,113 +329,6 @@ async def _test_email_async(to: str, template: str) -> None:
             console.print(f"  • For port 465: use SSL (automatic)")
             console.print(f"  • For port 587: use TLS with STARTTLS")
             console.print("  • Check firewall settings")
-
-        console.print()
-        raise typer.Exit(1)
-
-
-async def _test_ai_async_removed(prompt: str, model: str) -> None:
-    """Async implementation of AI test."""
-    console.print("\n[bold cyan]Testing AI Module (OpenRouter)[/bold cyan]")
-    console.print("=" * 50)
-
-    # Show config
-    console.print(f"[dim]AI Enabled:[/dim] {settings.ai.enabled}")
-    console.print(f"[dim]OpenRouter Base URL:[/dim] {settings.ai.openrouter_base_url}")
-    console.print(f"[dim]API Key:[/dim] {'✓ Configured' if settings.ai.openrouter_api_key else '✗ Missing'}")
-    console.print(f"[dim]Cache Enabled:[/dim] {settings.ai.cache_enabled}")
-    console.print(f"[dim]Model:[/dim] {model}")
-    console.print(f"[dim]Prompt:[/dim] {prompt[:80]}{'...' if len(prompt) > 80 else ''}")
-    console.print()
-
-    try:
-        # Check if AI is enabled
-        if not settings.ai.enabled:
-            console.print("[red]✗ AI module is disabled in configuration![/red]")
-            console.print("[dim]Set AI_ENABLED=true in .env[/dim]")
-            raise typer.Exit(1)
-
-        # Check API key
-        if not settings.ai.openrouter_api_key:
-            console.print("[red]✗ OpenRouter API key not configured![/red]")
-            console.print("[dim]Set OPENROUTER_API_KEY in .env[/dim]")
-            console.print("[dim]Get your key at: https://openrouter.ai/keys[/dim]")
-            raise typer.Exit(1)
-
-        # Import AI provider
-        console.print("[1/4] [cyan]Initializing OpenRouter provider...[/cyan]")
-        from app.modules.ai.providers.openrouter import OpenRouterProvider
-
-        provider = OpenRouterProvider()
-        console.print("    [green]✓ OpenRouter provider initialized[/green]")
-
-        # Check model availability
-        console.print("[2/4] [cyan]Checking model availability...[/cyan]")
-        from app.modules.ai.utils.models_config import get_model_by_id
-
-        model_config = get_model_by_id(model)
-        if model_config:
-            console.print(f"    [green]✓ Model found: {model_config['name']} ({model_config['provider']})[/green]")
-            console.print(f"    [dim]Context: {model_config['context_length']:,} tokens[/dim]")
-            console.print(f"    [dim]Cost: ${model_config['cost_per_1m_input']}/{model_config['cost_per_1m_output']} per 1M tokens (in/out)[/dim]")
-        else:
-            console.print(f"    [yellow]⚠ Model not in predefined list (will still try to use it)[/yellow]")
-
-        # Send test request
-        console.print("[3/4] [cyan]Sending test request to AI...[/cyan]")
-        messages = [{"role": "system", "content": "You are a helpful assistant. Keep responses concise."}, {"role": "user", "content": prompt}]
-
-        response = await provider.chat(messages=messages, model=model, max_tokens=100, temperature=0.7)
-
-        console.print("    [green]✓ Received response from AI[/green]")
-
-        # Display results
-        console.print("[4/4] [cyan]Response details...[/cyan]")
-        console.print()
-        console.print("[bold]AI Response:[/bold]")
-        console.print(f"[white]{response.message}[/white]")
-        console.print()
-        console.print("[dim]Token Usage:[/dim]")
-        console.print(f"  • Prompt tokens: {response.prompt_tokens}")
-        console.print(f"  • Completion tokens: {response.completion_tokens}")
-        console.print(f"  • Total tokens: {response.total_tokens}")
-
-        # Calculate cost if model config available
-        if model_config:
-            from app.modules.ai.utils.models_config import calculate_cost
-
-            cost = calculate_cost(model, response.prompt_tokens, response.completion_tokens)
-            console.print(f"  • Estimated cost: ${cost:.6f} USD")
-
-        console.print()
-
-        # Success summary
-        console.print("[bold green]✓ All AI tests passed successfully![/bold green]")
-        console.print()
-
-    except ImportError as e:
-        console.print()
-        console.print(f"[bold red]✗ AI module dependencies missing![/bold red]")
-        console.print(f"[dim]Error: {e}[/dim]")
-        console.print()
-        console.print("[yellow]Install AI dependencies:[/yellow]")
-        console.print("[cyan]  pip install openai aiocache[/cyan]")
-        console.print()
-        raise typer.Exit(1)
-
-    except Exception as e:
-        console.print()
-        console.print(f"[bold red]✗ AI test failed![/bold red]")
-        console.print(f"[dim]Error: {e}[/dim]")
-        console.print()
-
-        # Provide helpful troubleshooting tips
-        console.print("[yellow]Troubleshooting tips:[/yellow]")
-        console.print("  • Verify OPENROUTER_API_KEY is correct")
-        console.print("  • Check API key has sufficient credits")
-        console.print("  • Verify model ID is correct (e.g., 'openai/gpt-4o-mini')")
-        console.print("  • Check network connectivity to api.openrouter.ai")
-        console.print("  • View available models at: https://openrouter.ai/models")
 
         console.print()
         raise typer.Exit(1)

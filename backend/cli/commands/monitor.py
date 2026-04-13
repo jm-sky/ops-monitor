@@ -22,7 +22,9 @@ def seed_sites(
         Path("seeds/sites.yml"),
         help="Path to YAML seed file (relative to /app)",
     ),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be imported without saving"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be imported without saving"
+    ),
 ) -> None:
     """Seed sites from a YAML file (upsert by name)."""
     asyncio.run(_seed_sites(yaml_file, dry_run))
