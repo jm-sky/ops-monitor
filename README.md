@@ -137,6 +137,7 @@ Quick reference:
   "reboot_reason": "kernel update",
   "updates_available": 12,
   "security_updates": 3,
+  "security_packages": ["linux-image-generic", "openssl", "libssl3"],
   "system_state": "outdated",
   "timestamp": "2026-04-11T10:00:00Z"
 }
