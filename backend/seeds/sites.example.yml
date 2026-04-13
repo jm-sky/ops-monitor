@@ -1,0 +1,28 @@
+# Example sites seed file.
+# Copy to seeds/sites.yml (which is gitignored) and fill in real values.
+# Run: docker exec ops-monitor-app python -m cli monitor seed-sites seeds/sites.yml
+
+sites:
+  - name: gear-stack
+    description: Gear Stack (gear-stack.ovh)
+    health_url: https://gear-stack.ovh/api/health
+    system_url: ""  # no agent installed
+    token: ""
+    enabled: true
+    polling_health: 300
+
+  - name: company-hub
+    description: Company Hub (company-hub.dev-made.it)
+    health_url: https://company-hub.dev-made.it/api/health
+    system_url: ""
+    token: ""
+    enabled: true
+    polling_health: 300
+
+  - name: zbory-chwz
+    description: Zbory CHWZ (zbory.chwz.waw.pl)
+    health_url: https://api.zbory.chwz.waw.pl/health
+    system_url: ""
+    token: ""
+    enabled: true
+    polling_health: 300

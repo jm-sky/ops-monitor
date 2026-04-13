@@ -100,6 +100,7 @@ services:
       - ./main.py:/app/main.py:rw,delegated
       - ./cli:/app/cli:ro,delegated
       - ./cli.py:/app/cli.py:ro,delegated
+      - ./seeds:/app/seeds:ro,delegated
     logging:
       driver: "json-file"
       options:

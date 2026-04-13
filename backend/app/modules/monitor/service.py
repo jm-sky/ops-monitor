@@ -8,6 +8,7 @@ import httpx
 
 from app.core.database import AsyncSessionLocal
 
+from .alerts.dispatcher import dispatch_if_changed
 from .db_models import SiteDB
 from .repositories import SnapshotRepository, SiteRepository
 
@@ -87,6 +88,7 @@ class MonitorService:
             snap = await repo.create(site.id, "health", raw_data, error, status)
             await repo.cleanup_old(site.id, "health")
 
+        await dispatch_if_changed(site, snap)
         return snap
 
     async def _poll_system(self, site: SiteDB) -> Any:
@@ -120,6 +122,7 @@ class MonitorService:
             snap = await repo.create(site.id, "system", raw_data, error, status)
             await repo.cleanup_old(site.id, "system")
 
+        await dispatch_if_changed(site, snap)
         return snap
 
 

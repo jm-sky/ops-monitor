@@ -48,3 +48,6 @@ Caddyfile
 docker-compose.override.yml
 .env.prod
 .env.production
+
+# Seeds (may contain tokens)
+backend/seeds/sites.yml

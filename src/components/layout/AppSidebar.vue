@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Activity, Info, LayoutDashboard, Settings } from 'lucide-vue-next'
+import { Activity, Bell, Info, LayoutDashboard, Settings } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import {
@@ -30,6 +30,11 @@ const mainLinks = [
     to: MonitorRoutePaths.monitor,
     label: t('navigation.monitor', 'Monitor'),
     icon: Activity,
+  },
+  {
+    to: MonitorRoutePaths.alertChannels,
+    label: t('navigation.alertChannels', 'Alert channels'),
+    icon: Bell,
   },
   {
     to: '/settings',
