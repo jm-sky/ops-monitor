@@ -36,3 +36,14 @@ export interface TelegramConfig {
   bot_token: string
   chat_id: string
 }
+
+export interface AlertEvent {
+  id: string
+  siteId: string
+  siteName: string
+  channelId: string
+  channelName: string
+  alertType: string
+  status: string
+  sentAt: string
+}

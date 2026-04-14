@@ -4,18 +4,19 @@ import logging
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.modules.auth.dependencies import AdminUser, CurrentUser
 
 from .dispatcher import test_channel
-from .repositories import AlertChannelRepository
+from .repositories import AlertChannelRepository, AlertEventRepository
 from .schemas import (
     AlertChannelCreate,
     AlertChannelResponse,
     AlertChannelUpdate,
+    AlertEventResponse,
     TestAlertResponse,
 )
 
@@ -139,3 +140,36 @@ async def test_channel_endpoint(
 
     success, message = await test_channel(channel)
     return TestAlertResponse(success=success, message=message)
+
+
+# ---------------------------------------------------------------------------
+# Alert event log
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/alert-events",
+    response_model=list[AlertEventResponse],
+    summary="List recent alert events",
+)
+async def list_alert_events(
+    _: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    limit: int = Query(100, ge=1, le=500),
+    site_id: uuid.UUID | None = Query(None),
+) -> list[AlertEventResponse]:
+    repo = AlertEventRepository(db)
+    rows = await repo.get_recent(limit=limit, site_id=site_id)
+    return [
+        AlertEventResponse(
+            id=str(event.id),
+            siteId=str(event.site_id),
+            siteName=site_name,
+            channelId=str(event.channel_id),
+            channelName=channel_name,
+            alertType=event.alert_type,
+            status=event.status,
+            sentAt=event.sent_at,
+        )
+        for event, site_name, channel_name in rows
+    ]

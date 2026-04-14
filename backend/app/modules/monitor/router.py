@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.modules.auth.dependencies import AdminUser, CurrentUser
 
 from .repositories import SnapshotRepository, SiteRepository
+from .scheduler import activate_live_mode
 from .schemas import (
     PollResponse,
     SiteCreate,
@@ -228,3 +229,17 @@ async def poll_now(
     service = MonitorService()
     await service.poll_site_now(site)
     return PollResponse(message="Polling complete")
+
+
+# ---------------------------------------------------------------------------
+# Live mode heartbeat
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/heartbeat",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Keep live mode active — call every ~30 s while dashboard is open",
+)
+async def heartbeat(_: CurrentUser) -> None:
+    activate_live_mode()

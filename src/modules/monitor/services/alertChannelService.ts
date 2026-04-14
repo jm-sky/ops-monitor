@@ -1,5 +1,5 @@
 import { apiClient } from '@/shared/services/apiClient'
-import type { AlertChannel, AlertChannelCreate, AlertChannelUpdate } from '../types/alerts'
+import type { AlertChannel, AlertChannelCreate, AlertChannelUpdate, AlertEvent } from '../types/alerts'
 
 class AlertChannelService {
   async list(): Promise<AlertChannel[]> {
@@ -25,6 +25,16 @@ class AlertChannelService {
     const response = await apiClient.post<{ success: boolean; message: string }>(
       `/monitor/alert-channels/${id}/test`,
     )
+    return response.data
+  }
+
+  async getAlertEvents(options?: { siteId?: string; limit?: number }): Promise<AlertEvent[]> {
+    const response = await apiClient.get<AlertEvent[]>('/monitor/alert-events', {
+      params: {
+        ...(options?.siteId && { site_id: options.siteId }),
+        ...(options?.limit && { limit: options.limit }),
+      },
+    })
     return response.data
   }
 }

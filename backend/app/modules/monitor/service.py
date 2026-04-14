@@ -38,8 +38,18 @@ def _normalize_status(raw: str | None) -> str:
 
 
 class MonitorService:
-    async def poll_due_sites(self, last_polled: dict[str, dict[str, datetime]]) -> None:
-        """Check all enabled sites and poll those overdue for their next check."""
+    async def poll_due_sites(
+        self,
+        last_polled: dict[str, dict[str, datetime]],
+        live: bool = False,
+    ) -> None:
+        """Check all enabled sites and poll those overdue for their next check.
+
+        When *live* is True the effective per-site interval is capped at
+        LIVE_POLL_INTERVAL so the dashboard receives fresh data quickly.
+        """
+        from .scheduler import LIVE_POLL_INTERVAL
+
         async with AsyncSessionLocal() as db:
             repo = SiteRepository(db)
             sites = await repo.get_enabled()
@@ -50,9 +60,20 @@ class MonitorService:
             site_key = str(site.id)
             site_times = last_polled.setdefault(site_key, {})
 
+            health_interval = (
+                min(site.polling_health, LIVE_POLL_INTERVAL)
+                if live
+                else site.polling_health
+            )
+            system_interval = (
+                min(site.polling_system, LIVE_POLL_INTERVAL)
+                if live
+                else site.polling_system
+            )
+
             if site.health_url:
                 last = site_times.get("health")
-                if last is None or (now - last).total_seconds() >= site.polling_health:
+                if last is None or (now - last).total_seconds() >= health_interval:
                     try:
                         await self._poll_health(site)
                     except Exception as e:
@@ -61,7 +82,7 @@ class MonitorService:
 
             if site.system_url:
                 last = site_times.get("system")
-                if last is None or (now - last).total_seconds() >= site.polling_system:
+                if last is None or (now - last).total_seconds() >= system_interval:
                     try:
                         await self._poll_system(site)
                     except Exception as e:

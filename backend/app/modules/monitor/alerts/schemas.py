@@ -34,3 +34,14 @@ class AlertChannelResponse(BaseModel):
 class TestAlertResponse(BaseModel):
     success: bool
     message: str
+
+
+class AlertEventResponse(BaseModel):
+    id: str
+    siteId: str
+    siteName: str
+    channelId: str
+    channelName: str
+    alertType: str
+    status: str
+    sentAt: datetime

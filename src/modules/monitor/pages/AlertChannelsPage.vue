@@ -7,17 +7,19 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CommonPageHeader from '@/components/layout/CommonPageHeader.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import Button from '@/components/ui/button/Button.vue'
-import { Card, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
 import { useHandleError } from '@/shared/composables/useHandleError'
-import type { AlertChannel, AlertChannelType } from '../types/alerts'
+import type { AlertChannel, AlertChannelType, AlertEvent } from '../types/alerts'
 import AddChannelDialog from '../components/AddChannelDialog.vue'
+import SiteStatusBadge from '../components/SiteStatusBadge.vue'
 import { alertChannelService } from '../services/alertChannelService'
 
 const { t } = useI18n()
 const { handleError } = useHandleError()
 
 const channels = ref<AlertChannel[]>([])
+const events = ref<AlertEvent[]>([])
 const loading = ref(false)
 const showAddDialog = ref(false)
 const showDeleteDialog = ref(false)
@@ -28,12 +30,26 @@ const deletingId = ref<string | null>(null)
 async function load() {
   loading.value = true
   try {
-    channels.value = await alertChannelService.list()
+    [channels.value, events.value] = await Promise.all([
+      alertChannelService.list(),
+      alertChannelService.getAlertEvents({ limit: 100 }),
+    ])
   } catch (error) {
     handleError(error, { fallbackMessage: t('monitor.alerts.loadError', 'Failed to load channels') })
   } finally {
     loading.value = false
   }
+}
+
+function formatDate(iso: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'short',
+    timeStyle: 'medium',
+  }).format(new Date(iso))
+}
+
+function alertTypeLabel(type: string): string {
+  return { health: 'Health', reboot: 'Reboot', updates: 'Updates' }[type] ?? type
 }
 
 async function toggleEnabled(channel: AlertChannel) {
@@ -177,6 +193,37 @@ onMounted(load)
         <Plus class="size-4" />
         {{ t('monitor.alerts.addChannel', 'Add channel') }}
       </Button>
+    </div>
+
+    <!-- Alert log -->
+    <div class="mt-10">
+      <h2 class="text-lg font-semibold mb-3">
+        {{ t('monitor.alerts.log.title', 'Alert log') }}
+      </h2>
+      <Card v-if="events.length > 0">
+        <CardContent class="p-0">
+          <div class="divide-y">
+            <div
+              v-for="ev in events"
+              :key="ev.id"
+              class="flex items-center justify-between gap-4 px-4 py-2.5 text-sm"
+            >
+              <div class="flex items-center gap-3 min-w-0">
+                <SiteStatusBadge :status="ev.status" />
+                <span class="font-medium truncate">{{ ev.siteName }}</span>
+                <span class="text-muted-foreground shrink-0">{{ alertTypeLabel(ev.alertType) }}</span>
+              </div>
+              <div class="flex items-center gap-4 shrink-0 text-xs text-muted-foreground">
+                <span>{{ ev.channelName }}</span>
+                <span>{{ formatDate(ev.sentAt) }}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <p v-else-if="!loading" class="text-sm text-muted-foreground">
+        {{ t('monitor.alerts.log.empty', 'No alerts have been sent yet.') }}
+      </p>
     </div>
 
     <AddChannelDialog v-model:open="showAddDialog" @created="onCreated" />

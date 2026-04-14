@@ -2,13 +2,28 @@
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 
 from .service import MonitorService
 
 logger = logging.getLogger(__name__)
 
 CHECK_INTERVAL = 10  # seconds between "which sites are due?" iterations
+LIVE_POLL_INTERVAL = 30  # shortened per-site interval while live mode is active
+LIVE_MODE_TTL = 60  # seconds before live mode expires without a new heartbeat
+
+# Module-level live mode expiry (set by heartbeat endpoint)
+_live_mode_until: datetime | None = None
+
+
+def activate_live_mode() -> None:
+    """Extend live mode for LIVE_MODE_TTL seconds from now."""
+    global _live_mode_until
+    _live_mode_until = datetime.now(UTC) + timedelta(seconds=LIVE_MODE_TTL)
+
+
+def is_live_mode_active() -> bool:
+    return _live_mode_until is not None and datetime.now(UTC) < _live_mode_until
 
 
 class PollerScheduler:
@@ -33,7 +48,9 @@ class PollerScheduler:
     async def _run(self) -> None:
         while True:
             try:
-                await self._service.poll_due_sites(self._last_polled)
+                await self._service.poll_due_sites(
+                    self._last_polled, live=is_live_mode_active()
+                )
             except Exception as e:
                 logger.error("Poller iteration error: %s", e, exc_info=True)
             await asyncio.sleep(CHECK_INTERVAL)

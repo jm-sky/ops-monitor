@@ -85,7 +85,7 @@ const worstMetricLevel = computed<MetricLevel>(() => {
     ]"
     @click="emit('select', props.siteStatus.site.id)"
   >
-    <CardHeader :class="props.denseMode ? 'flex flex-row items-center justify-between gap-2 p-0' : 'flex flex-row items-start justify-between gap-2 pb-2'">
+    <CardHeader :class="props.denseMode ? 'flex flex-col items-center justify-between gap-2 p-0 overflow-hidden' : 'flex flex-row items-start justify-between gap-2 pb-2'">
       <div class="flex items-center gap-2 min-w-0">
         <Server class="size-4 shrink-0 text-muted-foreground" />
         <CardTitle :class="props.denseMode ? 'truncate text-sm' : 'truncate text-base'">

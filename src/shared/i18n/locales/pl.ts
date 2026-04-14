@@ -180,6 +180,10 @@ export default {
         emailTo: 'Odbiorcy (oddzieleni przecinkami)',
         subjectPrefix: 'Prefiks tematu',
       },
+      log: {
+        title: 'Historia alertów',
+        empty: 'Żadne alerty nie zostały jeszcze wysłane.',
+      },
     },
   },
   footer: {

@@ -180,6 +180,10 @@ export default {
         emailTo: 'Recipients (comma-separated)',
         subjectPrefix: 'Subject prefix',
       },
+      log: {
+        title: 'Alert log',
+        empty: 'No alerts have been sent yet.',
+      },
     },
   },
   footer: {

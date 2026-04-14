@@ -2,11 +2,12 @@
 
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..db_models import SiteDB
 from .db_models import AlertChannelDB, AlertEventDB
 
 
@@ -89,3 +90,21 @@ class AlertEventRepository:
         )
         self.db.add(event)
         await self.db.commit()
+
+    async def get_recent(
+        self,
+        limit: int = 100,
+        site_id: uuid.UUID | None = None,
+    ) -> list[tuple[AlertEventDB, str, str]]:
+        """Return (event, site_name, channel_name) tuples, newest first."""
+        query = (
+            select(AlertEventDB, SiteDB.name, AlertChannelDB.name)
+            .join(SiteDB, AlertEventDB.site_id == SiteDB.id)
+            .join(AlertChannelDB, AlertEventDB.channel_id == AlertChannelDB.id)
+            .order_by(AlertEventDB.sent_at.desc())
+            .limit(limit)
+        )
+        if site_id is not None:
+            query = query.where(AlertEventDB.site_id == site_id)
+        result = await self.db.execute(query)
+        return cast(list[tuple[AlertEventDB, str, str]], result.all())

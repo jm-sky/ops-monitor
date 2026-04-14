@@ -14,12 +14,15 @@ import { useHandleError } from '@/shared/composables/useHandleError'
 import type { Site, SiteStatus } from '../types'
 import AddSiteDialog from '../components/AddSiteDialog.vue'
 import SiteGroupSection from '../components/SiteGroupSection.vue'
+import { useHeartbeat } from '../composables/useHeartbeat'
 import { fetchSiteStatuses, monitorQueryKeys } from '../services/monitorQueries'
 
 const { t } = useI18n()
 const router = useRouter()
 const queryClient = useQueryClient()
 const { handleError } = useHandleError()
+
+useHeartbeat()
 
 const showAddDialog = ref(false)
 const DENSE_MODE_STORAGE_KEY = 'monitor.denseMode'
