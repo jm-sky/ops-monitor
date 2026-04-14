@@ -144,6 +144,7 @@ export default {
     system: 'System',
     lastPolled: 'Ostatnio sprawdzono',
     noData: 'Brak danych',
+    viewRawResponse: 'Pokaż pełną odpowiedź',
     uptime: 'Czas działania',
     updates: 'Aktualizacje',
     rebootRequired: 'Wymagany restart',

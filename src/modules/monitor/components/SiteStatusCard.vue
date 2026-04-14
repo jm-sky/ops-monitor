@@ -98,7 +98,7 @@ const worstMetricLevel = computed<MetricLevel>(() => {
       <div v-if="!props.denseMode && props.siteStatus.site.description" class="truncate">
         {{ props.siteStatus.site.description }}
       </div>
-      <div v-if="!props.denseMode" class="flex flex-wrap gap-2 pt-1">
+      <div v-if="!props.denseMode" class="flex flex-wrap gap-4 pt-1">
         <span v-if="props.siteStatus.healthSnapshot && !healthComponents.length" class="flex items-center gap-1">
           <span class="font-medium text-foreground">Health:</span>
           <SiteStatusBadge :status="props.siteStatus.healthSnapshot.status ?? 'unknown'" size="sm" />

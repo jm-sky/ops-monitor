@@ -144,6 +144,7 @@ export default {
     system: 'System',
     lastPolled: 'Last polled',
     noData: 'No data yet',
+    viewRawResponse: 'View full response',
     uptime: 'Uptime',
     updates: 'Updates',
     rebootRequired: 'Reboot required',

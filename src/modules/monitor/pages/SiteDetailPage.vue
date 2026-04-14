@@ -184,7 +184,7 @@ watch(error, (queryError, previousError) => {
     <div v-if="status">
       <CommonPageHeader :label="status.site.name" :icon="Server">
         <template #actions>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 mr-2">
             <Switch
               :id="`site-enabled-${siteId}`"
               :model-value="status.site.enabled"
