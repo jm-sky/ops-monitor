@@ -123,6 +123,7 @@ export default {
     disabled: 'Polling wyłączony',
     enabled: 'Włączone',
     refreshing: 'Odświeżanie...',
+    denseMode: 'Tryb gęsty',
     noSites: 'Brak skonfigurowanych stron',
     noSitesHint: 'Dodaj stronę, aby rozpocząć monitorowanie.',
     ungrouped: 'Bez grupy',

@@ -17,6 +17,7 @@ const props = defineProps<{
   isPrimary?: boolean
   overallStatus: (siteStatus: SiteStatus) => string
   disabledLabel: string
+  denseMode?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -77,26 +78,27 @@ const worstMetricLevel = computed<MetricLevel>(() => {
   <Card
     :class="[
       'cursor-pointer transition-all hover:shadow-lg hover:scale-101 hover:-translate-y-1 gap-2',
+      props.denseMode ? 'w-[220px] min-h-[84px] p-3' : '',
       isPrimary && 'ring-2 ring-primary/40',
       worstMetricLevel === 'crit' && 'ring-2 ring-destructive/50',
       worstMetricLevel === 'warn' && !isPrimary && 'ring-2 ring-amber-400/50',
     ]"
     @click="emit('select', props.siteStatus.site.id)"
   >
-    <CardHeader class="flex flex-row items-start justify-between gap-2 pb-2">
+    <CardHeader :class="props.denseMode ? 'flex flex-row items-center justify-between gap-2 p-0' : 'flex flex-row items-start justify-between gap-2 pb-2'">
       <div class="flex items-center gap-2 min-w-0">
         <Server class="size-4 shrink-0 text-muted-foreground" />
-        <CardTitle class="truncate text-base">
+        <CardTitle :class="props.denseMode ? 'truncate text-sm' : 'truncate text-base'">
           {{ props.siteStatus.site.name }}
         </CardTitle>
       </div>
       <SiteStatusBadge :status="props.overallStatus(props.siteStatus)" />
     </CardHeader>
-    <CardContent class="space-y-2 text-sm text-muted-foreground">
-      <div v-if="props.siteStatus.site.description" class="truncate">
+    <CardContent :class="props.denseMode ? 'pt-1 px-0 pb-0 space-y-1 text-xs text-muted-foreground' : 'space-y-2 text-sm text-muted-foreground'">
+      <div v-if="!props.denseMode && props.siteStatus.site.description" class="truncate">
         {{ props.siteStatus.site.description }}
       </div>
-      <div class="flex flex-wrap gap-2 pt-1">
+      <div v-if="!props.denseMode" class="flex flex-wrap gap-2 pt-1">
         <span v-if="props.siteStatus.healthSnapshot && !healthComponents.length" class="flex items-center gap-1">
           <span class="font-medium text-foreground">Health:</span>
           <SiteStatusBadge :status="props.siteStatus.healthSnapshot.status ?? 'unknown'" size="sm" />
@@ -106,7 +108,7 @@ const worstMetricLevel = computed<MetricLevel>(() => {
           <SiteStatusBadge :status="props.siteStatus.systemSnapshot.status ?? 'unknown'" size="sm" />
         </span>
       </div>
-      <div v-if="healthComponents.length" class="grid grid-cols-2 gap-x-6 gap-y-1 pt-1">
+      <div v-if="!props.denseMode && healthComponents.length" class="grid grid-cols-2 gap-x-6 gap-y-1 pt-1">
         <span
           v-for="[name, component] in healthComponents"
           :key="name"
@@ -122,18 +124,18 @@ const worstMetricLevel = computed<MetricLevel>(() => {
         </span>
       </div>
       <div
-        v-if="props.siteStatus.healthSnapshot?.status === 'failed' && props.siteStatus.healthSnapshot.error"
+        v-if="!props.denseMode && props.siteStatus.healthSnapshot?.status === 'failed' && props.siteStatus.healthSnapshot.error"
         class="truncate text-xs text-destructive"
       >
         Health: {{ props.siteStatus.healthSnapshot.error }}
       </div>
       <div
-        v-if="props.siteStatus.systemSnapshot?.status === 'failed' && props.siteStatus.systemSnapshot.error"
+        v-if="!props.denseMode && props.siteStatus.systemSnapshot?.status === 'failed' && props.siteStatus.systemSnapshot.error"
         class="truncate text-xs text-destructive"
       >
         System: {{ props.siteStatus.systemSnapshot.error }}
       </div>
-      <div v-if="worstMetricLevel !== 'ok'" class="flex flex-wrap gap-1.5 pt-1">
+      <div v-if="!props.denseMode && worstMetricLevel !== 'ok'" class="flex flex-wrap gap-1.5 pt-1">
         <span
           v-for="metric in systemMetrics.filter(m => m.level !== 'ok')"
           :key="metric.label"
@@ -147,7 +149,7 @@ const worstMetricLevel = computed<MetricLevel>(() => {
           {{ metric.label }} {{ metric.value }}%
         </span>
       </div>
-      <div v-if="!props.siteStatus.site.enabled" class="text-xs text-muted-foreground italic">
+      <div v-if="!props.siteStatus.site.enabled" :class="props.denseMode ? 'text-[11px] text-muted-foreground italic' : 'text-xs text-muted-foreground italic'">
         {{ props.disabledLabel }}
       </div>
     </CardContent>

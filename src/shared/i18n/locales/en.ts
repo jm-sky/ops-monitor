@@ -123,6 +123,7 @@ export default {
     disabled: 'Polling disabled',
     enabled: 'Enabled',
     refreshing: 'Refreshing...',
+    denseMode: 'Dense mode',
     noSites: 'No sites configured',
     noSitesHint: 'Add a site to start monitoring.',
     ungrouped: 'Ungrouped',

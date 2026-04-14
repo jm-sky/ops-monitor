@@ -12,6 +12,7 @@ const props = defineProps<{
   group: SiteGroup
   overallStatus: (siteStatus: SiteStatus) => string
   disabledLabel: string
+  denseMode?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -29,7 +30,7 @@ function hasBadServerHealth(group: SiteGroup): boolean {
 </script>
 
 <template>
-  <section class="space-y-3">
+  <section :class="props.denseMode ? 'space-y-3 min-w-20 max-w-full flex-1' : 'space-y-3'">
     <h2 class="text-sm font-medium text-muted-foreground">
       {{ props.group.label }}
     </h2>
@@ -39,7 +40,13 @@ function hasBadServerHealth(group: SiteGroup): boolean {
         hasBadServerHealth(props.group) && 'border-destructive/50',
       ]"
     >
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div
+        :class="[
+          props.denseMode
+            ? 'flex flex-wrap gap-2'
+            : 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3',
+        ]"
+      >
         <SiteStatusCard
           v-for="(siteStatus, index) in props.group.items"
           :key="siteStatus.site.id"
@@ -47,6 +54,7 @@ function hasBadServerHealth(group: SiteGroup): boolean {
           :is-primary="index === 0"
           :overall-status="props.overallStatus"
           :disabled-label="props.disabledLabel"
+          :dense-mode="props.denseMode"
           @select="emit('selectSite', $event)"
         />
       </div>

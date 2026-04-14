@@ -7,6 +7,8 @@ import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import CommonPageHeader from '@/components/layout/CommonPageHeader.vue'
 import Button from '@/components/ui/button/Button.vue'
+import Label from '@/components/ui/label/Label.vue'
+import Switch from '@/components/ui/switch/Switch.vue'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
 import { useHandleError } from '@/shared/composables/useHandleError'
 import type { Site, SiteStatus } from '../types'
@@ -20,6 +22,8 @@ const queryClient = useQueryClient()
 const { handleError } = useHandleError()
 
 const showAddDialog = ref(false)
+const DENSE_MODE_STORAGE_KEY = 'monitor.denseMode'
+const denseMode = ref(localStorage.getItem(DENSE_MODE_STORAGE_KEY) === 'true')
 const {
   data: queryData,
   error,
@@ -122,6 +126,10 @@ watch(error, (queryError, previousError) => {
     handleError(queryError, { fallbackMessage: t('monitor.loadError', 'Failed to load sites') })
   }
 })
+
+watch(denseMode, value => {
+  localStorage.setItem(DENSE_MODE_STORAGE_KEY, String(value))
+})
 </script>
 
 <template>
@@ -131,6 +139,12 @@ watch(error, (queryError, previousError) => {
         <div v-if="isRefreshing" class="flex items-center gap-2 text-xs text-muted-foreground">
           <RefreshCw class="size-3 animate-spin" />
           {{ t('monitor.refreshing', 'Refreshing...') }}
+        </div>
+        <div class="flex items-center gap-2 mr-2">
+          <Switch id="monitor-dense-mode" v-model="denseMode" />
+          <Label for="monitor-dense-mode" class="cursor-pointer select-none text-sm">
+            {{ t('monitor.denseMode', 'Dense mode') }}
+          </Label>
         </div>
         <Button
           variant="outline"
@@ -149,13 +163,20 @@ watch(error, (queryError, previousError) => {
     </CommonPageHeader>
 
     <!-- Grouped site grid -->
-    <div v-if="hasSites" class="mt-6 space-y-6">
+    <div
+      v-if="hasSites"
+      :class="[
+        'mt-6',
+        denseMode ? 'flex flex-wrap items-start gap-4' : 'space-y-6',
+      ]"
+    >
       <SiteGroupSection
         v-for="group in groupedStatuses"
         :key="group.key"
         :group="group"
         :overall-status="overallStatus"
         :disabled-label="t('monitor.disabled', 'Polling disabled')"
+        :dense-mode="denseMode"
         @select-site="goToSite"
       />
     </div>
