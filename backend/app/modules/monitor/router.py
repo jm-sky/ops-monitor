@@ -68,6 +68,8 @@ async def create_site(
         "polling_updates": data.pollingUpdates,
         "polling_reboot": data.pollingReboot,
         "teams_webhook_url": data.teamsWebhookUrl,
+        "server_label": data.serverLabel,
+        "verify_ssl": data.verifySSL,
     }
     site = await repo.create(site_data)
     return SiteResponse(**site.to_response())
@@ -125,19 +127,25 @@ async def update_site(
         )
 
     field_map = {
-        "name": data.name,
-        "description": data.description,
-        "health_url": data.healthUrl,
-        "system_url": data.systemUrl,
-        "token": data.token,
-        "enabled": data.enabled,
-        "polling_health": data.pollingHealth,
-        "polling_system": data.pollingSystem,
-        "polling_updates": data.pollingUpdates,
-        "polling_reboot": data.pollingReboot,
-        "teams_webhook_url": data.teamsWebhookUrl,
+        "name": "name",
+        "description": "description",
+        "health_url": "healthUrl",
+        "system_url": "systemUrl",
+        "token": "token",
+        "enabled": "enabled",
+        "polling_health": "pollingHealth",
+        "polling_system": "pollingSystem",
+        "polling_updates": "pollingUpdates",
+        "polling_reboot": "pollingReboot",
+        "teams_webhook_url": "teamsWebhookUrl",
+        "server_label": "serverLabel",
+        "verify_ssl": "verifySSL",
     }
-    update_data = {k: v for k, v in field_map.items() if v is not None}
+    update_data = {
+        db_field: getattr(data, schema_field)
+        for db_field, schema_field in field_map.items()
+        if schema_field in data.model_fields_set
+    }
     site = await repo.update(site, update_data)
     return SiteResponse(**site.to_response())
 

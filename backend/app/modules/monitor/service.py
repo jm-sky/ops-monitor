@@ -86,20 +86,22 @@ class MonitorService:
         status = None
 
         try:
-            async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            async with httpx.AsyncClient(
+                timeout=TIMEOUT, verify=site.verify_ssl
+            ) as client:
                 resp = await client.get(site.health_url, headers=headers)  # type: ignore[arg-type]
                 resp.raise_for_status()
                 try:
-                    raw_data = resp.json()
+                    body = resp.json()
+                    if isinstance(body, dict):
+                        raw_data = body
+                        status = _normalize_status(body.get("status"))
+                    else:
+                        # JSON scalar/array — 2xx is enough to be healthy
+                        status = "ok"
                 except Exception:
-                    raise ValueError(
-                        f"Non-JSON response (content-type: {resp.headers.get('content-type', 'unknown')})"
-                    )
-                if not isinstance(raw_data, dict):
-                    raise ValueError(
-                        f"Expected JSON object, got {type(raw_data).__name__}"
-                    )
-                status = _normalize_status(raw_data.get("status"))
+                    # Non-JSON body (plain text, empty) — 2xx means healthy
+                    status = "ok"
         except httpx.TimeoutException:
             error = "Connection timeout"
             status = "failed"
@@ -127,7 +129,9 @@ class MonitorService:
         status = None
 
         try:
-            async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            async with httpx.AsyncClient(
+                timeout=TIMEOUT, verify=site.verify_ssl
+            ) as client:
                 resp = await client.get(site.system_url, headers=headers)  # type: ignore[arg-type]
                 resp.raise_for_status()
                 raw_data = resp.json()

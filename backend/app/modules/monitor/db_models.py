@@ -33,6 +33,8 @@ class SiteDB(Base):
     polling_updates: Mapped[int] = mapped_column(Integer, default=43200, nullable=False)
     polling_reboot: Mapped[int] = mapped_column(Integer, default=1800, nullable=False)
     teams_webhook_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    server_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    verify_ssl: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
@@ -57,6 +59,8 @@ class SiteDB(Base):
             "pollingUpdates": self.polling_updates,
             "pollingReboot": self.polling_reboot,
             "teamsWebhookUrl": self.teams_webhook_url,
+            "serverLabel": self.server_label,
+            "verifySSL": self.verify_ssl,
             "createdAt": self.created_at,
             "updatedAt": self.updated_at,
         }

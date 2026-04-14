@@ -11,6 +11,8 @@ export interface Site {
   pollingUpdates: number
   pollingReboot: number
   teamsWebhookUrl: string | null
+  serverLabel: string | null
+  verifySSL: boolean
   createdAt: string
   updatedAt: string
 }
@@ -43,6 +45,8 @@ export interface SiteCreate {
   pollingUpdates?: number
   pollingReboot?: number
   teamsWebhookUrl?: string | null
+  serverLabel?: string | null
+  verifySSL?: boolean
 }
 
 export type SiteUpdate = Partial<SiteCreate>

@@ -40,11 +40,16 @@ export async function errorResponseInterceptor(error: AxiosError) {
   // Don't show login modal if user is already on login page
   const AUTH_PREFIX = `${AUTH_BASE_PATH}/`
   const isOnAuthPage = typeof window !== 'undefined' && window.location.pathname.startsWith(AUTH_PREFIX)
-  const isAuthRequest = originalRequest?.url?.includes(AUTH_PREFIX) ?? false
 
-  // For auth requests (login, register, etc.), pass the error through
+  // Only skip token refresh for public auth endpoints (login, register, etc.)
+  // NOT for protected endpoints like /auth/me which should trigger refresh on 401
+  const PUBLIC_AUTH_ENDPOINTS = ['/login', '/register', '/forgot-password', '/reset-password', '/refresh', '/email/verify', '/email/resend', '/oauth/']
+  const requestUrl = originalRequest?.url ?? ''
+  const isPublicAuthRequest = PUBLIC_AUTH_ENDPOINTS.some(endpoint => requestUrl.includes(`${AUTH_BASE_PATH}${endpoint}`))
+
+  // For public auth requests (login, register, etc.), pass the error through
   // so the form can handle it with field-level validation errors
-  if (isAuthRequest && error.response?.status === HttpStatusCode.Unauthorized) {
+  if (isPublicAuthRequest && error.response?.status === HttpStatusCode.Unauthorized) {
     return Promise.reject(error)
   }
 
@@ -98,8 +103,8 @@ export async function errorResponseInterceptor(error: AxiosError) {
         authStore.clearRefreshToken()
         authStore.clearUser()
 
-        // Only open login modal if not on auth page and not an auth request
-        if (!isOnAuthPage && !isAuthRequest) {
+        // Only open login modal if not on auth page and not a public auth request
+        if (!isOnAuthPage && !isPublicAuthRequest) {
           const loginModal = useLoginModal()
           loginModal.open({
             onSuccess: async () => {
@@ -128,8 +133,8 @@ export async function errorResponseInterceptor(error: AxiosError) {
       // Clear the failed queue since we can't proceed without refresh token
       refreshStore.processQueue(new Error('No refresh token available'))
 
-      // Only open login modal if not on auth page and not an auth request
-      if (!isOnAuthPage && !isAuthRequest) {
+      // Only open login modal if not on auth page and not a public auth request
+      if (!isOnAuthPage && !isPublicAuthRequest) {
         const loginModal = useLoginModal()
         loginModal.open({
           onSuccess: async () => {

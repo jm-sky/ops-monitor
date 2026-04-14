@@ -42,7 +42,8 @@ async def _seed_sites(yaml_file: Path, dry_run: bool) -> None:
         raise typer.Exit(1)
 
     data = yaml.safe_load(yaml_file.read_text())
-    sites = data.get("sites", [])
+    # Support both root list and {sites: [...]} format
+    sites = data if isinstance(data, list) else data.get("sites", [])
 
     if not sites:
         console.print("[yellow]No sites found in file.[/yellow]")
@@ -97,6 +98,7 @@ async def _seed_sites(yaml_file: Path, dry_run: bool) -> None:
                 "polling_updates": int(s.get("polling_updates", 43200)),
                 "polling_reboot": int(s.get("polling_reboot", 1800)),
                 "teams_webhook_url": s.get("teams_webhook_url") or None,
+                "server_label": s.get("server") or s.get("server_label") or None,
             }
 
             if existing:

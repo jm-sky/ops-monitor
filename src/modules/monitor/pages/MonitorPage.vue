@@ -1,33 +1,46 @@
 <script setup lang="ts">
 import { Activity, Plus, RefreshCw, Server } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import CommonPageHeader from '@/components/layout/CommonPageHeader.vue'
 import Button from '@/components/ui/button/Button.vue'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
 import { useHandleError } from '@/shared/composables/useHandleError'
 import type { Site, SiteStatus } from '../types'
 import AddSiteDialog from '../components/AddSiteDialog.vue'
-import SiteStatusBadge from '../components/SiteStatusBadge.vue'
+import SiteGroupSection from '../components/SiteGroupSection.vue'
 import { monitorService } from '../services/monitorService'
+
+let cachedStatuses: SiteStatus[] = []
+let hasCachedResult = false
 
 const { t } = useI18n()
 const router = useRouter()
 const { handleError } = useHandleError()
 
-const statuses = ref<SiteStatus[]>([])
+const statuses = ref<SiteStatus[]>([...cachedStatuses])
 const loading = ref(false)
 const showAddDialog = ref(false)
+const hasLoadedOnce = ref(hasCachedResult)
+
+interface SiteGroup {
+  key: string
+  label: string
+  items: SiteStatus[]
+}
 
 async function loadSites() {
   loading.value = true
   try {
     const sites = await monitorService.listSites()
     // Fetch status for each site in parallel
-    statuses.value = await Promise.all(sites.map(site => monitorService.getSite(site.id)))
+    const freshStatuses = await Promise.all(sites.map(site => monitorService.getSite(site.id)))
+    statuses.value = freshStatuses
+    cachedStatuses = [...freshStatuses]
+    hasCachedResult = true
+    hasLoadedOnce.value = true
   } catch (error) {
     handleError(error, { fallbackMessage: t('monitor.loadError', 'Failed to load sites') })
   } finally {
@@ -56,6 +69,58 @@ function onSiteAdded(_site: Site) {
   loadSites()
 }
 
+function compareSiteInGroup(a: SiteStatus, b: SiteStatus): number {
+  const aHasHealth = Boolean(a.site.healthUrl)
+  const bHasHealth = Boolean(b.site.healthUrl)
+  if (aHasHealth !== bHasHealth) return aHasHealth ? -1 : 1
+  return a.site.name.localeCompare(b.site.name)
+}
+
+function compareSiteInServerGroup(a: SiteStatus, b: SiteStatus, serverLabel: string): number {
+  const aIsServerSite = a.site.name === serverLabel
+  const bIsServerSite = b.site.name === serverLabel
+  if (aIsServerSite !== bIsServerSite) return aIsServerSite ? -1 : 1
+  return compareSiteInGroup(a, b)
+}
+
+const groupedStatuses = computed<SiteGroup[]>(() => {
+  const groupsMap = new Map<string, SiteStatus[]>()
+
+  for (const status of statuses.value) {
+    const label = status.site.serverLabel?.trim() ?? ''
+    const key = label ?? '__ungrouped__'
+    const existing = groupsMap.get(key)
+    if (existing) {
+      existing.push(status)
+    } else {
+      groupsMap.set(key, [status])
+    }
+  }
+
+  const groups: SiteGroup[] = Array.from(groupsMap.entries()).map(([key, items]) => {
+    const sortedItems = [...items].sort((a, b) => {
+      if (key === '__ungrouped__') return compareSiteInGroup(a, b)
+      return compareSiteInServerGroup(a, b, key)
+    })
+
+    return {
+      key,
+      label: key === '__ungrouped__' ? t('monitor.ungrouped', 'Ungrouped') : key,
+      items: sortedItems,
+    }
+  })
+
+  return groups.sort((a, b) => {
+    if (a.key === '__ungrouped__') return 1
+    if (b.key === '__ungrouped__') return -1
+    return a.label.localeCompare(b.label)
+  })
+})
+
+const hasSites = computed(() => groupedStatuses.value.length > 0)
+const isRefreshing = computed(() => loading.value && hasSites.value)
+const showEmptyState = computed(() => hasLoadedOnce.value && !loading.value && !hasSites.value)
+
 onMounted(loadSites)
 </script>
 
@@ -63,6 +128,10 @@ onMounted(loadSites)
   <AuthenticatedLayout>
     <CommonPageHeader :label="t('monitor.title', 'Monitor')" :icon="Activity">
       <template #actions>
+        <div v-if="isRefreshing" class="flex items-center gap-2 text-xs text-muted-foreground">
+          <RefreshCw class="size-3 animate-spin" />
+          {{ t('monitor.refreshing', 'Refreshing...') }}
+        </div>
         <Button
           variant="outline"
           size="sm"
@@ -79,46 +148,20 @@ onMounted(loadSites)
       </template>
     </CommonPageHeader>
 
-    <!-- Site grid -->
-    <div v-if="statuses.length > 0" class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Card
-        v-for="s in statuses"
-        :key="s.site.id"
-        class="cursor-pointer transition-shadow hover:shadow-md"
-        @click="goToSite(s.site.id)"
-      >
-        <CardHeader class="flex flex-row items-start justify-between gap-2 pb-2">
-          <div class="flex items-center gap-2 min-w-0">
-            <Server class="size-4 shrink-0 text-muted-foreground" />
-            <CardTitle class="truncate text-base">
-              {{ s.site.name }}
-            </CardTitle>
-          </div>
-          <SiteStatusBadge :status="overallStatus(s)" />
-        </CardHeader>
-        <CardContent class="space-y-1 text-sm text-muted-foreground">
-          <div v-if="s.site.description" class="truncate">
-            {{ s.site.description }}
-          </div>
-          <div class="flex flex-wrap gap-2 pt-1">
-            <span v-if="s.healthSnapshot" class="flex items-center gap-1">
-              <span class="font-medium text-foreground">Health:</span>
-              <SiteStatusBadge :status="s.healthSnapshot.status ?? 'unknown'" size="sm" />
-            </span>
-            <span v-if="s.systemSnapshot" class="flex items-center gap-1">
-              <span class="font-medium text-foreground">System:</span>
-              <SiteStatusBadge :status="s.systemSnapshot.status ?? 'unknown'" size="sm" />
-            </span>
-          </div>
-          <div v-if="!s.site.enabled" class="text-xs text-muted-foreground italic">
-            {{ t('monitor.disabled', 'Polling disabled') }}
-          </div>
-        </CardContent>
-      </Card>
+    <!-- Grouped site grid -->
+    <div v-if="hasSites" class="mt-6 space-y-6">
+      <SiteGroupSection
+        v-for="group in groupedStatuses"
+        :key="group.key"
+        :group="group"
+        :overall-status="overallStatus"
+        :disabled-label="t('monitor.disabled', 'Polling disabled')"
+        @select-site="goToSite"
+      />
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="!loading" class="mt-12 flex flex-col items-center gap-4 text-center text-muted-foreground">
+    <div v-else-if="showEmptyState" class="mt-12 flex flex-col items-center gap-4 text-center text-muted-foreground">
       <Server class="size-12 opacity-30" />
       <p class="text-lg font-medium">
         {{ t('monitor.noSites', 'No sites configured') }}

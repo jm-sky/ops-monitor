@@ -1,6 +1,6 @@
 # Health Endpoint Schema
 
-All monitored applications must expose a `GET /health` endpoint returning JSON.
+All monitored applications must expose a `GET /health` endpoint returning JSON (could be `/api/health`, `/api/health/details` or other similar).
 This document defines the expected response format consumed by ops-monitor.
 
 ---
@@ -146,9 +146,27 @@ For simple applications with no components to report:
 
 ---
 
+## Endpoint Authentication (Optional)
+
+The health endpoint can be protected with an API token when public exposure is not desired.
+
+Preferred approach is standard `Authorization: Bearer <token>` header:
+
+- follows common HTTP auth conventions
+- works out of the box with reverse proxies, API gateways, and observability tooling
+- avoids custom header handling across environments
+
+If token auth is enabled:
+
+- use one dedicated read-only token per monitored service/environment
+- keep `/health` response lightweight and non-sensitive
+- rotate tokens periodically
+
+---
+
 ## Notes for Implementers
 
 - The endpoint must respond within **5 seconds**. Ops-monitor will treat a timeout as `failed`.
-- The endpoint should **not require authentication** (ops-monitor sends a configurable bearer token if the site has one configured, but the check itself should be lightweight).
+- The endpoint may be public or protected by token auth. If protected, prefer `Authorization: Bearer <token>` over custom headers.
 - Avoid performing heavy operations (migrations, full DB scans) inside the health handler. Use cached/pre-computed component statuses where possible.
 - `checked_at` and `stale` are optional for always-on components (database, cache) that are verified on every request cycle.

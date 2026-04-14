@@ -617,6 +617,12 @@ def migrate_unmark(
 @db_app.command("seed")
 def seed_database(
     seeder: str = typer.Argument(..., help="Seeder name (e.g. 'sites')"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be imported without saving"
+    ),
+    clear: bool = typer.Option(
+        False, "--clear", help="Delete all existing records before seeding"
+    ),
 ) -> None:
     """Seed database with initial data."""
 
@@ -626,53 +632,97 @@ def seed_database(
         from app.core.database import engine
         from sqlalchemy import text
 
-        seeds_file = Path(__file__).resolve().parents[2] / "seeds" / "sites.json"
-        if not seeds_file.exists():
-            console.print(f"[red]Seeds file not found:[/red] {seeds_file}")
+        seeds_dir = Path(__file__).resolve().parents[2] / "seeds"
+        yml_file = seeds_dir / "sites.yml"
+        json_file = seeds_dir / "sites.json"
+
+        if yml_file.exists():
+            try:
+                import yaml  # type: ignore[import-untyped]
+            except ImportError:
+                console.print(
+                    "[red]PyYAML not installed. Run: pip install pyyaml[/red]"
+                )
+                raise typer.Exit(1)
+            data = yaml.safe_load(yml_file.read_text())
+            console.print(f"[dim]Loading from {yml_file.name}[/dim]")
+        elif json_file.exists():
+            data = json.loads(json_file.read_text())
+            console.print(f"[dim]Loading from {json_file.name}[/dim]")
+        else:
+            console.print(f"[red]No seeds file found in:[/red] {seeds_dir}")
+            console.print("[red]Expected:[/red] sites.yml or sites.json")
             raise typer.Exit(1)
 
-        sites = json.loads(seeds_file.read_text())
+        # Support both root list and {sites: [...]} format
+        sites = data if isinstance(data, list) else data.get("sites", [])
+
+        if not sites:
+            console.print("[yellow]No sites found in file.[/yellow]")
+            return
+
+        console.print(f"[bold]Sites to seed ({len(sites)}):[/bold]")
+        for s in sites:
+            console.print(f"  • {s.get('name', '?')}  [{s.get('health_url', '—')}]")
+
+        if dry_run:
+            console.print("\n[yellow]Dry run — no changes saved.[/yellow]")
+            return
 
         async with engine.begin() as conn:
+            if clear:
+                result = await conn.execute(text("DELETE FROM sites"))
+                console.print(
+                    f"[yellow]Cleared {result.rowcount} existing site(s) (snapshots cascade-deleted).[/yellow]"
+                )
+
             inserted = 0
             skipped = 0
             for site in sites:
-                polling = site.get("polling", {})
+                name = site.get("name", "").strip()
+                if not name:
+                    console.print("[yellow]Skipping site with no name.[/yellow]")
+                    continue
+
                 result = await conn.execute(
                     text("""
                         INSERT INTO sites (
                             name, description, health_url, system_url, token, enabled,
-                            polling_health, polling_system, polling_updates, polling_reboot
+                            polling_health, polling_system, polling_updates, polling_reboot,
+                            server_label, verify_ssl
                         ) VALUES (
                             :name, :description, :health_url, :system_url, :token, :enabled,
-                            :polling_health, :polling_system, :polling_updates, :polling_reboot
+                            :polling_health, :polling_system, :polling_updates, :polling_reboot,
+                            :server_label, :verify_ssl
                         )
                         ON CONFLICT (name) DO NOTHING
                         """),
                     {
-                        "name": site["name"],
+                        "name": name,
                         "description": site.get("description"),
-                        "health_url": site.get("health_url"),
-                        "system_url": site.get("system_url"),
-                        "token": site.get("token", ""),
-                        "enabled": site.get("enabled", True),
-                        "polling_health": polling.get("health", 300),
-                        "polling_system": polling.get("system", 300),
-                        "polling_updates": polling.get("updates", 43200),
-                        "polling_reboot": polling.get("reboot", 1800),
+                        "health_url": site.get("health_url") or None,
+                        "system_url": site.get("system_url") or None,
+                        "token": site.get("token") or None,
+                        "enabled": bool(site.get("enabled", True)),
+                        "polling_health": int(site.get("polling_health", 300)),
+                        "polling_system": int(site.get("polling_system", 300)),
+                        "polling_updates": int(site.get("polling_updates", 43200)),
+                        "polling_reboot": int(site.get("polling_reboot", 1800)),
+                        "server_label": site.get("server")
+                        or site.get("server_label")
+                        or None,
+                        "verify_ssl": bool(site.get("verify_ssl", True)),
                     },
                 )
                 if result.rowcount:
-                    console.print(f"[green]✓ Inserted site:[/green] {site['name']}")
+                    console.print(f"  [green]created[/green] {name}")
                     inserted += 1
                 else:
-                    console.print(
-                        f"[yellow]○ Already exists (skipped):[/yellow] {site['name']}"
-                    )
+                    console.print(f"  [yellow]skipped[/yellow] {name} (already exists)")
                     skipped += 1
 
         console.print(
-            f"\n[bold green]Done.[/bold green] Inserted: {inserted}, Skipped: {skipped}"
+            f"\n[bold green]Done.[/bold green] Created: {inserted}, Skipped: {skipped}"
         )
 
     if seeder == "sites":

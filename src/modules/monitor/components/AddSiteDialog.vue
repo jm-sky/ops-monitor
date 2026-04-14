@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import Input from '@/components/ui/input/Input.vue'
 import Label from '@/components/ui/label/Label.vue'
+import Switch from '@/components/ui/switch/Switch.vue'
 import { useHandleError } from '@/shared/composables/useHandleError'
 import type { Site, SiteCreate } from '../types'
 import { monitorService } from '../services/monitorService'
@@ -24,26 +25,40 @@ const { handleError } = useHandleError()
 const saving = ref(false)
 interface FormData {
   name: string
+  serverLabel: string
   healthUrl: string
   systemUrl: string
   token: string
   enabled: boolean
   pollingHealth: number
   pollingSystem: number
+  verifySSL: boolean
 }
 
 const form = ref<FormData>({
   name: '',
+  serverLabel: '',
   healthUrl: '',
   systemUrl: '',
   token: '',
   enabled: true,
   pollingHealth: 300,
   pollingSystem: 300,
+  verifySSL: true,
 })
 
 function reset() {
-  form.value = { name: '', healthUrl: '', systemUrl: '', token: '', enabled: true, pollingHealth: 300, pollingSystem: 300 }
+  form.value = {
+    name: '',
+    serverLabel: '',
+    healthUrl: '',
+    systemUrl: '',
+    token: '',
+    enabled: true,
+    pollingHealth: 300,
+    pollingSystem: 300,
+    verifySSL: true,
+  }
 }
 
 
@@ -53,9 +68,11 @@ async function submit() {
   try {
     const payload: SiteCreate = {
       ...form.value,
+      serverLabel: form.value.serverLabel.trim() || null,
       healthUrl: form.value.healthUrl || null,
       systemUrl: form.value.systemUrl || null,
       token: form.value.token || null,
+      verifySSL: form.value.verifySSL,
     }
     const site = await monitorService.createSite(payload)
     reset()
@@ -86,6 +103,14 @@ async function submit() {
           />
         </div>
         <div class="space-y-1.5">
+          <Label for="site-server">{{ t('monitor.fields.serverLabel', 'Server (optional)') }}</Label>
+          <Input
+            id="site-server"
+            v-model="form.serverLabel"
+            placeholder="srv-prod-1"
+          />
+        </div>
+        <div class="space-y-1.5">
           <Label for="site-health">{{ t('monitor.fields.healthUrl', 'Health URL') }}</Label>
           <Input
             id="site-health"
@@ -111,6 +136,10 @@ async function submit() {
             type="password"
             placeholder="Optional"
           />
+        </div>
+        <div class="flex items-center gap-3">
+          <Switch id="verify-ssl" v-model="form.verifySSL" />
+          <Label for="verify-ssl">{{ t('monitor.fields.verifySSL', 'Verify SSL certificate') }}</Label>
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1.5">

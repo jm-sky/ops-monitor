@@ -8,6 +8,7 @@ import CommonPageHeader from '@/components/layout/CommonPageHeader.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import Button from '@/components/ui/button/Button.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import Input from '@/components/ui/input/Input.vue'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
 import { useHandleError } from '@/shared/composables/useHandleError'
 import type { SiteStatus } from '../types'
@@ -23,11 +24,14 @@ const siteId = computed(() => route.params.id as string)
 const status = ref<SiteStatus | null>(null)
 const loading = ref(false)
 const polling = ref(false)
+const savingServerLabel = ref(false)
+const serverLabelDraft = ref('')
 
 async function load() {
   loading.value = true
   try {
     status.value = await monitorService.getSite(siteId.value)
+    serverLabelDraft.value = status.value.site.serverLabel ?? ''
   } catch (error) {
     handleError(error, { fallbackMessage: t('monitor.loadError', 'Failed to load site') })
   } finally {
@@ -45,6 +49,23 @@ async function pollNow() {
     handleError(error, { fallbackMessage: t('monitor.pollError', 'Poll failed') })
   } finally {
     polling.value = false
+  }
+}
+
+async function saveServerLabel() {
+  if (!status.value) return
+  savingServerLabel.value = true
+  try {
+    const updatedSite = await monitorService.updateSite(siteId.value, {
+      serverLabel: serverLabelDraft.value.trim() || null,
+    })
+    status.value = { ...status.value, site: updatedSite }
+    serverLabelDraft.value = updatedSite.serverLabel ?? ''
+    toast.success(t('common.saved', 'Saved'))
+  } catch (error) {
+    handleError(error, { fallbackMessage: t('monitor.updateError', 'Failed to update site') })
+  } finally {
+    savingServerLabel.value = false
   }
 }
 
@@ -134,11 +155,16 @@ onMounted(load)
             <SiteStatusBadge :status="status.systemSnapshot?.status ?? null" />
           </CardHeader>
           <CardContent class="space-y-2 text-sm">
-            <template v-if="status.systemSnapshot?.rawData">
+            <template v-if="status.systemSnapshot">
               <div class="flex justify-between">
                 <span class="text-muted-foreground">{{ t('monitor.lastPolled', 'Last polled') }}</span>
                 <span>{{ formatDate(status.systemSnapshot.polledAt) }}</span>
               </div>
+              <div v-if="status.systemSnapshot.error" class="rounded bg-destructive/10 px-3 py-2 text-destructive">
+                {{ status.systemSnapshot.error }}
+              </div>
+            </template>
+            <template v-if="status.systemSnapshot?.rawData">
               <div class="flex justify-between">
                 <span class="text-muted-foreground">CPU</span>
                 <span>{{ status.systemSnapshot.rawData.cpu_percent }}%</span>
@@ -172,10 +198,7 @@ onMounted(load)
                 {{ status.systemSnapshot.rawData.reboot_reason }}
               </div>
             </template>
-            <div v-else-if="status.systemSnapshot?.error" class="rounded bg-destructive/10 px-3 py-2 text-destructive">
-              {{ status.systemSnapshot.error }}
-            </div>
-            <p v-else class="text-muted-foreground">
+            <p v-if="!status.systemSnapshot" class="text-muted-foreground">
               {{ t('monitor.noData', 'No data yet') }}
             </p>
           </CardContent>
@@ -186,7 +209,7 @@ onMounted(load)
           <CardHeader>
             <CardTitle>{{ t('monitor.configuration', 'Configuration') }}</CardTitle>
           </CardHeader>
-          <CardContent class="grid gap-2 text-sm sm:grid-cols-2">
+          <CardContent class="grid gap-y-2 gap-x-8 text-sm sm:grid-cols-2">
             <div class="flex justify-between">
               <span class="text-muted-foreground">Health URL</span>
               <span class="truncate max-w-xs">{{ status.site.healthUrl ?? '—' }}</span>
@@ -208,6 +231,24 @@ onMounted(load)
               <Badge :variant="status.site.enabled ? 'success' : 'secondary'">
                 {{ status.site.enabled ? t('monitor.enabled', 'Enabled') : t('monitor.disabled', 'Disabled') }}
               </Badge>
+            </div>
+            <div class="sm:col-span-2 space-y-2">
+              <div class="text-muted-foreground">
+                {{ t('monitor.fields.serverLabel', 'Server (optional)') }}
+              </div>
+              <div class="flex gap-2">
+                <Input
+                  v-model="serverLabelDraft"
+                  placeholder="srv-prod-1"
+                />
+                <Button
+                  size="sm"
+                  :disabled="savingServerLabel"
+                  @click="saveServerLabel"
+                >
+                  {{ savingServerLabel ? t('common.saving', 'Saving…') : t('common.save', 'Save') }}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
