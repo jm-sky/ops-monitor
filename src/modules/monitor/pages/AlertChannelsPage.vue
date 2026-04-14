@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Bell, Mail, MessageSquare, Plus, Send, Trash2, Tv } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CommonPageHeader from '@/components/layout/CommonPageHeader.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import Button from '@/components/ui/button/Button.vue'
@@ -19,6 +20,8 @@ const { handleError } = useHandleError()
 const channels = ref<AlertChannel[]>([])
 const loading = ref(false)
 const showAddDialog = ref(false)
+const showDeleteDialog = ref(false)
+const channelToDelete = ref<AlertChannel | null>(null)
 const testingId = ref<string | null>(null)
 const deletingId = ref<string | null>(null)
 
@@ -59,13 +62,21 @@ async function testChannel(channel: AlertChannel) {
   }
 }
 
-async function deleteChannel(channel: AlertChannel) {
-  if (!confirm(t('monitor.alerts.deleteConfirm', `Delete channel "${channel.name}"?`))) return
+function deleteChannel(channel: AlertChannel) {
+  channelToDelete.value = channel
+  showDeleteDialog.value = true
+}
+
+async function confirmDelete() {
+  if (!channelToDelete.value) return
+  const channel = channelToDelete.value
   deletingId.value = channel.id
   try {
     await alertChannelService.delete(channel.id)
     channels.value = channels.value.filter(c => c.id !== channel.id)
     toast.success(t('monitor.alerts.deleted', 'Channel deleted'))
+    showDeleteDialog.value = false
+    channelToDelete.value = null
   } catch (error) {
     handleError(error, { fallbackMessage: t('monitor.alerts.deleteError', 'Failed to delete channel') })
   } finally {
@@ -78,6 +89,12 @@ function onCreated(channel: AlertChannel) {
   showAddDialog.value = false
   toast.success(t('monitor.alerts.created', 'Channel added'))
 }
+
+const deleteConfirmDescription = computed(() =>
+  channelToDelete.value
+    ? t('monitor.alerts.deleteConfirmDescription', `Delete channel "${channelToDelete.value.name}"? This cannot be undone.`)
+    : '',
+)
 
 function channelIcon(type: AlertChannelType) {
   return { teams: Tv, email: Mail, telegram: MessageSquare }[type] ?? Bell
@@ -163,5 +180,12 @@ onMounted(load)
     </div>
 
     <AddChannelDialog v-model:open="showAddDialog" @created="onCreated" />
+    <ConfirmDialog
+      v-model:open="showDeleteDialog"
+      :title="t('monitor.alerts.deleteConfirm', 'Delete channel?')"
+      :description="deleteConfirmDescription"
+      :loading="deletingId !== null"
+      @confirm="confirmDelete"
+    />
   </AuthenticatedLayout>
 </template>

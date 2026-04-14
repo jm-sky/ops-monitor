@@ -1,18 +1,29 @@
 <script setup lang="ts">
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ArrowLeft, RefreshCw, Server, Zap } from 'lucide-vue-next'
+import { ArrowLeft, Braces, Pencil, RefreshCw, Server, Trash2, Zap } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import CommonPageHeader from '@/components/layout/CommonPageHeader.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import Button from '@/components/ui/button/Button.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogHeader,
+  DialogScrollContent,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import Input from '@/components/ui/input/Input.vue'
+import Label from '@/components/ui/label/Label.vue'
+import Switch from '@/components/ui/switch/Switch.vue'
+import { ToClipboard } from '@/components/ui/to-clipboard'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
 import { useHandleError } from '@/shared/composables/useHandleError'
-import type { SiteStatus } from '../types'
+import type { Site, SiteStatus } from '../types'
+import EditSiteDialog from '../components/EditSiteDialog.vue'
 import SiteStatusBadge from '../components/SiteStatusBadge.vue'
 import { metricBarClass, metricLevel, metricValueClass } from '../composables/useMetricLevel'
 import { monitorQueryKeys } from '../services/monitorQueries'
@@ -41,6 +52,17 @@ const status = computed<SiteStatus | null>(() => queryData.value ?? null)
 const polling = ref(false)
 const savingServerLabel = ref(false)
 const serverLabelDraft = ref('')
+const healthResponseDialogOpen = ref(false)
+const showEditDialog = ref(false)
+const showDeleteDialog = ref(false)
+const togglingEnabled = ref(false)
+const deleting = ref(false)
+
+const formattedHealthResponse = computed(() => {
+  const rawData = status.value?.healthSnapshot?.rawData
+  if (!rawData) return ''
+  return JSON.stringify(rawData, null, 2)
+})
 
 async function load() {
   await queryClient.invalidateQueries({ queryKey: monitorQueryKeys.site(siteId.value) })
@@ -67,24 +89,58 @@ async function saveServerLabel() {
     const updatedSite = await monitorService.updateSite(siteId.value, {
       serverLabel: serverLabelDraft.value.trim() || null,
     })
-    queryClient.setQueryData(monitorQueryKeys.site(siteId.value), (cached: SiteStatus | undefined) => {
-      if (!cached) return cached
-      return { ...cached, site: updatedSite }
-    })
+    updateSiteCache(updatedSite)
     serverLabelDraft.value = updatedSite.serverLabel ?? ''
-    queryClient.setQueryData(monitorQueryKeys.siteStatuses(), (cached: SiteStatus[] | undefined) => {
-      if (!cached) return cached
-      return cached.map(siteStatus =>
-        siteStatus.site.id === updatedSite.id
-          ? { ...siteStatus, site: updatedSite }
-          : siteStatus,
-      )
-    })
     toast.success(t('common.saved', 'Saved'))
   } catch (error) {
     handleError(error, { fallbackMessage: t('monitor.updateError', 'Failed to update site') })
   } finally {
     savingServerLabel.value = false
+  }
+}
+
+function updateSiteCache(updatedSite: Site) {
+  queryClient.setQueryData(monitorQueryKeys.site(siteId.value), (cached: SiteStatus | undefined) => {
+    if (!cached) return cached
+    return { ...cached, site: updatedSite }
+  })
+  queryClient.setQueryData(monitorQueryKeys.siteStatuses(), (cached: SiteStatus[] | undefined) => {
+    if (!cached) return cached
+    return cached.map(s => s.site.id === updatedSite.id ? { ...s, site: updatedSite } : s)
+  })
+}
+
+function onSiteUpdated(updatedSite: Site) {
+  updateSiteCache(updatedSite)
+  serverLabelDraft.value = updatedSite.serverLabel ?? ''
+}
+
+async function toggleEnabled() {
+  if (!status.value) return
+  togglingEnabled.value = true
+  try {
+    const updatedSite = await monitorService.updateSite(siteId.value, {
+      enabled: !status.value.site.enabled,
+    })
+    updateSiteCache(updatedSite)
+    toast.success(updatedSite.enabled ? t('monitor.siteEnabled', 'Site enabled') : t('monitor.siteDisabled', 'Site disabled'))
+  } catch (error) {
+    handleError(error, { fallbackMessage: t('monitor.updateError', 'Failed to update site') })
+  } finally {
+    togglingEnabled.value = false
+  }
+}
+
+async function deleteSite() {
+  deleting.value = true
+  try {
+    await monitorService.deleteSite(siteId.value)
+    await queryClient.invalidateQueries({ queryKey: monitorQueryKeys.siteStatuses() })
+    toast.success(t('monitor.deleted', 'Site deleted'))
+    router.back()
+  } catch (error) {
+    handleError(error, { fallbackMessage: t('monitor.deleteError', 'Failed to delete site') })
+    deleting.value = false
   }
 }
 
@@ -128,6 +184,17 @@ watch(error, (queryError, previousError) => {
     <div v-if="status">
       <CommonPageHeader :label="status.site.name" :icon="Server">
         <template #actions>
+          <div class="flex items-center gap-2">
+            <Switch
+              :id="`site-enabled-${siteId}`"
+              :model-value="status.site.enabled"
+              :disabled="togglingEnabled"
+              @update:model-value="toggleEnabled"
+            />
+            <Label :for="`site-enabled-${siteId}`" class="cursor-pointer select-none">
+              {{ status.site.enabled ? t('monitor.enabled', 'Enabled') : t('monitor.disabled', 'Disabled') }}
+            </Label>
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -141,6 +208,19 @@ watch(error, (queryError, previousError) => {
             <Zap :class="['size-4', polling && 'animate-pulse']" />
             {{ t('monitor.pollNow', 'Poll now') }}
           </Button>
+          <Button variant="outline" size="sm" @click="showEditDialog = true">
+            <Pencil class="size-4" />
+            {{ t('monitor.editSite', 'Edit') }}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            class="text-destructive hover:text-destructive"
+            @click="showDeleteDialog = true"
+          >
+            <Trash2 class="size-4" />
+            {{ t('monitor.deleteSite', 'Delete') }}
+          </Button>
         </template>
       </CommonPageHeader>
 
@@ -149,7 +229,20 @@ watch(error, (queryError, previousError) => {
         <Card>
           <CardHeader class="flex flex-row items-center justify-between">
             <CardTitle>{{ t('monitor.health', 'Health') }}</CardTitle>
-            <SiteStatusBadge :status="status.healthSnapshot?.status ?? null" />
+            <div class="flex items-center gap-2">
+              <Button
+                v-if="status.healthSnapshot?.rawData"
+                variant="outline"
+                size="xs"
+                :aria-label="t('monitor.viewRawResponse', 'View full response')"
+                :title="t('monitor.viewRawResponse', 'View full response')"
+                class="h-6"
+                @click="healthResponseDialogOpen = true"
+              >
+                <Braces class="size-3" /> Full response
+              </Button>
+              <SiteStatusBadge :status="status.healthSnapshot?.status ?? null" />
+            </div>
           </CardHeader>
           <CardContent class="space-y-2 text-sm">
             <template v-if="status.healthSnapshot">
@@ -267,7 +360,7 @@ watch(error, (queryError, previousError) => {
           <CardContent class="grid gap-y-2 gap-x-8 text-sm sm:grid-cols-2">
             <div class="flex justify-between">
               <span class="text-muted-foreground">Health URL</span>
-              <span class="truncate max-w-xs">{{ status.site.healthUrl ?? '—' }}</span>
+              <ToClipboard :value="status.site.healthUrl" />
             </div>
             <div class="flex justify-between">
               <span class="text-muted-foreground">System URL</span>
@@ -308,10 +401,33 @@ watch(error, (queryError, previousError) => {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog v-model:open="healthResponseDialogOpen">
+        <DialogScrollContent class="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{{ t('monitor.healthEndpointResponse', 'Health endpoint response') }}</DialogTitle>
+          </DialogHeader>
+          <pre class="rounded-md bg-muted p-4 text-xs leading-5 overflow-x-auto">{{ formattedHealthResponse }}</pre>
+        </DialogScrollContent>
+      </Dialog>
     </div>
 
     <div v-else-if="isLoading || (isFetching && !isFetched && !isError)" class="flex justify-center py-12">
       <RefreshCw class="size-6 animate-spin text-muted-foreground" />
     </div>
+
+    <EditSiteDialog
+      v-if="status"
+      v-model:open="showEditDialog"
+      :site="status.site"
+      @updated="onSiteUpdated"
+    />
+    <ConfirmDialog
+      v-model:open="showDeleteDialog"
+      :title="t('monitor.deleteSite', 'Delete site')"
+      :description="t('monitor.deleteConfirmDescription', 'This will permanently delete the site and all its snapshots.')"
+      :loading="deleting"
+      @confirm="deleteSite"
+    />
   </AuthenticatedLayout>
 </template>
