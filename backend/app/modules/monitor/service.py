@@ -106,7 +106,9 @@ class MonitorService:
             error = "Connection timeout"
             status = "failed"
         except httpx.HTTPStatusError as e:
+            body = e.response.text[:500] if e.response.text else ""
             error = f"HTTP {e.response.status_code}"
+            logger.warning("Health poll %s → %s body=%r", site.name, error, body)
             status = "failed"
         except Exception as e:
             error = str(e)

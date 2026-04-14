@@ -3,6 +3,7 @@ import { Server } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { SiteStatus } from '../types'
+import { metricLevel, type MetricLevel } from '../composables/useMetricLevel'
 import SiteStatusBadge from './SiteStatusBadge.vue'
 
 interface HealthComponent {
@@ -44,13 +45,41 @@ function componentIcon(name: string): string {
 function componentLabel(name: string): string {
   return name.charAt(0).toUpperCase() + name.slice(1)
 }
+
+interface SystemMetric {
+  label: string
+  value: number | null
+  level: MetricLevel
+}
+
+const systemMetrics = computed<SystemMetric[]>(() => {
+  const raw = props.siteStatus.systemSnapshot?.rawData
+  if (!raw) return []
+
+  const mem = raw.memory as Record<string, number> | undefined
+  const disk = raw.disk as Record<string, number> | undefined
+
+  return [
+    { label: 'CPU', value: raw.cpu_percent as number ?? null, level: metricLevel(raw.cpu_percent as number) },
+    { label: 'RAM', value: mem?.percent ?? null, level: metricLevel(mem?.percent) },
+    { label: 'Disk', value: disk?.percent ?? null, level: metricLevel(disk?.percent) },
+  ].filter(m => m.value != null)
+})
+
+const worstMetricLevel = computed<MetricLevel>(() => {
+  if (systemMetrics.value.some(m => m.level === 'crit')) return 'crit'
+  if (systemMetrics.value.some(m => m.level === 'warn')) return 'warn'
+  return 'ok'
+})
 </script>
 
 <template>
   <Card
     :class="[
-      'cursor-pointer transition-all hover:shadow-lg hover:scale-101 hover:-translate-y-1',
+      'cursor-pointer transition-all hover:shadow-lg hover:scale-101 hover:-translate-y-1 gap-2',
       isPrimary && 'ring-2 ring-primary/40',
+      worstMetricLevel === 'crit' && 'ring-2 ring-destructive/50',
+      worstMetricLevel === 'warn' && !isPrimary && 'ring-2 ring-amber-400/50',
     ]"
     @click="emit('select', props.siteStatus.site.id)"
   >
@@ -63,7 +92,7 @@ function componentLabel(name: string): string {
       </div>
       <SiteStatusBadge :status="props.overallStatus(props.siteStatus)" />
     </CardHeader>
-    <CardContent class="space-y-1 text-sm text-muted-foreground">
+    <CardContent class="space-y-2 text-sm text-muted-foreground">
       <div v-if="props.siteStatus.site.description" class="truncate">
         {{ props.siteStatus.site.description }}
       </div>
@@ -103,6 +132,20 @@ function componentLabel(name: string): string {
         class="truncate text-xs text-destructive"
       >
         System: {{ props.siteStatus.systemSnapshot.error }}
+      </div>
+      <div v-if="worstMetricLevel !== 'ok'" class="flex flex-wrap gap-1.5 pt-1">
+        <span
+          v-for="metric in systemMetrics.filter(m => m.level !== 'ok')"
+          :key="metric.label"
+          :class="[
+            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+            metric.level === 'crit'
+              ? 'bg-destructive/10 text-destructive'
+              : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+          ]"
+        >
+          {{ metric.label }} {{ metric.value }}%
+        </span>
       </div>
       <div v-if="!props.siteStatus.site.enabled" class="text-xs text-muted-foreground italic">
         {{ props.disabledLabel }}
