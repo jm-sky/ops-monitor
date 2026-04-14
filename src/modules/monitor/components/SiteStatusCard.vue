@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { Server } from 'lucide-vue-next'
+import { computed } from 'vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { SiteStatus } from '../types'
 import SiteStatusBadge from './SiteStatusBadge.vue'
+
+interface HealthComponent {
+  status: string
+  reason?: string
+  stale?: boolean
+}
 
 const props = defineProps<{
   siteStatus: SiteStatus
@@ -14,12 +21,35 @@ const props = defineProps<{
 const emit = defineEmits<{
   select: [id: string]
 }>()
+
+const healthComponents = computed<[string, HealthComponent][]>(() => {
+  const raw = props.siteStatus.healthSnapshot?.rawData
+  if (!raw || typeof raw.components !== 'object' || !raw.components) return []
+  return Object.entries(raw.components as Record<string, HealthComponent>)
+})
+
+const COMPONENT_ICONS: Record<string, string> = {
+  database: '🗄️',
+  cache: '⚡',
+  frontend: '🖥️',
+  queue: '📬',
+  storage: '📦',
+  mail: '📧',
+}
+
+function componentIcon(name: string): string {
+  return COMPONENT_ICONS[name] ?? '🔌'
+}
+
+function componentLabel(name: string): string {
+  return name.charAt(0).toUpperCase() + name.slice(1)
+}
 </script>
 
 <template>
   <Card
     :class="[
-      'cursor-pointer transition-shadow hover:shadow-md',
+      'cursor-pointer transition-all hover:shadow-lg hover:scale-101 hover:-translate-y-1',
       isPrimary && 'ring-2 ring-primary/40',
     ]"
     @click="emit('select', props.siteStatus.site.id)"
@@ -38,13 +68,28 @@ const emit = defineEmits<{
         {{ props.siteStatus.site.description }}
       </div>
       <div class="flex flex-wrap gap-2 pt-1">
-        <span v-if="props.siteStatus.healthSnapshot" class="flex items-center gap-1">
+        <span v-if="props.siteStatus.healthSnapshot && !healthComponents.length" class="flex items-center gap-1">
           <span class="font-medium text-foreground">Health:</span>
           <SiteStatusBadge :status="props.siteStatus.healthSnapshot.status ?? 'unknown'" size="sm" />
         </span>
         <span v-if="props.siteStatus.systemSnapshot" class="flex items-center gap-1">
           <span class="font-medium text-foreground">System:</span>
           <SiteStatusBadge :status="props.siteStatus.systemSnapshot.status ?? 'unknown'" size="sm" />
+        </span>
+      </div>
+      <div v-if="healthComponents.length" class="grid grid-cols-2 gap-x-6 gap-y-1 pt-1">
+        <span
+          v-for="[name, component] in healthComponents"
+          :key="name"
+          class="flex items-center justify-between gap-2 text-xs"
+          :title="component.reason"
+        >
+          <div class="flex items-center gap-1">
+            <span>{{ componentIcon(name) }}</span>
+            <span class="text-muted-foreground">{{ componentLabel(name) }}:</span>
+          </div>
+          <SiteStatusBadge :status="component.status" size="sm" />
+          <span v-if="component.stale" class="text-muted-foreground/60" title="Status może być nieaktualny">~</span>
         </span>
       </div>
       <div

@@ -17,6 +17,15 @@ const props = defineProps<{
 const emit = defineEmits<{
   selectSite: [id: string]
 }>()
+
+function hasBadServerHealth(group: SiteGroup): boolean {
+  if (group.key === '__ungrouped__') return false
+
+  const serverSiteStatus = group.items.find(siteStatus => siteStatus.site.name === group.key)
+  const healthStatus = serverSiteStatus?.healthSnapshot?.status
+
+  return healthStatus === 'failed' || healthStatus === 'degraded'
+}
 </script>
 
 <template>
@@ -24,7 +33,12 @@ const emit = defineEmits<{
     <h2 class="text-sm font-medium text-muted-foreground">
       {{ props.group.label }}
     </h2>
-    <div class="rounded-lg border p-4">
+    <div
+      :class="[
+        'rounded-xl border-2 border-dashed p-4',
+        hasBadServerHealth(props.group) && 'border-destructive/50',
+      ]"
+    >
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <SiteStatusCard
           v-for="(siteStatus, index) in props.group.items"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ArrowLeft, RefreshCw, Server, Zap } from 'lucide-vue-next'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -13,30 +14,36 @@ import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
 import { useHandleError } from '@/shared/composables/useHandleError'
 import type { SiteStatus } from '../types'
 import SiteStatusBadge from '../components/SiteStatusBadge.vue'
+import { metricBarClass, metricLevel, metricValueClass } from '../composables/useMetricLevel'
+import { monitorQueryKeys } from '../services/monitorQueries'
 import { monitorService } from '../services/monitorService'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const queryClient = useQueryClient()
 const { handleError } = useHandleError()
 
 const siteId = computed(() => route.params.id as string)
-const status = ref<SiteStatus | null>(null)
-const loading = ref(false)
+const {
+  data: queryData,
+  error,
+  isError,
+  isFetching,
+  isLoading,
+  isFetched,
+} = useQuery<SiteStatus>({
+  queryKey: computed(() => monitorQueryKeys.site(siteId.value)),
+  queryFn: () => monitorService.getSite(siteId.value),
+  placeholderData: previousData => previousData,
+})
+const status = computed<SiteStatus | null>(() => queryData.value ?? null)
 const polling = ref(false)
 const savingServerLabel = ref(false)
 const serverLabelDraft = ref('')
 
 async function load() {
-  loading.value = true
-  try {
-    status.value = await monitorService.getSite(siteId.value)
-    serverLabelDraft.value = status.value.site.serverLabel ?? ''
-  } catch (error) {
-    handleError(error, { fallbackMessage: t('monitor.loadError', 'Failed to load site') })
-  } finally {
-    loading.value = false
-  }
+  await queryClient.invalidateQueries({ queryKey: monitorQueryKeys.site(siteId.value) })
 }
 
 async function pollNow() {
@@ -45,6 +52,7 @@ async function pollNow() {
     await monitorService.pollNow(siteId.value)
     toast.success(t('monitor.pollComplete', 'Poll complete'))
     await load()
+    await queryClient.invalidateQueries({ queryKey: monitorQueryKeys.siteStatuses() })
   } catch (error) {
     handleError(error, { fallbackMessage: t('monitor.pollError', 'Poll failed') })
   } finally {
@@ -59,8 +67,19 @@ async function saveServerLabel() {
     const updatedSite = await monitorService.updateSite(siteId.value, {
       serverLabel: serverLabelDraft.value.trim() || null,
     })
-    status.value = { ...status.value, site: updatedSite }
+    queryClient.setQueryData(monitorQueryKeys.site(siteId.value), (cached: SiteStatus | undefined) => {
+      if (!cached) return cached
+      return { ...cached, site: updatedSite }
+    })
     serverLabelDraft.value = updatedSite.serverLabel ?? ''
+    queryClient.setQueryData(monitorQueryKeys.siteStatuses(), (cached: SiteStatus[] | undefined) => {
+      if (!cached) return cached
+      return cached.map(siteStatus =>
+        siteStatus.site.id === updatedSite.id
+          ? { ...siteStatus, site: updatedSite }
+          : siteStatus,
+      )
+    })
     toast.success(t('common.saved', 'Saved'))
   } catch (error) {
     handleError(error, { fallbackMessage: t('monitor.updateError', 'Failed to update site') })
@@ -84,7 +103,17 @@ function formatUptime(seconds: number): string {
   return d > 0 ? `${d}d ${h}h ${m}m` : `${h}h ${m}m`
 }
 
-onMounted(load)
+watch(status, (nextStatus) => {
+  if (nextStatus) {
+    serverLabelDraft.value = nextStatus.site.serverLabel ?? ''
+  }
+}, { immediate: true })
+
+watch(error, (queryError, previousError) => {
+  if (queryError && queryError !== previousError) {
+    handleError(queryError, { fallbackMessage: t('monitor.loadError', 'Failed to load site') })
+  }
+})
 </script>
 
 <template>
@@ -102,10 +131,10 @@ onMounted(load)
           <Button
             variant="outline"
             size="sm"
-            :disabled="loading"
+            :disabled="isFetching"
             @click="load"
           >
-            <RefreshCw :class="['size-4', loading && 'animate-spin']" />
+            <RefreshCw :class="['size-4', isFetching && 'animate-spin']" />
             {{ t('common.refresh', 'Refresh') }}
           </Button>
           <Button size="sm" :disabled="polling" @click="pollNow">
@@ -165,25 +194,51 @@ onMounted(load)
               </div>
             </template>
             <template v-if="status.systemSnapshot?.rawData">
-              <div class="flex justify-between">
-                <span class="text-muted-foreground">CPU</span>
-                <span>{{ status.systemSnapshot.rawData.cpu_percent }}%</span>
+              <div class="space-y-0.5">
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">CPU</span>
+                  <span :class="metricValueClass(metricLevel(status.systemSnapshot.rawData.cpu_percent as number))">
+                    {{ status.systemSnapshot.rawData.cpu_percent }}%
+                  </span>
+                </div>
+                <div class="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    :class="['h-full rounded-full transition-all', metricBarClass(metricLevel(status.systemSnapshot.rawData.cpu_percent as number))]"
+                    :style="{ width: `${status.systemSnapshot.rawData.cpu_percent}%` }"
+                  />
+                </div>
               </div>
-              <div class="flex justify-between">
-                <span class="text-muted-foreground">RAM</span>
-                <span>
-                  {{ (status.systemSnapshot.rawData.memory as Record<string, number>)?.percent }}%
-                  ({{ (status.systemSnapshot.rawData.memory as Record<string, number>)?.used_mb?.toFixed(0) }} /
-                  {{ (status.systemSnapshot.rawData.memory as Record<string, number>)?.total_mb?.toFixed(0) }} MB)
-                </span>
+              <div class="space-y-0.5">
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">RAM</span>
+                  <span :class="metricValueClass(metricLevel((status.systemSnapshot.rawData.memory as Record<string, number>)?.percent))">
+                    {{ (status.systemSnapshot.rawData.memory as Record<string, number>)?.percent }}%
+                    ({{ (status.systemSnapshot.rawData.memory as Record<string, number>)?.used_mb?.toFixed(0) }} /
+                    {{ (status.systemSnapshot.rawData.memory as Record<string, number>)?.total_mb?.toFixed(0) }} MB)
+                  </span>
+                </div>
+                <div class="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    :class="['h-full rounded-full transition-all', metricBarClass(metricLevel((status.systemSnapshot.rawData.memory as Record<string, number>)?.percent))]"
+                    :style="{ width: `${(status.systemSnapshot.rawData.memory as Record<string, number>)?.percent}%` }"
+                  />
+                </div>
               </div>
-              <div class="flex justify-between">
-                <span class="text-muted-foreground">Disk</span>
-                <span>
-                  {{ (status.systemSnapshot.rawData.disk as Record<string, number>)?.percent }}%
-                  ({{ (status.systemSnapshot.rawData.disk as Record<string, number>)?.used_gb?.toFixed(1) }} /
-                  {{ (status.systemSnapshot.rawData.disk as Record<string, number>)?.total_gb?.toFixed(1) }} GB)
-                </span>
+              <div class="space-y-0.5">
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">Disk</span>
+                  <span :class="metricValueClass(metricLevel((status.systemSnapshot.rawData.disk as Record<string, number>)?.percent))">
+                    {{ (status.systemSnapshot.rawData.disk as Record<string, number>)?.percent }}%
+                    ({{ (status.systemSnapshot.rawData.disk as Record<string, number>)?.used_gb?.toFixed(1) }} /
+                    {{ (status.systemSnapshot.rawData.disk as Record<string, number>)?.total_gb?.toFixed(1) }} GB)
+                  </span>
+                </div>
+                <div class="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    :class="['h-full rounded-full transition-all', metricBarClass(metricLevel((status.systemSnapshot.rawData.disk as Record<string, number>)?.percent))]"
+                    :style="{ width: `${(status.systemSnapshot.rawData.disk as Record<string, number>)?.percent}%` }"
+                  />
+                </div>
               </div>
               <div class="flex justify-between">
                 <span class="text-muted-foreground">{{ t('monitor.uptime', 'Uptime') }}</span>
@@ -255,7 +310,7 @@ onMounted(load)
       </div>
     </div>
 
-    <div v-else-if="loading" class="flex justify-center py-12">
+    <div v-else-if="isLoading || (isFetching && !isFetched && !isError)" class="flex justify-center py-12">
       <RefreshCw class="size-6 animate-spin text-muted-foreground" />
     </div>
   </AuthenticatedLayout>

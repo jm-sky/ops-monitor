@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Activity, Plus, RefreshCw, Server } from 'lucide-vue-next'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -11,19 +12,27 @@ import { useHandleError } from '@/shared/composables/useHandleError'
 import type { Site, SiteStatus } from '../types'
 import AddSiteDialog from '../components/AddSiteDialog.vue'
 import SiteGroupSection from '../components/SiteGroupSection.vue'
-import { monitorService } from '../services/monitorService'
-
-let cachedStatuses: SiteStatus[] = []
-let hasCachedResult = false
+import { fetchSiteStatuses, monitorQueryKeys } from '../services/monitorQueries'
 
 const { t } = useI18n()
 const router = useRouter()
+const queryClient = useQueryClient()
 const { handleError } = useHandleError()
 
-const statuses = ref<SiteStatus[]>([...cachedStatuses])
-const loading = ref(false)
 const showAddDialog = ref(false)
-const hasLoadedOnce = ref(hasCachedResult)
+const {
+  data: queryData,
+  error,
+  isError,
+  isFetching,
+  isLoading,
+  isFetched,
+} = useQuery<SiteStatus[]>({
+  queryKey: monitorQueryKeys.siteStatuses(),
+  queryFn: fetchSiteStatuses,
+  placeholderData: previousData => previousData,
+})
+const statuses = computed<SiteStatus[]>(() => queryData.value ?? [])
 
 interface SiteGroup {
   key: string
@@ -32,20 +41,7 @@ interface SiteGroup {
 }
 
 async function loadSites() {
-  loading.value = true
-  try {
-    const sites = await monitorService.listSites()
-    // Fetch status for each site in parallel
-    const freshStatuses = await Promise.all(sites.map(site => monitorService.getSite(site.id)))
-    statuses.value = freshStatuses
-    cachedStatuses = [...freshStatuses]
-    hasCachedResult = true
-    hasLoadedOnce.value = true
-  } catch (error) {
-    handleError(error, { fallbackMessage: t('monitor.loadError', 'Failed to load sites') })
-  } finally {
-    loading.value = false
-  }
+  await queryClient.invalidateQueries({ queryKey: monitorQueryKeys.siteStatuses() })
 }
 
 function overallStatus(s: SiteStatus): string {
@@ -66,7 +62,7 @@ function goToSite(id: string) {
 function onSiteAdded(_site: Site) {
   showAddDialog.value = false
   toast.success(t('monitor.siteAdded', 'Site added'))
-  loadSites()
+  void loadSites()
 }
 
 function compareSiteInGroup(a: SiteStatus, b: SiteStatus): number {
@@ -118,10 +114,14 @@ const groupedStatuses = computed<SiteGroup[]>(() => {
 })
 
 const hasSites = computed(() => groupedStatuses.value.length > 0)
-const isRefreshing = computed(() => loading.value && hasSites.value)
-const showEmptyState = computed(() => hasLoadedOnce.value && !loading.value && !hasSites.value)
+const isRefreshing = computed(() => isFetching.value && hasSites.value)
+const showEmptyState = computed(() => isFetched.value && !isFetching.value && !hasSites.value && !isError.value)
 
-onMounted(loadSites)
+watch(error, (queryError, previousError) => {
+  if (queryError && queryError !== previousError) {
+    handleError(queryError, { fallbackMessage: t('monitor.loadError', 'Failed to load sites') })
+  }
+})
 </script>
 
 <template>
@@ -135,10 +135,10 @@ onMounted(loadSites)
         <Button
           variant="outline"
           size="sm"
-          :disabled="loading"
+          :disabled="isFetching"
           @click="loadSites"
         >
-          <RefreshCw :class="['size-4', loading && 'animate-spin']" />
+          <RefreshCw :class="['size-4', isFetching && 'animate-spin']" />
           {{ t('common.refresh', 'Refresh') }}
         </Button>
         <Button size="sm" @click="showAddDialog = true">
@@ -173,6 +173,10 @@ onMounted(loadSites)
         <Plus class="size-4" />
         {{ t('monitor.addSite', 'Add site') }}
       </Button>
+    </div>
+
+    <div v-else-if="isLoading" class="mt-12 flex justify-center">
+      <RefreshCw class="size-6 animate-spin text-muted-foreground" />
     </div>
 
     <AddSiteDialog v-model:open="showAddDialog" @created="onSiteAdded" />
