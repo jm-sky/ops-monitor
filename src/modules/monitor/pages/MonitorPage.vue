@@ -91,7 +91,7 @@ const groupedStatuses = computed<SiteGroup[]>(() => {
 
   for (const status of statuses.value) {
     const label = status.site.serverLabel?.trim() ?? ''
-    const key = label ?? '__ungrouped__'
+    const key = label.length > 0 ? label : '__ungrouped__'
     const existing = groupsMap.get(key)
     if (existing) {
       existing.push(status)

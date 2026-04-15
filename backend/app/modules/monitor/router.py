@@ -45,6 +45,40 @@ async def list_sites(
     return [SiteResponse(**site.to_response()) for site in sites]
 
 
+@router.get(
+    "/site-statuses",
+    response_model=list[SiteStatusResponse],
+    summary="List sites with current status",
+)
+async def list_site_statuses(
+    _: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> list[SiteStatusResponse]:
+    site_repo = SiteRepository(db)
+    snap_repo = SnapshotRepository(db)
+
+    sites = await site_repo.get_all()
+    site_ids = [site.id for site in sites]
+    snapshots_by_site = await snap_repo.get_latest_for_sites(site_ids)
+
+    return [
+        SiteStatusResponse(
+            site=SiteResponse(**site.to_response()),
+            healthSnapshot=(
+                SiteSnapshotResponse(**health_snapshot.to_response())
+                if (health_snapshot := snapshots_by_site.get(site.id, {}).get("health"))
+                else None
+            ),
+            systemSnapshot=(
+                SiteSnapshotResponse(**system_snapshot.to_response())
+                if (system_snapshot := snapshots_by_site.get(site.id, {}).get("system"))
+                else None
+            ),
+        )
+        for site in sites
+    ]
+
+
 @router.post(
     "/sites",
     response_model=SiteResponse,

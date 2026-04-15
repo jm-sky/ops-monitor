@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import Depends
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -89,6 +89,45 @@ class SnapshotRepository:
             .limit(1)
         )
         return result.scalar_one_or_none()
+
+    async def get_latest_for_sites(
+        self, site_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, dict[str, SiteSnapshotDB]]:
+        """Return latest snapshots grouped by site id and snapshot type."""
+        if not site_ids:
+            return {}
+
+        ranked = (
+            select(
+                SiteSnapshotDB.id.label("id"),
+                SiteSnapshotDB.site_id.label("site_id"),
+                SiteSnapshotDB.snapshot_type.label("snapshot_type"),
+                func.row_number()
+                .over(
+                    partition_by=(
+                        SiteSnapshotDB.site_id,
+                        SiteSnapshotDB.snapshot_type,
+                    ),
+                    order_by=SiteSnapshotDB.polled_at.desc(),
+                )
+                .label("rn"),
+            )
+            .where(SiteSnapshotDB.site_id.in_(site_ids))
+            .subquery()
+        )
+
+        result = await self.db.execute(
+            select(SiteSnapshotDB)
+            .join(ranked, ranked.c.id == SiteSnapshotDB.id)
+            .where(ranked.c.rn == 1)
+        )
+
+        snapshots_by_site: dict[uuid.UUID, dict[str, SiteSnapshotDB]] = {}
+        for snapshot in result.scalars().all():
+            snapshots_by_site.setdefault(snapshot.site_id, {})[
+                snapshot.snapshot_type
+            ] = snapshot
+        return snapshots_by_site
 
     async def get_history(
         self, site_id: uuid.UUID, snapshot_type: str, limit: int = 100

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import Badge from '@/components/ui/badge/Badge.vue'
 import type { BadgeVariants } from '@/components/ui/badge'
 
@@ -6,6 +7,8 @@ defineProps<{
   status: string | null
   size?: 'sm' | 'default'
 }>()
+
+const { t } = useI18n()
 
 function variant(status: string | null): BadgeVariants['variant'] {
   switch (status) {
@@ -25,13 +28,13 @@ function variant(status: string | null): BadgeVariants['variant'] {
 
 function label(status: string | null): string {
   switch (status) {
-    case 'degraded': return 'Degraded'
-    case 'failed': return 'Failed'
-    case 'ok': return 'OK'
-    case 'outdated': return 'Outdated'
-    case 'reboot_required': return 'Reboot required'
-    case 'up_to_date': return 'Up to date'
-    default: return status ?? 'Unknown'
+    case 'degraded': return t('monitor.status.degraded', 'Degraded')
+    case 'failed': return t('monitor.status.failed', 'Failed')
+    case 'ok': return t('monitor.status.ok', 'OK')
+    case 'outdated': return t('monitor.status.outdated', 'Outdated')
+    case 'reboot_required': return t('monitor.status.rebootRequired', 'Reboot required')
+    case 'up_to_date': return t('monitor.status.upToDate', 'Up to date')
+    default: return status ?? t('common.unknown', 'Unknown')
   }
 }
 </script>

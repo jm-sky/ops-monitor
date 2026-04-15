@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Server } from 'lucide-vue-next'
+import { Globe, Server } from 'lucide-vue-next'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { SiteStatus } from '../types'
 import { metricLevel, type MetricLevel } from '../composables/useMetricLevel'
@@ -23,6 +24,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   select: [id: string]
 }>()
+
+const { t } = useI18n()
 
 const healthComponents = computed<[string, HealthComponent][]>(() => {
   const raw = props.siteStatus.healthSnapshot?.rawData
@@ -78,7 +81,7 @@ const worstMetricLevel = computed<MetricLevel>(() => {
   <Card
     :class="[
       'cursor-pointer transition-all hover:shadow-lg hover:scale-101 hover:-translate-y-1 gap-2',
-      props.denseMode ? 'w-56 min-h-20 p-3' : '',
+      props.denseMode ? 'w-full max-w-full md:w-56 min-h-20 p-3' : '',
       isPrimary && 'ring-2 ring-primary/40',
       worstMetricLevel === 'crit' && 'ring-2 ring-destructive/50',
       worstMetricLevel === 'warn' && !isPrimary && 'ring-2 ring-amber-400/50',
@@ -87,7 +90,7 @@ const worstMetricLevel = computed<MetricLevel>(() => {
   >
     <CardHeader :class="props.denseMode ? 'flex flex-col items-center justify-between gap-2 p-0 overflow-hidden' : 'flex flex-row items-start justify-between gap-2 pb-2'">
       <div class="flex items-center gap-2 min-w-0">
-        <Server class="size-4 shrink-0 text-muted-foreground" />
+        <component :is="isPrimary ? Server : Globe" class="size-4 shrink-0 text-muted-foreground" />
         <CardTitle :class="props.denseMode ? 'truncate text-sm' : 'truncate text-base'">
           {{ props.siteStatus.site.name }}
         </CardTitle>
@@ -100,11 +103,11 @@ const worstMetricLevel = computed<MetricLevel>(() => {
       </div>
       <div v-if="!props.denseMode" class="flex flex-wrap gap-4 pt-1">
         <span v-if="props.siteStatus.healthSnapshot && !healthComponents.length" class="flex items-center gap-1">
-          <span class="font-medium text-foreground">Health:</span>
+          <span class="font-medium text-foreground">{{ t('monitor.health', 'Health') }}:</span>
           <SiteStatusBadge :status="props.siteStatus.healthSnapshot.status ?? 'unknown'" size="sm" />
         </span>
         <span v-if="props.siteStatus.systemSnapshot" class="flex items-center gap-1">
-          <span class="font-medium text-foreground">System:</span>
+          <span class="font-medium text-foreground">{{ t('monitor.system', 'System') }}:</span>
           <SiteStatusBadge :status="props.siteStatus.systemSnapshot.status ?? 'unknown'" size="sm" />
         </span>
       </div>
@@ -120,20 +123,24 @@ const worstMetricLevel = computed<MetricLevel>(() => {
             <span class="text-muted-foreground">{{ componentLabel(name) }}:</span>
           </div>
           <SiteStatusBadge :status="component.status" size="sm" />
-          <span v-if="component.stale" class="text-muted-foreground/60" title="Status może być nieaktualny">~</span>
+          <span
+            v-if="component.stale"
+            class="text-muted-foreground/60"
+            :title="t('monitor.statusMayBeStale', 'Status may be stale')"
+          >~</span>
         </span>
       </div>
       <div
         v-if="!props.denseMode && props.siteStatus.healthSnapshot?.status === 'failed' && props.siteStatus.healthSnapshot.error"
         class="truncate text-xs text-destructive"
       >
-        Health: {{ props.siteStatus.healthSnapshot.error }}
+        {{ t('monitor.health', 'Health') }}: {{ props.siteStatus.healthSnapshot.error }}
       </div>
       <div
         v-if="!props.denseMode && props.siteStatus.systemSnapshot?.status === 'failed' && props.siteStatus.systemSnapshot.error"
         class="truncate text-xs text-destructive"
       >
-        System: {{ props.siteStatus.systemSnapshot.error }}
+        {{ t('monitor.system', 'System') }}: {{ props.siteStatus.systemSnapshot.error }}
       </div>
       <div v-if="!props.denseMode && worstMetricLevel !== 'ok'" class="flex flex-wrap gap-1.5 pt-1">
         <span

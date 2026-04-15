@@ -8,6 +8,5 @@ export const monitorQueryKeys = {
 } as const
 
 export async function fetchSiteStatuses(): Promise<SiteStatus[]> {
-  const sites = await monitorService.listSites()
-  return Promise.all(sites.map(site => monitorService.getSite(site.id)))
+  return monitorService.listSiteStatuses()
 }

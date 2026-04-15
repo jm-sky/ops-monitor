@@ -30,7 +30,7 @@ function hasBadServerHealth(group: SiteGroup): boolean {
 </script>
 
 <template>
-  <section :class="props.denseMode ? 'space-y-3 min-w-20 max-w-full flex-1' : 'space-y-3'">
+  <section :class="props.denseMode ? 'space-y-3 min-w-32 max-w-full flex-1' : 'space-y-3'">
     <h2 class="text-sm font-medium text-muted-foreground">
       {{ props.group.label }}
     </h2>

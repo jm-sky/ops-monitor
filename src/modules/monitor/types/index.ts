@@ -17,20 +17,56 @@ export interface Site {
   updatedAt: string
 }
 
-export interface SiteSnapshot {
+export interface HealthComponent {
+  reason?: string
+  stale?: boolean
+  status?: string
+}
+
+export interface HealthRawData {
+  components?: Record<string, HealthComponent>
+  status?: string
+  [key: string]: unknown
+}
+
+export interface SystemResourceData {
+  percent?: number
+  total_mb?: number
+  used_mb?: number
+}
+
+export interface SystemDiskData {
+  percent?: number
+  total_gb?: number
+  used_gb?: number
+}
+
+export interface SystemRawData {
+  cpu_percent?: number
+  disk?: SystemDiskData
+  memory?: SystemResourceData
+  reboot_reason?: string
+  reboot_required?: boolean
+  system_state?: string
+  updates_available?: number
+  uptime_seconds?: number
+  [key: string]: unknown
+}
+
+export interface SiteSnapshot<TRawData = Record<string, unknown>> {
   id: string
   siteId: string
   snapshotType: 'health' | 'system'
   status: string | null
-  rawData: Record<string, unknown> | null
+  rawData: TRawData | null
   error: string | null
   polledAt: string
 }
 
 export interface SiteStatus {
   site: Site
-  healthSnapshot: SiteSnapshot | null
-  systemSnapshot: SiteSnapshot | null
+  healthSnapshot: SiteSnapshot<HealthRawData> | null
+  systemSnapshot: SiteSnapshot<SystemRawData> | null
 }
 
 export interface SiteCreate {

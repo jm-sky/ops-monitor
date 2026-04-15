@@ -55,7 +55,7 @@ const emit = defineEmits<{
       </div>
 
       <!-- Right: actions, dropdown -->
-      <div v-if="$slots.actions || $slots.dropdown" class="flex items-center gap-2 flex-wrap">
+      <div v-if="$slots.actions || $slots.dropdown" class="flex items-center justify-end gap-2 flex-wrap">
         <slot name="actions" />
         <slot name="dropdown" />
       </div>

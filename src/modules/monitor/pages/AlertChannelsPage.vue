@@ -49,7 +49,11 @@ function formatDate(iso: string): string {
 }
 
 function alertTypeLabel(type: string): string {
-  return { health: 'Health', reboot: 'Reboot', updates: 'Updates' }[type] ?? type
+  return {
+    health: t('monitor.alerts.type.health', 'Health'),
+    reboot: t('monitor.alerts.type.reboot', 'Reboot'),
+    updates: t('monitor.alerts.type.updates', 'Updates'),
+  }[type] ?? type
 }
 
 async function toggleEnabled(channel: AlertChannel) {

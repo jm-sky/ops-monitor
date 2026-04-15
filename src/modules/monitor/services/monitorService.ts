@@ -7,6 +7,11 @@ class MonitorService {
     return response.data
   }
 
+  async listSiteStatuses(): Promise<SiteStatus[]> {
+    const response = await apiClient.get<SiteStatus[]>('/monitor/site-statuses')
+    return response.data
+  }
+
   async getSite(id: string): Promise<SiteStatus> {
     const response = await apiClient.get<SiteStatus>(`/monitor/sites/${id}`)
     return response.data
