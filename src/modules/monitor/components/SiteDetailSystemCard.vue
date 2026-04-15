@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { Braces } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Button from '@/components/ui/button/Button.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { SiteSnapshot, SystemRawData } from '../types'
 import { metricBarClass, metricLevel, metricValueClass } from '../composables/useMetricLevel'
@@ -9,6 +11,10 @@ import SiteStatusBadge from './SiteStatusBadge.vue'
 
 const props = defineProps<{
   snapshot: SiteSnapshot<SystemRawData> | null
+}>()
+
+const emit = defineEmits<{
+  viewRawResponse: []
 }>()
 
 const { t } = useI18n()
@@ -20,7 +26,20 @@ const rawData = computed(() => props.snapshot?.rawData ?? null)
   <Card>
     <CardHeader class="flex flex-row items-center justify-between">
       <CardTitle>{{ t('monitor.system', 'System') }}</CardTitle>
-      <SiteStatusBadge :status="snapshot?.status ?? null" />
+      <div class="flex items-center gap-2">
+        <Button
+          v-if="snapshot?.rawData"
+          variant="outline"
+          size="xs"
+          :aria-label="t('monitor.viewRawResponse', 'View full response')"
+          :title="t('monitor.viewRawResponse', 'View full response')"
+          class="h-6"
+          @click="emit('viewRawResponse')"
+        >
+          <Braces class="size-3" /> {{ t('monitor.fullResponse', 'Full response') }}
+        </Button>
+        <SiteStatusBadge :status="snapshot?.status ?? null" />
+      </div>
     </CardHeader>
     <CardContent class="space-y-2 text-sm">
       <template v-if="snapshot">

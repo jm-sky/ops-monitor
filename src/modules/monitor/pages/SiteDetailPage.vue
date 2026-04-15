@@ -50,6 +50,7 @@ const polling = ref(false)
 const savingServerLabel = ref(false)
 const serverLabelDraft = ref('')
 const healthResponseDialogOpen = ref(false)
+const systemResponseDialogOpen = ref(false)
 const showEditDialog = ref(false)
 const showDeleteDialog = ref(false)
 const togglingEnabled = ref(false)
@@ -57,6 +58,12 @@ const deleting = ref(false)
 
 const formattedHealthResponse = computed(() => {
   const rawData = status.value?.healthSnapshot?.rawData
+  if (!rawData) return ''
+  return JSON.stringify(rawData, null, 2)
+})
+
+const formattedSystemResponse = computed(() => {
+  const rawData = status.value?.systemSnapshot?.rawData
   if (!rawData) return ''
   return JSON.stringify(rawData, null, 2)
 })
@@ -211,7 +218,10 @@ watch(error, (queryError, previousError) => {
           :snapshot="status.healthSnapshot"
           @view-raw-response="healthResponseDialogOpen = true"
         />
-        <SiteDetailSystemCard :snapshot="status.systemSnapshot" />
+        <SiteDetailSystemCard
+          :snapshot="status.systemSnapshot"
+          @view-raw-response="systemResponseDialogOpen = true"
+        />
         <SiteDetailConfigurationCard
           v-model:server-label-draft="serverLabelDraft"
           :saving-server-label="savingServerLabel"
@@ -226,6 +236,15 @@ watch(error, (queryError, previousError) => {
             <DialogTitle>{{ t('monitor.healthEndpointResponse', 'Health endpoint response') }}</DialogTitle>
           </DialogHeader>
           <pre class="rounded-md bg-muted p-4 text-xs leading-5 overflow-x-auto">{{ formattedHealthResponse }}</pre>
+        </DialogScrollContent>
+      </Dialog>
+
+      <Dialog v-model:open="systemResponseDialogOpen">
+        <DialogScrollContent class="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{{ t('monitor.systemEndpointResponse', 'System endpoint response') }}</DialogTitle>
+          </DialogHeader>
+          <pre class="rounded-md bg-muted p-4 text-xs leading-5 overflow-x-auto">{{ formattedSystemResponse }}</pre>
         </DialogScrollContent>
       </Dialog>
     </div>
