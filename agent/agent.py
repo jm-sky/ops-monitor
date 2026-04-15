@@ -104,6 +104,9 @@ def _get_update_info() -> dict:
             for line in notifier.read_text().splitlines():
                 line = line.strip()
                 if line and line[0].isdigit():
+                    # Skip ESM/Pro lines — not immediately installable
+                    if "esm" in line.lower() or "additional" in line.lower():
+                        continue
                     count = int(line.split()[0])
                     if "security" in line.lower():
                         security_updates = count
