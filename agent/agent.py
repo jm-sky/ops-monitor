@@ -25,6 +25,7 @@ load_dotenv()
 AGENT_TOKEN: str = os.getenv("AGENT_TOKEN", "")
 AGENT_HOST: str = os.getenv("AGENT_HOST", "0.0.0.0")
 AGENT_PORT: int = int(os.getenv("AGENT_PORT", "9100"))
+AGENT_VERSION: str = "1.0.0"
 
 # Cache update-check results for 5 minutes
 _updates_cache: dict = {}
@@ -89,6 +90,7 @@ def _get_update_info() -> dict:
     updates_available = 0
     security_updates = 0
     security_packages: list[str] = []
+    notifier_has_data = False
 
     try:
         notifier = Path("/var/lib/update-notifier/updates-available")
@@ -101,29 +103,31 @@ def _get_update_info() -> dict:
                         security_updates = count
                     else:
                         updates_available += count
+                    notifier_has_data = True
     except Exception:
         pass
 
-    try:
-        proc = subprocess.run(
-            ["apt", "list", "--upgradable"],
-            capture_output=True,
-            text=True,
-            timeout=15,
-        )
-        all_packages: list[str] = []
-        for line in proc.stdout.splitlines():
-            if "/" not in line:
-                continue
-            pkg = line.split("/")[0]
-            all_packages.append(pkg)
-            if "security" in line.lower():
-                security_packages.append(pkg)
-        if all_packages:
-            updates_available = len(all_packages) - len(security_packages)
-            security_updates = len(security_packages)
-    except Exception:
-        pass
+    if not notifier_has_data:
+        try:
+            proc = subprocess.run(
+                ["apt", "list", "--upgradable"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            all_packages: list[str] = []
+            for line in proc.stdout.splitlines():
+                if "/" not in line:
+                    continue
+                pkg = line.split("/")[0]
+                all_packages.append(pkg)
+                if "security" in line.lower():
+                    security_packages.append(pkg)
+            if all_packages:
+                updates_available = len(all_packages) - len(security_packages)
+                security_updates = len(security_packages)
+        except Exception:
+            pass
 
     result = {
         "updates_available": updates_available + security_updates,
@@ -147,6 +151,7 @@ def _collect_system_metrics() -> dict:
     uptime_seconds = int(time.time() - psutil.boot_time())
 
     data: dict = {
+        "version": AGENT_VERSION,
         "cpu_percent": psutil.cpu_percent(interval=0.5),
         "memory": {
             "total_mb": round(mem.total / 1024 / 1024, 1),

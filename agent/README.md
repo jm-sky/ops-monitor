@@ -34,9 +34,16 @@ docker build -t ops-monitor-agent .
 docker run -d \
   -p 9100:9100 \
   -e AGENT_TOKEN=your-secret \
+  -v /var/lib/apt/lists:/var/lib/apt/lists:ro \
+  -v /var/lib/update-notifier:/var/lib/update-notifier:ro \
+  -v /var/run/reboot-required:/var/run/reboot-required:ro \
+  -v /var/run/reboot-required.pkgs:/var/run/reboot-required.pkgs:ro \
   --name ops-monitor-agent \
   ops-monitor-agent
 ```
+
+The host volume mounts give the agent access to the host's package state. Without them the counts will always be 0 (container has no updates pending).
+
 
 ## Environment Variables
 
@@ -50,6 +57,7 @@ docker run -d \
 
 ```json
 {
+  "version": "1.0.0",
   "cpu_percent": 42.5,
   "memory": { "total_mb": 16384, "used_mb": 8192, "percent": 50.0 },
   "disk": { "total_gb": 500.0, "used_gb": 200.0, "percent": 40.0 },
@@ -58,12 +66,17 @@ docker run -d \
   "reboot_required": true,
   "reboot_reason": "linux-image-6.8.0-107-generic",
   "reboot_detected_at": "2026-04-11T08:00:00+00:00",
-  "updates_available": 12,
-  "security_updates": 3,
+  "updates_available": 20,
+  "security_updates": 1,
+  "security_packages": ["some-package"],
   "system_state": "outdated",
   "timestamp": "2026-04-11T10:00:00+00:00"
 }
 ```
+
+- `updates_available` — total upgradable packages (including security)
+- `security_updates` — security-only count
+- `security_packages` — list of security package names
 
 Reboot detection and update counts are Debian/Ubuntu specific (`/var/run/reboot-required`, APT notifier files). On other platforms these fields return `false`/`null`/`0` gracefully.
 
