@@ -44,6 +44,7 @@ class _FakeSite:
             "pollingReboot": 1800,
             "teamsWebhookUrl": None,
             "serverLabel": None,
+            "environment": None,
             "verifySSL": True,
             "createdAt": now,
             "updatedAt": now,

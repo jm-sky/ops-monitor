@@ -33,6 +33,14 @@ const form = defineModel<SiteFormData>('form', { required: true })
     />
   </div>
   <div class="space-y-1.5">
+    <Label :for="`${props.idPrefix}-site-environment`">{{ $t('monitor.fields.environment', 'Environment (optional)') }}</Label>
+    <Input
+      :id="`${props.idPrefix}-site-environment`"
+      v-model="form.environment"
+      placeholder="production"
+    />
+  </div>
+  <div class="space-y-1.5">
     <Label :for="`${props.idPrefix}-site-health`">{{ $t('monitor.fields.healthUrl', 'Health URL') }}</Label>
     <Input
       :id="`${props.idPrefix}-site-health`"

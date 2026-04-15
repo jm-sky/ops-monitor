@@ -53,6 +53,7 @@ async def _seed_sites(yaml_file: Path, dry_run: bool) -> None:
     table.add_column("Name")
     table.add_column("Health URL")
     table.add_column("System URL")
+    table.add_column("Environment")
     table.add_column("Enabled")
 
     for s in sites:
@@ -60,6 +61,7 @@ async def _seed_sites(yaml_file: Path, dry_run: bool) -> None:
             s.get("name", ""),
             s.get("health_url") or "—",
             s.get("system_url") or "—",
+            s.get("environment") or s.get("env") or "—",
             "✓" if s.get("enabled", True) else "✗",
         )
 
@@ -99,6 +101,7 @@ async def _seed_sites(yaml_file: Path, dry_run: bool) -> None:
                 "polling_reboot": int(s.get("polling_reboot", 1800)),
                 "teams_webhook_url": s.get("teams_webhook_url") or None,
                 "server_label": s.get("server") or s.get("server_label") or None,
+                "environment": s.get("environment") or s.get("env") or None,
             }
 
             if existing:

@@ -1,3 +1,5 @@
+import type { TDateTime } from '@/shared/types/base.type'
+
 export interface Site {
   id: string
   name: string
@@ -12,9 +14,10 @@ export interface Site {
   pollingReboot: number
   teamsWebhookUrl: string | null
   serverLabel: string | null
+  environment: string | null
   verifySSL: boolean
-  createdAt: string
-  updatedAt: string
+  createdAt: TDateTime
+  updatedAt: TDateTime
 }
 
 export interface HealthComponent {
@@ -60,7 +63,7 @@ export interface SiteSnapshot<TRawData = Record<string, unknown>> {
   status: string | null
   rawData: TRawData | null
   error: string | null
-  polledAt: string
+  polledAt: TDateTime
 }
 
 export interface SiteStatus {
@@ -82,6 +85,7 @@ export interface SiteCreate {
   pollingReboot?: number
   teamsWebhookUrl?: string | null
   serverLabel?: string | null
+  environment?: string | null
   verifySSL?: boolean
 }
 

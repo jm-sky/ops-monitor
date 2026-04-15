@@ -47,8 +47,9 @@ const {
 })
 const status = computed<SiteStatus | null>(() => queryData.value ?? null)
 const polling = ref(false)
-const savingServerLabel = ref(false)
+const savingConfig = ref(false)
 const serverLabelDraft = ref('')
+const environmentDraft = ref('')
 const healthResponseDialogOpen = ref(false)
 const systemResponseDialogOpen = ref(false)
 const showEditDialog = ref(false)
@@ -86,20 +87,22 @@ async function pollNow() {
   }
 }
 
-async function saveServerLabel() {
+async function saveConfig() {
   if (!status.value) return
-  savingServerLabel.value = true
+  savingConfig.value = true
   try {
     const updatedSite = await monitorService.updateSite(siteId.value, {
       serverLabel: serverLabelDraft.value.trim() || null,
+      environment: environmentDraft.value.trim() || null,
     })
     updateSiteCache(updatedSite)
     serverLabelDraft.value = updatedSite.serverLabel ?? ''
+    environmentDraft.value = updatedSite.environment ?? ''
     toast.success(t('common.saved', 'Saved'))
   } catch (error) {
     handleError(error, { fallbackMessage: t('monitor.updateError', 'Failed to update site') })
   } finally {
-    savingServerLabel.value = false
+    savingConfig.value = false
   }
 }
 
@@ -117,6 +120,7 @@ function updateSiteCache(updatedSite: Site) {
 function onSiteUpdated(updatedSite: Site) {
   updateSiteCache(updatedSite)
   serverLabelDraft.value = updatedSite.serverLabel ?? ''
+  environmentDraft.value = updatedSite.environment ?? ''
 }
 
 async function toggleEnabled() {
@@ -151,6 +155,7 @@ async function deleteSite() {
 watch(status, (nextStatus) => {
   if (nextStatus) {
     serverLabelDraft.value = nextStatus.site.serverLabel ?? ''
+    environmentDraft.value = nextStatus.site.environment ?? ''
   }
 }, { immediate: true })
 
@@ -224,9 +229,10 @@ watch(error, (queryError, previousError) => {
         />
         <SiteDetailConfigurationCard
           v-model:server-label-draft="serverLabelDraft"
-          :saving-server-label="savingServerLabel"
+          v-model:environment-draft="environmentDraft"
+          :saving-config="savingConfig"
           :site="status.site"
-          @save-server-label="saveServerLabel"
+          @save-config="saveConfig"
         />
       </div>
 

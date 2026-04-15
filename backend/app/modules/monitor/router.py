@@ -104,6 +104,7 @@ async def create_site(
         "polling_reboot": data.pollingReboot,
         "teams_webhook_url": data.teamsWebhookUrl,
         "server_label": data.serverLabel,
+        "environment": data.environment,
         "verify_ssl": data.verifySSL,
     }
     site = await repo.create(site_data)
@@ -174,6 +175,7 @@ async def update_site(
         "polling_reboot": "pollingReboot",
         "teams_webhook_url": "teamsWebhookUrl",
         "server_label": "serverLabel",
+        "environment": "environment",
         "verify_ssl": "verifySSL",
     }
     update_data = {

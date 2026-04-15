@@ -3,6 +3,7 @@ import type { Site } from '../types'
 export interface SiteFormData {
   name: string
   serverLabel: string
+  environment: string
   healthUrl: string
   systemUrl: string
   token: string
@@ -15,6 +16,7 @@ export interface SiteFormData {
 const SITE_FORM_DEFAULTS: SiteFormData = {
   name: '',
   serverLabel: '',
+  environment: '',
   healthUrl: '',
   systemUrl: '',
   token: '',
@@ -32,6 +34,7 @@ export function siteToForm(site: Site): SiteFormData {
   return {
     name: site.name,
     serverLabel: site.serverLabel ?? '',
+    environment: site.environment ?? '',
     healthUrl: site.healthUrl ?? '',
     systemUrl: site.systemUrl ?? '',
     token: '',

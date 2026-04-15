@@ -16,6 +16,7 @@ const baseSite: Site = {
   pollingReboot: 1800,
   teamsWebhookUrl: null,
   serverLabel: 'srv-1',
+  environment: 'production',
   verifySSL: true,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
@@ -33,6 +34,7 @@ describe('useSiteForm', () => {
     const form = siteToForm(baseSite)
     expect(form.name).toBe('API')
     expect(form.serverLabel).toBe('srv-1')
+    expect(form.environment).toBe('production')
     expect(form.token).toBe('')
   })
 

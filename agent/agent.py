@@ -57,9 +57,15 @@ def _get_reboot_info() -> dict:
     """Detect reboot requirement (Debian/Ubuntu)."""
     flag = Path("/var/run/reboot-required")
     if not flag.exists():
-        return {"reboot_required": False, "reboot_reason": None, "reboot_detected_at": None}
+        return {
+            "reboot_required": False,
+            "reboot_reason": None,
+            "reboot_detected_at": None,
+        }
 
-    detected_at = datetime.fromtimestamp(flag.stat().st_mtime, tz=timezone.utc).isoformat()
+    detected_at = datetime.fromtimestamp(
+        flag.stat().st_mtime, tz=timezone.utc
+    ).isoformat()
 
     reason: str | None = None
     pkgs_file = Path("/var/run/reboot-required.pkgs")
@@ -133,7 +139,9 @@ def _get_update_info() -> dict:
         "updates_available": updates_available + security_updates,
         "security_updates": security_updates,
         "security_packages": security_packages,
-        "system_state": "up_to_date" if (updates_available + security_updates) == 0 else "outdated",
+        "system_state": (
+            "up_to_date" if (updates_available + security_updates) == 0 else "outdated"
+        ),
     }
     _updates_cache = {"_ts": now, **result}
     return result

@@ -8,14 +8,15 @@ import { ToClipboard } from '@/components/ui/to-clipboard'
 import type { Site } from '../types'
 
 const props = defineProps<{
-  savingServerLabel: boolean
+  savingConfig: boolean
   site: Site
 }>()
 
 const serverLabelDraft = defineModel<string>('serverLabelDraft', { required: true })
+const environmentDraft = defineModel<string>('environmentDraft', { required: true })
 
 const emit = defineEmits<{
-  saveServerLabel: []
+  saveConfig: []
 }>()
 
 const { t } = useI18n()
@@ -60,10 +61,28 @@ const { t } = useI18n()
           />
           <Button
             size="sm"
-            :disabled="props.savingServerLabel"
-            @click="emit('saveServerLabel')"
+            :disabled="props.savingConfig"
+            @click="emit('saveConfig')"
           >
-            {{ props.savingServerLabel ? t('common.saving', 'Saving…') : t('common.save', 'Save') }}
+            {{ props.savingConfig ? t('common.saving', 'Saving…') : t('common.save', 'Save') }}
+          </Button>
+        </div>
+      </div>
+      <div class="space-y-2 sm:col-span-2">
+        <div class="text-muted-foreground">
+          {{ t('monitor.fields.environment', 'Environment (optional)') }}
+        </div>
+        <div class="flex flex-wrap gap-2 md:flex-nowrap">
+          <Input
+            v-model="environmentDraft"
+            placeholder="production"
+          />
+          <Button
+            size="sm"
+            :disabled="props.savingConfig"
+            @click="emit('saveConfig')"
+          >
+            {{ props.savingConfig ? t('common.saving', 'Saving…') : t('common.save', 'Save') }}
           </Button>
         </div>
       </div>

@@ -19,6 +19,7 @@ class SiteCreate(BaseModel):
     pollingReboot: int = Field(1800, ge=60)
     teamsWebhookUrl: Optional[str] = None
     serverLabel: Optional[str] = Field(None, max_length=255)
+    environment: Optional[str] = Field(None, max_length=100)
     verifySSL: bool = True
 
 
@@ -35,6 +36,7 @@ class SiteUpdate(BaseModel):
     pollingReboot: Optional[int] = Field(None, ge=60)
     teamsWebhookUrl: Optional[str] = None
     serverLabel: Optional[str] = Field(None, max_length=255)
+    environment: Optional[str] = Field(None, max_length=100)
     verifySSL: Optional[bool] = None
 
 
@@ -52,6 +54,7 @@ class SiteResponse(BaseModel):
     pollingReboot: int
     teamsWebhookUrl: Optional[str] = None
     serverLabel: Optional[str] = None
+    environment: Optional[str] = None
     verifySSL: bool = True
     createdAt: datetime
     updatedAt: datetime

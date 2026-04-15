@@ -5,6 +5,7 @@
 sites:
   - name: gear-stack
     description: Gear Stack (gear-stack.ovh)
+    environment: production
     health_url: https://gear-stack.ovh/api/health
     system_url: ""  # no agent installed
     token: ""
@@ -13,6 +14,7 @@ sites:
 
   - name: company-hub
     description: Company Hub (company-hub.dev-made.it)
+    environment: staging
     health_url: https://company-hub.dev-made.it/api/health
     system_url: ""
     token: ""
@@ -21,6 +23,7 @@ sites:
 
   - name: zbory-chwz
     description: Zbory CHWZ (zbory.chwz.waw.pl)
+    environment: production
     health_url: https://api.zbory.chwz.waw.pl/health
     system_url: ""
     token: ""

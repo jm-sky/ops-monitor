@@ -7,7 +7,13 @@ import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import CommonPageHeader from '@/components/layout/CommonPageHeader.vue'
 import Button from '@/components/ui/button/Button.vue'
+import SearchInput from '@/components/ui/input/SearchInput.vue'
 import Label from '@/components/ui/label/Label.vue'
+import Select from '@/components/ui/select/Select.vue'
+import SelectContent from '@/components/ui/select/SelectContent.vue'
+import SelectItem from '@/components/ui/select/SelectItem.vue'
+import SelectTrigger from '@/components/ui/select/SelectTrigger.vue'
+import SelectValue from '@/components/ui/select/SelectValue.vue'
 import Switch from '@/components/ui/switch/Switch.vue'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
 import { useHandleError } from '@/shared/composables/useHandleError'
@@ -25,6 +31,9 @@ const { handleError } = useHandleError()
 useHeartbeat()
 
 const showAddDialog = ref(false)
+const searchQuery = ref('')
+const quickFilter = ref<'all' | 'issues'>('all')
+const selectedEnvironment = ref('__all__')
 const DENSE_MODE_STORAGE_KEY = 'monitor.denseMode'
 const denseMode = ref(localStorage.getItem(DENSE_MODE_STORAGE_KEY) === 'true')
 const {
@@ -120,9 +129,69 @@ const groupedStatuses = computed<SiteGroup[]>(() => {
   })
 })
 
-const hasSites = computed(() => groupedStatuses.value.length > 0)
+const normalizedSearchQuery = computed(() => searchQuery.value.trim().toLowerCase())
+
+const availableEnvironments = computed<string[]>(() => {
+  const values = new Set<string>()
+
+  for (const siteStatus of statuses.value) {
+    const environment = siteStatus.site.environment?.trim()
+    if (environment) {
+      values.add(environment)
+    }
+  }
+
+  return [...values].sort((a, b) => a.localeCompare(b))
+})
+
+function matchesSearch(siteStatus: SiteStatus, query: string): boolean {
+  if (!query) return true
+
+  const tokens = [
+    siteStatus.site.name,
+    siteStatus.site.description ?? '',
+    siteStatus.site.serverLabel ?? '',
+    siteStatus.site.environment ?? '',
+    siteStatus.site.healthUrl ?? '',
+    siteStatus.site.systemUrl ?? '',
+  ]
+
+  return tokens.some(value => value.toLowerCase().includes(query))
+}
+
+const filteredGroupedStatuses = computed<SiteGroup[]>(() => {
+  const query = normalizedSearchQuery.value
+  const showIssuesOnly = quickFilter.value === 'issues'
+
+  return groupedStatuses.value
+    .map(group => {
+      const items = group.items.filter(siteStatus => {
+        if (showIssuesOnly && overallStatus(siteStatus) === 'ok') return false
+        if (selectedEnvironment.value !== '__all__' && siteStatus.site.environment !== selectedEnvironment.value) return false
+        if (query && !matchesSearch(siteStatus, query)) return false
+        return true
+      })
+
+      return {
+        ...group,
+        items,
+      }
+    })
+    .filter(group => group.items.length > 0)
+})
+
+const hasAnySites = computed(() => groupedStatuses.value.length > 0)
+const hasSites = computed(() => filteredGroupedStatuses.value.length > 0)
 const isRefreshing = computed(() => isFetching.value && hasSites.value)
-const showEmptyState = computed(() => isFetched.value && !isFetching.value && !hasSites.value && !isError.value)
+const showEmptyState = computed(() => isFetched.value && !isFetching.value && !hasAnySites.value && !isError.value)
+const showNoResultsState = computed(() =>
+  isFetched.value
+  && !isFetching.value
+  && hasAnySites.value
+  && !hasSites.value
+  && (normalizedSearchQuery.value.length > 0 || quickFilter.value === 'issues' || selectedEnvironment.value !== '__all__')
+  && !isError.value,
+)
 
 watch(error, (queryError, previousError) => {
   if (queryError && queryError !== previousError) {
@@ -164,6 +233,51 @@ watch(denseMode, value => {
         </Button>
       </template>
     </CommonPageHeader>
+    <div class="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="w-full md:max-w-md">
+        <SearchInput
+          v-model="searchQuery"
+          name="monitor-site-search"
+          :placeholder="t('monitor.searchPlaceholder', 'Search sites...')"
+        />
+      </div>
+      <div class="flex items-center gap-2 self-end">
+        <Select v-model="selectedEnvironment">
+          <SelectTrigger class="h-8 w-44">
+            <SelectValue :placeholder="t('monitor.filterEnvironmentAll', 'All environments')" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">
+              {{ t('monitor.filterEnvironmentAll', 'All environments') }}
+            </SelectItem>
+            <SelectItem
+              v-for="environment in availableEnvironments"
+              :key="environment"
+              :value="environment"
+            >
+              {{ environment }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <span class="text-xs text-muted-foreground">
+          {{ t('monitor.quickFilters', 'Quick filters') }}
+        </span>
+        <Button
+          size="sm"
+          :variant="quickFilter === 'all' ? 'default' : 'outline'"
+          @click="quickFilter = 'all'"
+        >
+          {{ t('monitor.filterAll', 'All') }}
+        </Button>
+        <Button
+          size="sm"
+          :variant="quickFilter === 'issues' ? 'default' : 'outline'"
+          @click="quickFilter = 'issues'"
+        >
+          {{ t('monitor.filterIssues', 'Issues') }}
+        </Button>
+      </div>
+    </div>
 
     <!-- Grouped site grid -->
     <div
@@ -174,7 +288,7 @@ watch(denseMode, value => {
       ]"
     >
       <SiteGroupSection
-        v-for="group in groupedStatuses"
+        v-for="group in filteredGroupedStatuses"
         :key="group.key"
         :group="group"
         :overall-status="overallStatus"
@@ -182,6 +296,30 @@ watch(denseMode, value => {
         :dense-mode="denseMode"
         @select-site="goToSite"
       />
+    </div>
+
+    <div v-else-if="showNoResultsState" class="mt-12 flex flex-col items-center gap-4 text-center text-muted-foreground">
+      <Server class="size-12 opacity-30" />
+      <p class="text-lg font-medium">
+        {{ t('monitor.noSearchResults', 'No matching sites') }}
+      </p>
+      <p class="text-sm">
+        {{
+          quickFilter === 'issues'
+            ? t('monitor.noIssueResultsHint', 'No sites with issues for the current search/filter.')
+            : t('monitor.noSearchResultsHint', 'Try a different search phrase.')
+        }}
+      </p>
+      <Button
+        variant="outline"
+        @click="
+          searchQuery = '';
+          quickFilter = 'all';
+          selectedEnvironment = '__all__'
+        "
+      >
+        {{ t('monitor.clearFilters', 'Clear filters') }}
+      </Button>
     </div>
 
     <!-- Empty state -->

@@ -39,6 +39,7 @@ async function submit() {
       pollingSystem: form.value.pollingSystem,
       verifySSL: form.value.verifySSL,
       serverLabel: toNullableString(form.value.serverLabel),
+      environment: toNullableString(form.value.environment),
       healthUrl: toNullableString(form.value.healthUrl),
       systemUrl: toNullableString(form.value.systemUrl),
       token: toNullableString(form.value.token),
