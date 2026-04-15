@@ -1,24 +1,19 @@
 <script setup lang="ts">
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Activity, Plus, RefreshCw, Server } from 'lucide-vue-next'
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import CommonPageHeader from '@/components/layout/CommonPageHeader.vue'
 import Button from '@/components/ui/button/Button.vue'
-import SearchInput from '@/components/ui/input/SearchInput.vue'
 import Label from '@/components/ui/label/Label.vue'
-import Select from '@/components/ui/select/Select.vue'
-import SelectContent from '@/components/ui/select/SelectContent.vue'
-import SelectItem from '@/components/ui/select/SelectItem.vue'
-import SelectTrigger from '@/components/ui/select/SelectTrigger.vue'
-import SelectValue from '@/components/ui/select/SelectValue.vue'
 import Switch from '@/components/ui/switch/Switch.vue'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
 import { useHandleError } from '@/shared/composables/useHandleError'
 import type { Site, SiteStatus } from '../types'
 import AddSiteDialog from '../components/AddSiteDialog.vue'
+import MonitorFiltersBar from '../components/MonitorFiltersBar.vue'
 import SiteGroupSection from '../components/SiteGroupSection.vue'
 import { useHeartbeat } from '../composables/useHeartbeat'
 import { fetchSiteStatuses, monitorQueryKeys } from '../services/monitorQueries'
@@ -32,10 +27,12 @@ useHeartbeat()
 
 const showAddDialog = ref(false)
 const searchQuery = ref('')
+const debouncedSearchQuery = ref('')
 const quickFilter = ref<'all' | 'issues'>('all')
 const selectedEnvironment = ref('__all__')
 const DENSE_MODE_STORAGE_KEY = 'monitor.denseMode'
 const denseMode = ref(localStorage.getItem(DENSE_MODE_STORAGE_KEY) === 'true')
+let searchDebounceTimeout: ReturnType<typeof setTimeout> | undefined
 const {
   data: queryData,
   error,
@@ -129,23 +126,41 @@ const groupedStatuses = computed<SiteGroup[]>(() => {
   })
 })
 
-const normalizedSearchQuery = computed(() => searchQuery.value.trim().toLowerCase())
+const normalizedSearchQuery = computed(() =>
+  debouncedSearchQuery.value.trim().replace(/\s+/g, ' ').toLowerCase(),
+)
+const normalizedSearchTerms = computed(() =>
+  normalizedSearchQuery.value.length > 0
+    ? normalizedSearchQuery.value.split(' ').filter(Boolean)
+    : [],
+)
 
-const availableEnvironments = computed<string[]>(() => {
-  const values = new Set<string>()
+interface EnvironmentOption {
+  count: number
+  value: string
+}
+
+const environmentOptions = computed<EnvironmentOption[]>(() => {
+  const counts = new Map<string, number>()
 
   for (const siteStatus of statuses.value) {
     const environment = siteStatus.site.environment?.trim()
     if (environment) {
-      values.add(environment)
+      counts.set(environment, (counts.get(environment) ?? 0) + 1)
     }
   }
 
-  return [...values].sort((a, b) => a.localeCompare(b))
+  return [...counts.entries()]
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => a.value.localeCompare(b.value, undefined, { sensitivity: 'base' }))
 })
 
-function matchesSearch(siteStatus: SiteStatus, query: string): boolean {
-  if (!query) return true
+function normalizeSearchValue(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+function matchesSearch(siteStatus: SiteStatus, searchTerms: string[]): boolean {
+  if (searchTerms.length === 0) return true
 
   const tokens = [
     siteStatus.site.name,
@@ -154,21 +169,21 @@ function matchesSearch(siteStatus: SiteStatus, query: string): boolean {
     siteStatus.site.environment ?? '',
     siteStatus.site.healthUrl ?? '',
     siteStatus.site.systemUrl ?? '',
-  ]
+  ].map(normalizeSearchValue)
 
-  return tokens.some(value => value.toLowerCase().includes(query))
+  return searchTerms.every(term => tokens.some(value => value.includes(term)))
 }
 
 const filteredGroupedStatuses = computed<SiteGroup[]>(() => {
-  const query = normalizedSearchQuery.value
+  const searchTerms = normalizedSearchTerms.value
   const showIssuesOnly = quickFilter.value === 'issues'
 
   return groupedStatuses.value
     .map(group => {
       const items = group.items.filter(siteStatus => {
         if (showIssuesOnly && overallStatus(siteStatus) === 'ok') return false
-        if (selectedEnvironment.value !== '__all__' && siteStatus.site.environment !== selectedEnvironment.value) return false
-        if (query && !matchesSearch(siteStatus, query)) return false
+        if (selectedEnvironment.value !== '__all__' && siteStatus.site.environment?.trim() !== selectedEnvironment.value) return false
+        if (searchTerms.length > 0 && !matchesSearch(siteStatus, searchTerms)) return false
         return true
       })
 
@@ -182,6 +197,35 @@ const filteredGroupedStatuses = computed<SiteGroup[]>(() => {
 
 const hasAnySites = computed(() => groupedStatuses.value.length > 0)
 const hasSites = computed(() => filteredGroupedStatuses.value.length > 0)
+const filteredSiteCount = computed(() =>
+  filteredGroupedStatuses.value.reduce((sum, group) => sum + group.items.length, 0),
+)
+const activeFilterHints = computed<string[]>(() => {
+  const hints: string[] = []
+
+  if (normalizedSearchQuery.value) {
+    hints.push(t('monitor.activeFilterQuery', { query: normalizedSearchQuery.value }))
+  }
+  if (quickFilter.value === 'issues') {
+    hints.push(t('monitor.activeFilterIssues', 'Issues only'))
+  }
+  if (selectedEnvironment.value !== '__all__') {
+    hints.push(t('monitor.activeFilterEnvironment', { environment: selectedEnvironment.value }))
+  }
+
+  return hints
+})
+const resultSummary = computed(() =>
+  t('monitor.resultsSummary', {
+    groups: filteredGroupedStatuses.value.length,
+    sites: filteredSiteCount.value,
+  }),
+)
+const hasActiveFilters = computed(() =>
+  normalizedSearchQuery.value.length > 0
+  || quickFilter.value === 'issues'
+  || selectedEnvironment.value !== '__all__',
+)
 const isRefreshing = computed(() => isFetching.value && hasSites.value)
 const showEmptyState = computed(() => isFetched.value && !isFetching.value && !hasAnySites.value && !isError.value)
 const showNoResultsState = computed(() =>
@@ -202,6 +246,33 @@ watch(error, (queryError, previousError) => {
 watch(denseMode, value => {
   localStorage.setItem(DENSE_MODE_STORAGE_KEY, String(value))
 })
+
+watch(searchQuery, value => {
+  if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout)
+  searchDebounceTimeout = setTimeout(() => {
+    debouncedSearchQuery.value = value
+  }, 200)
+}, { immediate: true })
+
+watch(environmentOptions, options => {
+  if (selectedEnvironment.value === '__all__') return
+  const stillExists = options.some(option => option.value === selectedEnvironment.value)
+  if (!stillExists) {
+    const staleEnvironment = selectedEnvironment.value
+    selectedEnvironment.value = '__all__'
+    toast.info(t('monitor.environmentResetInfo', { environment: staleEnvironment }))
+  }
+})
+
+onBeforeUnmount(() => {
+  if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout)
+})
+
+function clearFilters() {
+  searchQuery.value = ''
+  quickFilter.value = 'all'
+  selectedEnvironment.value = '__all__'
+}
 </script>
 
 <template>
@@ -233,51 +304,14 @@ watch(denseMode, value => {
         </Button>
       </template>
     </CommonPageHeader>
-    <div class="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-      <div class="w-full md:max-w-md">
-        <SearchInput
-          v-model="searchQuery"
-          name="monitor-site-search"
-          :placeholder="t('monitor.searchPlaceholder', 'Search sites...')"
-        />
-      </div>
-      <div class="flex flex-wrap items-center gap-2 self-end">
-        <Select v-model="selectedEnvironment">
-          <SelectTrigger class="h-8 w-44">
-            <SelectValue :placeholder="t('monitor.filterEnvironmentAll', 'All environments')" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">
-              {{ t('monitor.filterEnvironmentAll', 'All environments') }}
-            </SelectItem>
-            <SelectItem
-              v-for="environment in availableEnvironments"
-              :key="environment"
-              :value="environment"
-            >
-              {{ environment }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-        <span class="text-xs text-muted-foreground">
-          {{ t('monitor.quickFilters', 'Quick filters') }}
-        </span>
-        <Button
-          size="sm"
-          :variant="quickFilter === 'all' ? 'default' : 'outline'"
-          @click="quickFilter = 'all'"
-        >
-          {{ t('monitor.filterAll', 'All') }}
-        </Button>
-        <Button
-          size="sm"
-          :variant="quickFilter === 'issues' ? 'default' : 'outline'"
-          @click="quickFilter = 'issues'"
-        >
-          {{ t('monitor.filterIssues', 'Issues') }}
-        </Button>
-      </div>
-    </div>
+    <MonitorFiltersBar
+      v-model:search-query="searchQuery"
+      v-model:quick-filter="quickFilter"
+      v-model:selected-environment="selectedEnvironment"
+      :environment-options="environmentOptions"
+      :has-active-filters="hasActiveFilters"
+      :result-summary="resultSummary"
+    />
 
     <!-- Grouped site grid -->
     <div
@@ -310,13 +344,12 @@ watch(denseMode, value => {
             : t('monitor.noSearchResultsHint', 'Try a different search phrase.')
         }}
       </p>
+      <p v-if="activeFilterHints.length > 0" class="text-xs">
+        {{ t('monitor.activeFiltersSummary', { filters: activeFilterHints.join(' | ') }) }}
+      </p>
       <Button
         variant="outline"
-        @click="
-          searchQuery = '';
-          quickFilter = 'all';
-          selectedEnvironment = '__all__'
-        "
+        @click="clearFilters"
       >
         {{ t('monitor.clearFilters', 'Clear filters') }}
       </Button>
