@@ -56,7 +56,7 @@ def verify_token(authorization: str | None) -> None:
 def _get_reboot_info() -> dict:
     """Detect reboot requirement (Debian/Ubuntu)."""
     flag = Path("/var/run/reboot-required")
-    if not flag.exists():
+    if not flag.is_file():
         return {
             "reboot_required": False,
             "reboot_reason": None,
@@ -69,7 +69,7 @@ def _get_reboot_info() -> dict:
 
     reason: str | None = None
     pkgs_file = Path("/var/run/reboot-required.pkgs")
-    if pkgs_file.exists():
+    if pkgs_file.is_file():
         try:
             pkgs = pkgs_file.read_text().strip().splitlines()
             reason = ", ".join(pkgs[:5]) if pkgs else "kernel update"
