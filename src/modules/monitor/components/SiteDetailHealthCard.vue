@@ -25,8 +25,8 @@ const components = computed(() => {
 </script>
 
 <template>
-  <Card>
-    <CardHeader class="flex flex-row items-center justify-between">
+  <Card class="h-full">
+    <CardHeader class="flex flex-row items-center justify-between pb-3">
       <CardTitle>{{ t('monitor.health', 'Health') }}</CardTitle>
       <div class="flex items-center gap-2">
         <Button
@@ -43,23 +43,26 @@ const components = computed(() => {
         <SiteStatusBadge :status="snapshot?.status ?? null" />
       </div>
     </CardHeader>
-    <CardContent class="space-y-2 text-sm">
+    <CardContent class="space-y-4 text-sm">
       <template v-if="snapshot">
-        <div class="flex justify-between">
+        <div class="grid grid-cols-[9rem_1fr] items-center gap-2">
           <span class="text-muted-foreground">{{ t('monitor.lastPolled', 'Last polled') }}</span>
-          <span>{{ formatMonitorDate(snapshot.polledAt) }}</span>
+          <span class="text-right">{{ formatMonitorDate(snapshot.polledAt) }}</span>
         </div>
         <div v-if="snapshot.error" class="rounded bg-destructive/10 px-3 py-2 text-destructive">
           {{ snapshot.error }}
         </div>
         <template v-if="components.length > 0">
+          <div class="border-t pt-2" />
           <div
             v-for="[key, comp] in components"
             :key="key"
-            class="flex justify-between"
+            class="grid grid-cols-[9rem_1fr] items-center gap-2"
           >
             <span class="text-muted-foreground capitalize">{{ key }}</span>
-            <SiteStatusBadge :status="comp?.status ?? null" />
+            <div class="flex justify-end">
+              <SiteStatusBadge :status="comp?.status ?? null" />
+            </div>
           </div>
         </template>
       </template>

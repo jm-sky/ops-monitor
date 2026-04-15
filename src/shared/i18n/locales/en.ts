@@ -166,6 +166,17 @@ export default {
       rebootRequired: 'Reboot required',
       upToDate: 'Up to date',
     },
+    metrics: {
+      cpu: 'CPU',
+      ram: 'RAM',
+      disk: 'Disk',
+    },
+    history: {
+      title: 'History',
+      time: 'Time',
+      status: 'Status',
+      issues: 'Issues',
+    },
     configuration: 'Configuration',
     fields: {
       name: 'Name',

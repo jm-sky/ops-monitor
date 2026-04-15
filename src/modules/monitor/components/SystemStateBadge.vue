@@ -11,10 +11,10 @@ const { t } = useI18n()
 
 const colorClass = computed(() => {
   switch (props.state) {
-    case 'up_to_date':
-      return 'border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
     case 'outdated':
       return 'border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300'
+    case 'up_to_date':
+      return 'border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
     default:
       return ''
   }
@@ -22,10 +22,10 @@ const colorClass = computed(() => {
 
 const label = computed(() => {
   switch (props.state) {
-    case 'up_to_date':
-      return t('monitor.status.upToDate', 'Up to date')
     case 'outdated':
       return t('monitor.status.outdated', 'Outdated')
+    case 'up_to_date':
+      return t('monitor.status.upToDate', 'Up to date')
     default:
       return props.state ?? t('common.unknown', 'Unknown')
   }
@@ -33,7 +33,7 @@ const label = computed(() => {
 </script>
 
 <template>
-  <Badge variant="outline" :class="colorClass">
+  <Badge variant="outline" class="h-6 rounded-md px-2.5 text-xs font-medium" :class="colorClass">
     {{ label }}
   </Badge>
 </template>

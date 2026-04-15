@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Braces } from 'lucide-vue-next'
+import { AlertTriangle, Braces } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Button from '@/components/ui/button/Button.vue'
@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { SiteSnapshot, SystemRawData } from '../types'
 import { metricBarClass, metricLevel, metricValueClass } from '../composables/useMetricLevel'
-import { formatMonitorDate, formatTimeAgo, formatUptime } from '../composables/useMonitorFormatters'
+import { formatGb, formatMbToGb, formatMonitorDate, formatTimeAgo, formatUptime } from '../composables/useMonitorFormatters'
 import SiteStatusBadge from './SiteStatusBadge.vue'
 import SystemStateBadge from './SystemStateBadge.vue'
 
@@ -53,6 +53,8 @@ function getBoolean(
   return Boolean(value)
 }
 
+const isSystemUrlAvailable = computed(() => !!rawData.value?.system_url)
+
 const updatesAvailable = computed(() =>
   getNumber(rawData.value, 'updates_available', 'updatesAvailable') ?? 0,
 )
@@ -80,8 +82,8 @@ const rebootDetectedAtAgo = computed(() =>
 </script>
 
 <template>
-  <Card>
-    <CardHeader class="flex flex-row items-center justify-between">
+  <Card class="h-full" :class="{ 'bg-muted/50 opacity-80': !isSystemUrlAvailable }">
+    <CardHeader class="flex flex-row items-center justify-between pb-3">
       <CardTitle>{{ t('monitor.system', 'System') }}</CardTitle>
       <div class="flex items-center gap-2">
         <Button
@@ -98,98 +100,105 @@ const rebootDetectedAtAgo = computed(() =>
         <SiteStatusBadge :status="snapshot?.status ?? null" />
       </div>
     </CardHeader>
-    <CardContent class="space-y-2 text-sm">
+    <CardContent class="space-y-4 text-sm">
       <template v-if="snapshot">
-        <div class="flex justify-between">
+        <div class="grid grid-cols-[9rem_1fr] items-center gap-2">
           <span class="text-muted-foreground">{{ t('monitor.lastPolled', 'Last polled') }}</span>
-          <span>{{ formatMonitorDate(snapshot.polledAt) }}</span>
+          <span class="text-right">{{ formatMonitorDate(snapshot.polledAt) }}</span>
         </div>
         <div v-if="snapshot.error" class="rounded bg-destructive/10 px-3 py-2 text-destructive">
           {{ snapshot.error }}
         </div>
       </template>
       <template v-if="rawData">
-        <div class="space-y-0.5">
+        <div class="space-y-1.5">
           <div class="flex justify-between">
             <span class="text-muted-foreground">{{ t('monitor.metrics.cpu', 'CPU') }}</span>
             <span :class="metricValueClass(metricLevel(rawData.cpu_percent))">
               {{ rawData.cpu_percent ?? 0 }}%
             </span>
           </div>
-          <div class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div class="h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
             <div
               :class="['h-full rounded-full transition-all', metricBarClass(metricLevel(rawData.cpu_percent))]"
               :style="{ width: `${rawData.cpu_percent ?? 0}%` }"
             />
           </div>
         </div>
-        <div class="space-y-0.5">
+        <div class="space-y-1.5">
           <div class="flex justify-between">
             <span class="text-muted-foreground">{{ t('monitor.metrics.ram', 'RAM') }}</span>
             <span :class="metricValueClass(metricLevel(rawData.memory?.percent))">
               {{ rawData.memory?.percent ?? 0 }}%
-              ({{ ((rawData.memory?.used_mb ?? 0) / 1024).toFixed(1) }} /
-              {{ ((rawData.memory?.total_mb ?? 0) / 1024).toFixed(1) }} GB)
+              ({{ formatMbToGb(rawData.memory?.used_mb) }} /
+              {{ formatMbToGb(rawData.memory?.total_mb) }} GB)
             </span>
           </div>
-          <div class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div class="h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
             <div
               :class="['h-full rounded-full transition-all', metricBarClass(metricLevel(rawData.memory?.percent))]"
               :style="{ width: `${rawData.memory?.percent ?? 0}%` }"
             />
           </div>
         </div>
-        <div class="space-y-0.5">
+        <div class="space-y-1.5">
           <div class="flex justify-between">
             <span class="text-muted-foreground">{{ t('monitor.metrics.disk', 'Disk') }}</span>
             <span :class="metricValueClass(metricLevel(rawData.disk?.percent))">
               {{ rawData.disk?.percent ?? 0 }}%
-              ({{ rawData.disk?.used_gb?.toFixed(1) ?? '0.0' }} /
-              {{ rawData.disk?.total_gb?.toFixed(1) ?? '0.0' }} GB)
+              ({{ formatGb(rawData.disk?.used_gb) }} /
+              {{ formatGb(rawData.disk?.total_gb) }} GB)
             </span>
           </div>
-          <div class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div class="h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
             <div
               :class="['h-full rounded-full transition-all', metricBarClass(metricLevel(rawData.disk?.percent))]"
               :style="{ width: `${rawData.disk?.percent ?? 0}%` }"
             />
           </div>
         </div>
-        <div class="flex justify-between">
+        <div class="grid grid-cols-[9rem_1fr] items-center gap-2">
           <span class="text-muted-foreground">{{ t('monitor.uptime', 'Uptime') }}</span>
-          <span>{{ formatUptime(rawData.uptime_seconds) }}</span>
+          <span class="text-right">{{ formatUptime(rawData.uptime_seconds) }}</span>
         </div>
-        <div class="flex justify-between">
+        <div class="grid grid-cols-[9rem_1fr] items-center gap-2">
           <span class="text-muted-foreground">{{ t('monitor.updates', 'Updates') }}</span>
-          <span>{{ updatesAvailable }}</span>
+          <span class="text-right">{{ updatesAvailable }}</span>
         </div>
-        <div v-if="securityUpdates !== null" class="flex justify-between">
+        <div v-if="securityUpdates !== null" class="grid grid-cols-[9rem_1fr] items-center gap-2">
           <span class="text-muted-foreground">{{ t('monitor.securityUpdates', 'Security updates') }}</span>
-          <span>{{ securityUpdates }}</span>
+          <span class="text-right">{{ securityUpdates }}</span>
         </div>
-        <div v-if="systemState" class="flex justify-between">
+        <div v-if="systemState" class="grid grid-cols-[9rem_1fr] items-center gap-2">
           <span class="text-muted-foreground">{{ t('monitor.systemState', 'System state') }}</span>
-          <SystemStateBadge :state="systemState" />
+          <div class="flex justify-end">
+            <SystemStateBadge :state="systemState" />
+          </div>
         </div>
-        <div v-if="rebootDetectedAt" class="flex justify-between">
+        <div v-if="rebootDetectedAt" class="grid grid-cols-[9rem_1fr] items-center gap-2">
           <span class="text-muted-foreground">{{ t('monitor.rebootDetectedAt', 'Reboot detected at') }}</span>
-          <Tooltip :delay-duration="150">
-            <TooltipTrigger as-child>
-              <span class="cursor-help underline decoration-dotted underline-offset-4">
-                {{ rebootDetectedAtAgo }}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              {{ rebootDetectedAtFull }}
-            </TooltipContent>
-          </Tooltip>
+          <div class="flex justify-end">
+            <Tooltip :delay-duration="150">
+              <TooltipTrigger as-child>
+                <span class="cursor-help underline decoration-dotted underline-offset-4">
+                  {{ rebootDetectedAtAgo }}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {{ rebootDetectedAtFull }}
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
         <div
           v-if="rebootRequired"
-          class="rounded bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+          class="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
         >
+          <AlertTriangle class="size-3.5 shrink-0" />
           {{ t('monitor.rebootRequired', 'Reboot required') }}
-          <template v-if="rebootReason">: {{ rebootReason }}</template>
+          <template v-if="rebootReason">
+            : {{ rebootReason }}
+          </template>
         </div>
       </template>
       <p v-if="!snapshot" class="text-muted-foreground">

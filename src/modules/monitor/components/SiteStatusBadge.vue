@@ -1,28 +1,28 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Badge from '@/components/ui/badge/Badge.vue'
-import type { BadgeVariants } from '@/components/ui/badge'
 
-defineProps<{
+const props = defineProps<{
   status: string | null
   size?: 'sm' | 'default'
 }>()
 
 const { t } = useI18n()
 
-function variant(status: string | null): BadgeVariants['variant'] {
+function colorClass(status: string | null): string {
   switch (status) {
     case 'degraded':
     case 'outdated':
     case 'reboot_required':
-      return 'outline'
+      return 'border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300'
     case 'failed':
-      return 'destructive'
+      return 'border-destructive/40 bg-destructive/10 text-destructive'
     case 'ok':
     case 'up_to_date':
-      return 'success'
+      return 'border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
     default:
-      return 'secondary'
+      return ''
   }
 }
 
@@ -37,10 +37,16 @@ function label(status: string | null): string {
     default: return status ?? t('common.unknown', 'Unknown')
   }
 }
+
+const sizeClass = computed(() =>
+  props.size === 'sm'
+    ? 'h-5 rounded-md px-2 text-[11px] font-medium'
+    : 'h-6 rounded-md px-2.5 text-xs font-medium',
+)
 </script>
 
 <template>
-  <Badge :variant="variant(status)">
+  <Badge variant="outline" :class="[sizeClass, colorClass(status)]">
     {{ label(status) }}
   </Badge>
 </template>

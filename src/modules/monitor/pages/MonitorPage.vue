@@ -241,7 +241,7 @@ watch(denseMode, value => {
           :placeholder="t('monitor.searchPlaceholder', 'Search sites...')"
         />
       </div>
-      <div class="flex items-center gap-2 self-end">
+      <div class="flex flex-wrap items-center gap-2 self-end">
         <Select v-model="selectedEnvironment">
           <SelectTrigger class="h-8 w-44">
             <SelectValue :placeholder="t('monitor.filterEnvironmentAll', 'All environments')" />

@@ -35,3 +35,13 @@ export function formatTimeAgo(iso: string | null | undefined): string {
   const daysDiff = Math.round(hoursDiff / 24)
   return rtf.format(daysDiff, 'day')
 }
+
+export function formatGb(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return '0.0'
+  return value.toFixed(1)
+}
+
+export function formatMbToGb(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return '0.0'
+  return (value / 1024).toFixed(1)
+}

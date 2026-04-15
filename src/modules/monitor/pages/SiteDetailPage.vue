@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ArrowLeft, Pencil, RefreshCw, Server, Trash2, Zap } from 'lucide-vue-next'
+import { Pencil, RefreshCw, Server, Trash2, Zap } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -22,6 +22,7 @@ import type { Site, SiteStatus } from '../types'
 import EditSiteDialog from '../components/EditSiteDialog.vue'
 import SiteDetailConfigurationCard from '../components/SiteDetailConfigurationCard.vue'
 import SiteDetailHealthCard from '../components/SiteDetailHealthCard.vue'
+import SiteDetailSnapshotHistoryCard from '../components/SiteDetailSnapshotHistoryCard.vue'
 import SiteDetailSystemCard from '../components/SiteDetailSystemCard.vue'
 import { monitorQueryKeys } from '../services/monitorQueries'
 import { monitorService } from '../services/monitorService'
@@ -168,57 +169,67 @@ watch(error, (queryError, previousError) => {
 
 <template>
   <AuthenticatedLayout>
-    <div class="flex items-center gap-2 mb-4">
-      <Button variant="ghost" size="sm" @click="router.back()">
-        <ArrowLeft class="size-4" />
-        {{ t('common.back', 'Back') }}
-      </Button>
-    </div>
-
     <div v-if="status">
-      <CommonPageHeader :label="status.site.name" :icon="Server">
+      <CommonPageHeader
+        :label="status.site.name"
+        :icon="Server"
+        with-back-button
+        @back="router.back()"
+      >
         <template #actions>
-          <div class="flex items-center gap-2 mr-2">
-            <Switch
-              :id="`site-enabled-${siteId}`"
-              :model-value="status.site.enabled"
-              :disabled="togglingEnabled"
-              @update:model-value="toggleEnabled"
-            />
-            <Label :for="`site-enabled-${siteId}`" class="cursor-pointer select-none">
-              {{ status.site.enabled ? t('monitor.enabled', 'Enabled') : t('monitor.disabled', 'Disabled') }}
-            </Label>
+          <div class="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
+            <div class="flex items-center gap-2 rounded-md border bg-muted/30 px-2.5 py-1.5">
+              <Switch
+                :id="`site-enabled-${siteId}`"
+                :model-value="status.site.enabled"
+                :disabled="togglingEnabled"
+                @update:model-value="toggleEnabled"
+              />
+              <Label :for="`site-enabled-${siteId}`" class="cursor-pointer select-none text-sm">
+                {{ status.site.enabled ? t('monitor.enabled', 'Enabled') : t('monitor.disabled', 'Disabled') }}
+              </Label>
+            </div>
+            <div class="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                :disabled="isFetching || polling"
+                :aria-busy="isFetching ? 'true' : 'false'"
+                @click="load"
+              >
+                <RefreshCw :class="['size-4', isFetching && 'animate-spin']" />
+                {{ t('common.refresh', 'Refresh') }}
+              </Button>
+              <Button
+                size="sm"
+                :disabled="polling || isFetching"
+                :aria-busy="polling ? 'true' : 'false'"
+                @click="pollNow"
+              >
+                <Zap :class="['size-4', polling && 'animate-pulse']" />
+                {{ t('monitor.pollNow', 'Poll now') }}
+              </Button>
+            </div>
+            <div class="flex items-center gap-2">
+              <Button variant="outline" size="sm" @click="showEditDialog = true">
+                <Pencil class="size-4" />
+                {{ t('monitor.editSite', 'Edit') }}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                class="text-destructive hover:text-destructive"
+                @click="showDeleteDialog = true"
+              >
+                <Trash2 class="size-4" />
+                {{ t('monitor.deleteSite', 'Delete') }}
+              </Button>
+            </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            :disabled="isFetching"
-            @click="load"
-          >
-            <RefreshCw :class="['size-4', isFetching && 'animate-spin']" />
-            {{ t('common.refresh', 'Refresh') }}
-          </Button>
-          <Button size="sm" :disabled="polling" @click="pollNow">
-            <Zap :class="['size-4', polling && 'animate-pulse']" />
-            {{ t('monitor.pollNow', 'Poll now') }}
-          </Button>
-          <Button variant="outline" size="sm" @click="showEditDialog = true">
-            <Pencil class="size-4" />
-            {{ t('monitor.editSite', 'Edit') }}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            class="text-destructive hover:text-destructive"
-            @click="showDeleteDialog = true"
-          >
-            <Trash2 class="size-4" />
-            {{ t('monitor.deleteSite', 'Delete') }}
-          </Button>
         </template>
       </CommonPageHeader>
 
-      <div class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div class="mt-6 grid grid-cols-1 gap-6" :aria-busy="isFetching ? 'true' : 'false'">
         <SiteDetailHealthCard
           :snapshot="status.healthSnapshot"
           @view-raw-response="healthResponseDialogOpen = true"
@@ -227,6 +238,7 @@ watch(error, (queryError, previousError) => {
           :snapshot="status.systemSnapshot"
           @view-raw-response="systemResponseDialogOpen = true"
         />
+        <SiteDetailSnapshotHistoryCard :site="status.site" />
         <SiteDetailConfigurationCard
           v-model:server-label-draft="serverLabelDraft"
           v-model:environment-draft="environmentDraft"
