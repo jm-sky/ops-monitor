@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-Guidance for Claude Code in this repository.
-
 ## Project
 
 Central ops monitoring system. Pull-only: backend polls `/health` + `/system` endpoints, stores snapshots in PostgreSQL, Vue 3 dashboard, MS Teams alerts. See `README.md` for full architecture and data schemas.
@@ -25,7 +23,7 @@ cp .env.example .env && python agent.py
 
 # Linting — REQUIRED before every commit
 pnpm lint                                             # frontend
-cd backend && python -m black . && python -m mypy .  # backend
+docker exec ops-monitor-app python -m black . && docker exec ops-monitor-app python -m ruff check . && docker exec ops-monitor-app python -m mypy .  # backend
 ```
 
 **CRITICAL:** Never run `docker` commands if the project directory starts with `_` (underscore = production server dev copy).
