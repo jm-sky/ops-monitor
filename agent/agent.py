@@ -111,10 +111,16 @@ def _get_update_info() -> dict:
             text=True,
             timeout=15,
         )
+        all_packages: list[str] = []
         for line in proc.stdout.splitlines():
-            if "/" in line and "security" in line.lower():
-                security_packages.append(line.split("/")[0])
-        if security_packages:
+            if "/" not in line:
+                continue
+            pkg = line.split("/")[0]
+            all_packages.append(pkg)
+            if "security" in line.lower():
+                security_packages.append(pkg)
+        if all_packages:
+            updates_available = len(all_packages) - len(security_packages)
             security_updates = len(security_packages)
     except Exception:
         pass
