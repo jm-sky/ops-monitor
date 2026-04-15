@@ -1,7 +1,6 @@
 """Unit tests for ConvertEmptyStringsToNoneMiddleware."""
 
 import json
-from typing import Any
 
 import pytest
 from fastapi import FastAPI, Request, status

@@ -3,10 +3,8 @@
 import asyncio
 import importlib.util
 import sys
-from datetime import UTC, datetime
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import typer
 from rich.console import Console
@@ -14,9 +12,6 @@ from rich.prompt import Confirm
 from rich.table import Table
 
 from ..main import COMMAND_GROUPS, show_group_interactive_menu
-
-if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
 
 db_app = typer.Typer(
     name="db",
@@ -202,7 +197,7 @@ def migrate_database(
                 # Run init logic
                 _import_model_modules()
                 from app.core.migrations import SchemaMigration  # noqa: F401
-                from app.core.database import Base, engine, init_db
+                from app.core.database import init_db
 
                 await init_db()
 
@@ -404,7 +399,7 @@ def migrate_graceful(
                 # Run init logic
                 _import_model_modules()
                 from app.core.migrations import SchemaMigration  # noqa: F401
-                from app.core.database import Base, engine, init_db
+                from app.core.database import init_db
 
                 await init_db()
 
@@ -565,7 +560,7 @@ def migrate_graceful(
             console.print(
                 f"  [yellow]○ Skipped (already applied): {skipped_count}[/yellow]"
             )
-        console.print(f"\n[bold green]✓ Graceful migration completed[/bold green]")
+        console.print("\n[bold green]✓ Graceful migration completed[/bold green]")
 
     asyncio.run(_migrate_graceful())
 

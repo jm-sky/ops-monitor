@@ -2,7 +2,6 @@
 
 import logging
 import uuid
-from datetime import UTC, datetime
 
 from app.core.database import AsyncSessionLocal
 

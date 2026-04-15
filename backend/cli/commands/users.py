@@ -750,7 +750,7 @@ async def _users_toggle_admin_async(identifier: str | None, yes: bool) -> None:
         )
 
         # Show user info
-        console.print(f"\n[bold cyan]User to modify:[/bold cyan]\n")
+        console.print("\n[bold cyan]User to modify:[/bold cyan]\n")
 
         user_info = f"""[bold]ID:[/bold] {user['id']}
 [bold]Email:[/bold] {user['email']}
@@ -769,7 +769,7 @@ async def _users_toggle_admin_async(identifier: str | None, yes: bool) -> None:
                 return
 
         # Toggle admin status
-        with console.status(f"[bold green]Updating user...", spinner="dots"):
+        with console.status("[bold green]Updating user...", spinner="dots"):
             await _toggle_admin_in_db(user["id"], new_admin_status)
 
         console.print(
@@ -849,7 +849,7 @@ async def _users_toggle_owner_async(identifier: str | None, yes: bool) -> None:
         action = "promote to owner" if new_owner_status else "demote from owner"
 
         # Show user info
-        console.print(f"\n[bold cyan]User to modify:[/bold cyan]\n")
+        console.print("\n[bold cyan]User to modify:[/bold cyan]\n")
 
         current_role = (
             "Owner"
@@ -887,7 +887,7 @@ async def _users_toggle_owner_async(identifier: str | None, yes: bool) -> None:
                 return
 
         # Toggle owner status
-        with console.status(f"[bold green]Updating user...", spinner="dots"):
+        with console.status("[bold green]Updating user...", spinner="dots"):
             await _toggle_owner_in_db(user["id"], new_owner_status)
             await _toggle_admin_in_db(user["id"], new_owner_status)
 
@@ -1046,7 +1046,7 @@ async def _users_set_role_async(
         is_premium = role == "premium"
 
         # Show user info
-        console.print(f"\n[bold cyan]User to modify:[/bold cyan]\n")
+        console.print("\n[bold cyan]User to modify:[/bold cyan]\n")
 
         user_info = f"""[bold]ID:[/bold] {user['id']}
 [bold]Email:[/bold] {user['email']}
@@ -1068,7 +1068,7 @@ async def _users_set_role_async(
                 return
 
         # Update role
-        with console.status(f"[bold green]Updating user role...", spinner="dots"):
+        with console.status("[bold green]Updating user role...", spinner="dots"):
             await _set_role_in_db(user["id"], is_admin, is_owner, is_premium)
 
         console.print(

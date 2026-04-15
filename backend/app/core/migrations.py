@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import List
 
 from sqlalchemy import DateTime, String, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base, AsyncSessionLocal

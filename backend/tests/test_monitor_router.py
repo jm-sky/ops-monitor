@@ -88,7 +88,9 @@ def monitor_client() -> Generator[TestClient, None, None]:
             app.dependency_overrides.pop(require_admin, None)
 
 
-def test_list_site_statuses_returns_latest_snapshots(monitor_client: TestClient) -> None:
+def test_list_site_statuses_returns_latest_snapshots(
+    monitor_client: TestClient,
+) -> None:
     """It returns one entry per site and only latest health/system snapshots."""
     site_a = _FakeSite(id=uuid.uuid4(), name="site-a")
     site_b = _FakeSite(id=uuid.uuid4(), name="site-b")
@@ -123,14 +125,14 @@ def test_list_site_statuses_returns_latest_snapshots(monitor_client: TestClient)
 
     original_get_all = SiteRepository.get_all
     original_get_latest_for_sites = SnapshotRepository.get_latest_for_sites
-    SiteRepository.get_all = _mock_get_all
-    SnapshotRepository.get_latest_for_sites = _mock_get_latest_for_sites
+    SiteRepository.get_all = _mock_get_all  # type: ignore[method-assign, assignment]
+    SnapshotRepository.get_latest_for_sites = _mock_get_latest_for_sites  # type: ignore[method-assign, assignment]
 
     try:
         response = monitor_client.get("/api/monitor/site-statuses")
     finally:
-        SiteRepository.get_all = original_get_all
-        SnapshotRepository.get_latest_for_sites = original_get_latest_for_sites
+        SiteRepository.get_all = original_get_all  # type: ignore[method-assign]
+        SnapshotRepository.get_latest_for_sites = original_get_latest_for_sites  # type: ignore[method-assign]
 
     assert response.status_code == 200
     payload = response.json()

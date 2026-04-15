@@ -1,6 +1,6 @@
 """FastAPI router for TOTP setup (Phase 1 & 2)."""
 
-from typing import Any, cast
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
@@ -14,7 +14,6 @@ from .schemas import (
     CompletePasskeyRegistrationRequest,
     DisableTotpRequest,
     InitiatePasskeyRegistrationRequest,
-    InitiateTotpRequest,
     PasskeyRegistrationInitiateResponse,
     PasskeyResponse,
     PasskeyListResponse,

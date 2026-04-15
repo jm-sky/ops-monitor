@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 from ...core.config import settings
 from ...core.email import get_email_service
-from ...core.email.i18n import SupportedLocale, get_translations
+from ...core.email.i18n import SupportedLocale
 from .auth_utils import (
     create_access_token,
     create_email_verification_token,

@@ -417,8 +417,6 @@ def get_email_service() -> EmailService:
     from .file_adapter import FileEmailAdapter
     from .smtp_adapter import SMTPEmailAdapter
     from .retry_smtp_adapter import RetrySMTPAdapter
-    from .audit_adapter import AuditEmailAdapter
-    from app.core.database import get_db
 
     # Get email settings from config
     email_settings: EmailSettings | None = getattr(settings, "email", None)
@@ -489,7 +487,6 @@ def get_email_service_with_audit(
     from .smtp_adapter import SMTPEmailAdapter
     from .retry_smtp_adapter import RetrySMTPAdapter
     from .audit_adapter import AuditEmailAdapter
-    from sqlalchemy.ext.asyncio import AsyncSession
 
     # Get email settings from config
     email_settings: EmailSettings | None = getattr(settings, "email", None)

@@ -26,12 +26,7 @@ security = HTTPBearer()
 # Try to use 2FA-enabled auth service if available
 HAS_2FA = False
 try:
-    from app.modules.two_factor.auth_integration import (
-        AuthServiceWith2FA,
-        get_auth_service_with_2fa,
-    )
     from app.modules.two_factor.repositories import get_two_factor_repository
-    from app.modules.two_factor.types.repository import TwoFactorRepositoryInterface
 
     HAS_2FA = True
 except (ImportError, Exception):

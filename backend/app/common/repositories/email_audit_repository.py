@@ -8,7 +8,7 @@ import logging
 from datetime import UTC, datetime
 
 from fastapi import Depends
-from sqlalchemy import select, func, and_, or_
+from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db

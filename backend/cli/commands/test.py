@@ -156,7 +156,7 @@ async def _test_storage_async(skip_cleanup: bool) -> None:
 
         # Cleanup
         if not skip_cleanup:
-            console.print(f"[5/5] [cyan]Cleaning up test file...[/cyan]")
+            console.print("[5/5] [cyan]Cleaning up test file...[/cyan]")
             deleted = await adapter.delete(test_path)
             if deleted:
                 console.print("    [green]✓ Test file deleted[/green]")
@@ -176,7 +176,7 @@ async def _test_storage_async(skip_cleanup: bool) -> None:
 
     except ImportError as e:
         console.print()
-        console.print(f"[bold red]✗ Storage adapter dependencies missing![/bold red]")
+        console.print("[bold red]✗ Storage adapter dependencies missing![/bold red]")
         console.print(f"[dim]Error: {e}[/dim]")
         if settings.storage.type == "s3":
             console.print()
@@ -189,7 +189,7 @@ async def _test_storage_async(skip_cleanup: bool) -> None:
 
     except Exception as e:
         console.print()
-        console.print(f"[bold red]✗ Storage test failed![/bold red]")
+        console.print("[bold red]✗ Storage test failed![/bold red]")
         console.print(f"[dim]Error: {e}[/dim]")
         console.print()
 
@@ -288,7 +288,7 @@ async def _test_email_async(to: str, template: str) -> None:
         else:
             console.print(f"    [red]✗ Unknown template: {template}[/red]")
             console.print(
-                f"    [dim]Available templates: welcome, password_reset, email_verification, password_changed, account_deleted[/dim]"
+                "    [dim]Available templates: welcome, password_reset, email_verification, password_changed, account_deleted[/dim]"
             )
             raise typer.Exit(1)
 
@@ -308,14 +308,14 @@ async def _test_email_async(to: str, template: str) -> None:
 
     except ImportError as e:
         console.print()
-        console.print(f"[bold red]✗ Email service dependencies missing![/bold red]")
+        console.print("[bold red]✗ Email service dependencies missing![/bold red]")
         console.print(f"[dim]Error: {e}[/dim]")
         console.print()
         raise typer.Exit(1)
 
     except Exception as e:
         console.print()
-        console.print(f"[bold red]✗ Email test failed![/bold red]")
+        console.print("[bold red]✗ Email test failed![/bold red]")
         console.print(f"[dim]Error: {e}[/dim]")
         console.print()
 
@@ -326,8 +326,8 @@ async def _test_email_async(to: str, template: str) -> None:
             console.print("  • Check SMTP username and password")
             console.print("  • Verify SMTP server allows connections from your IP")
             console.print("  • Check if TLS/SSL settings are correct (use_tls)")
-            console.print(f"  • For port 465: use SSL (automatic)")
-            console.print(f"  • For port 587: use TLS with STARTTLS")
+            console.print("  • For port 465: use SSL (automatic)")
+            console.print("  • For port 587: use TLS with STARTTLS")
             console.print("  • Check firewall settings")
 
         console.print()
