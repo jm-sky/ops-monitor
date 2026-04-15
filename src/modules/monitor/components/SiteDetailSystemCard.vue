@@ -4,10 +4,12 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Button from '@/components/ui/button/Button.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { SiteSnapshot, SystemRawData } from '../types'
 import { metricBarClass, metricLevel, metricValueClass } from '../composables/useMetricLevel'
-import { formatMonitorDate, formatUptime } from '../composables/useMonitorFormatters'
+import { formatMonitorDate, formatTimeAgo, formatUptime } from '../composables/useMonitorFormatters'
 import SiteStatusBadge from './SiteStatusBadge.vue'
+import SystemStateBadge from './SystemStateBadge.vue'
 
 const props = defineProps<{
   snapshot: SiteSnapshot<SystemRawData> | null
@@ -20,6 +22,61 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const rawData = computed(() => props.snapshot?.rawData ?? null)
+
+function getNumber(
+  data: SystemRawData | null,
+  snakeKey: string,
+  camelKey: string,
+): number | null {
+  if (!data) return null
+  const value = data[snakeKey] ?? data[camelKey]
+  return typeof value === 'number' ? value : null
+}
+
+function getString(
+  data: SystemRawData | null,
+  snakeKey: string,
+  camelKey: string,
+): string | null {
+  if (!data) return null
+  const value = data[snakeKey] ?? data[camelKey]
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
+function getBoolean(
+  data: SystemRawData | null,
+  snakeKey: string,
+  camelKey: string,
+): boolean {
+  if (!data) return false
+  const value = data[snakeKey] ?? data[camelKey]
+  return Boolean(value)
+}
+
+const updatesAvailable = computed(() =>
+  getNumber(rawData.value, 'updates_available', 'updatesAvailable') ?? 0,
+)
+const securityUpdates = computed(() =>
+  getNumber(rawData.value, 'security_updates', 'securityUpdates'),
+)
+const rebootRequired = computed(() =>
+  getBoolean(rawData.value, 'reboot_required', 'rebootRequired'),
+)
+const rebootReason = computed(() =>
+  getString(rawData.value, 'reboot_reason', 'rebootReason'),
+)
+const systemState = computed(() =>
+  getString(rawData.value, 'system_state', 'systemState'),
+)
+const rebootDetectedAt = computed(() =>
+  getString(rawData.value, 'reboot_detected_at', 'rebootDetectedAt'),
+)
+const rebootDetectedAtFull = computed(() =>
+  formatMonitorDate(rebootDetectedAt.value),
+)
+const rebootDetectedAtAgo = computed(() =>
+  formatTimeAgo(rebootDetectedAt.value),
+)
 </script>
 
 <template>
@@ -71,8 +128,8 @@ const rawData = computed(() => props.snapshot?.rawData ?? null)
             <span class="text-muted-foreground">{{ t('monitor.metrics.ram', 'RAM') }}</span>
             <span :class="metricValueClass(metricLevel(rawData.memory?.percent))">
               {{ rawData.memory?.percent ?? 0 }}%
-              ({{ rawData.memory?.used_mb?.toFixed(0) ?? '0' }} /
-              {{ rawData.memory?.total_mb?.toFixed(0) ?? '0' }} MB)
+              ({{ ((rawData.memory?.used_mb ?? 0) / 1024).toFixed(1) }} /
+              {{ ((rawData.memory?.total_mb ?? 0) / 1024).toFixed(1) }} GB)
             </span>
           </div>
           <div class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -104,14 +161,35 @@ const rawData = computed(() => props.snapshot?.rawData ?? null)
         </div>
         <div class="flex justify-between">
           <span class="text-muted-foreground">{{ t('monitor.updates', 'Updates') }}</span>
-          <span>{{ rawData.updates_available ?? 0 }}</span>
+          <span>{{ updatesAvailable }}</span>
+        </div>
+        <div v-if="securityUpdates !== null" class="flex justify-between">
+          <span class="text-muted-foreground">{{ t('monitor.securityUpdates', 'Security updates') }}</span>
+          <span>{{ securityUpdates }}</span>
+        </div>
+        <div v-if="systemState" class="flex justify-between">
+          <span class="text-muted-foreground">{{ t('monitor.systemState', 'System state') }}</span>
+          <SystemStateBadge :state="systemState" />
+        </div>
+        <div v-if="rebootDetectedAt" class="flex justify-between">
+          <span class="text-muted-foreground">{{ t('monitor.rebootDetectedAt', 'Reboot detected at') }}</span>
+          <Tooltip :delay-duration="150">
+            <TooltipTrigger as-child>
+              <span class="cursor-help underline decoration-dotted underline-offset-4">
+                {{ rebootDetectedAtAgo }}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {{ rebootDetectedAtFull }}
+            </TooltipContent>
+          </Tooltip>
         </div>
         <div
-          v-if="rawData.reboot_required"
+          v-if="rebootRequired"
           class="rounded bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-300"
         >
-          {{ t('monitor.rebootRequired', 'Reboot required') }}:
-          {{ rawData.reboot_reason }}
+          {{ t('monitor.rebootRequired', 'Reboot required') }}
+          <template v-if="rebootReason">: {{ rebootReason }}</template>
         </div>
       </template>
       <p v-if="!snapshot" class="text-muted-foreground">
