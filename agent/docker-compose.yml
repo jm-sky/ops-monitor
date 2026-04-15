@@ -1,0 +1,13 @@
+services:
+  agent:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${AGENT_PORT:-9100}:${AGENT_PORT:-9100}"
+    env_file:
+      - .env
+    volumes:
+      - /var/lib/apt/lists:/var/lib/apt/lists:ro
+      - /var/lib/update-notifier:/var/lib/update-notifier:ro
+      - /var/run/reboot-required:/var/run/reboot-required:ro
+      - /var/run/reboot-required.pkgs:/var/run/reboot-required.pkgs:ro
