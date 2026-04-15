@@ -3,6 +3,16 @@
 # Run: docker exec ops-monitor-app python -m cli monitor seed-sites seeds/sites.yml
 
 sites:
+  - name: ops-monitor
+    description: Ops Monitor (this server)
+    server_label: ops-monitor
+    health_url: http://app:8000/api/health
+    system_url: http://agent:9100/system
+    token: ""  # set to AGENT_TOKEN value
+    enabled: true
+    polling_health: 60
+    polling_system: 300
+
   - name: gear-stack
     description: Gear Stack (gear-stack.ovh)
     environment: production

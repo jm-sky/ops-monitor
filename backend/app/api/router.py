@@ -1,7 +1,9 @@
 """Main API router aggregating all module routers."""
 
 from fastapi import APIRouter
+from sqlalchemy import text
 
+from app.core.database import AsyncSessionLocal
 from app.modules.admin.router import router as admin_router
 from app.modules.auth.router import router as auth_router
 from app.modules.logs.router import router as logs_router
@@ -16,14 +18,24 @@ api_router = APIRouter()
 
 # Health check endpoint
 @api_router.get("/health", tags=["Health"])
-async def health_check() -> dict[str, str]:
-    """
-    Health check endpoint.
+async def health_check() -> dict:
+    db_status = "ok"
+    db_reason: str | None = None
 
-    Returns:
-        Status message
-    """
-    return {"status": "ok"}
+    try:
+        async with AsyncSessionLocal() as session:
+            await session.execute(text("SELECT 1"))
+    except Exception as exc:
+        db_status = "failed"
+        db_reason = str(exc)
+
+    overall = db_status
+
+    components: dict = {"database": {"status": db_status}}
+    if db_reason:
+        components["database"]["reason"] = db_reason
+
+    return {"schema_version": 1, "status": overall, "components": components}
 
 
 # Register module routers

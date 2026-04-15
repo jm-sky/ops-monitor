@@ -1,0 +1,25 @@
+services:
+  agent:
+    image: ops-monitor-agent
+    container_name: ops-monitor-agent
+    restart: unless-stopped
+    pid: "host"
+    env_file:
+      - .env
+    environment:
+      - AGENT_TOKEN=${AGENT_TOKEN:-}
+      - AGENT_HOST=0.0.0.0
+      - AGENT_PORT=9100
+    # No ports exposed — accessible on internal Docker network as http://agent:9100
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - ops-monitor-network
+
+networks:
+  ops-monitor-network:
+    name: ops-monitor-network
+    external: true

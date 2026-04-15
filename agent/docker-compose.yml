@@ -11,3 +11,10 @@ services:
       - /var/lib/update-notifier:/var/lib/update-notifier:ro
       - /var/run/reboot-required:/var/run/reboot-required:ro
       - /var/run/reboot-required.pkgs:/var/run/reboot-required.pkgs:ro
+    networks:
+      - ops-monitor-network
+
+networks:
+  ops-monitor-network:
+    name: ops-monitor-network
+    external: true
