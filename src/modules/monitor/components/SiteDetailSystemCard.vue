@@ -9,10 +9,12 @@ import type { SiteSnapshot, SystemRawData } from '../types'
 import { metricBarClass, metricLevel, metricValueClass } from '../composables/useMetricLevel'
 import { formatGb, formatMbToGb, formatMonitorDate, formatTimeAgo, formatUptime } from '../composables/useMonitorFormatters'
 import SiteStatusBadge from './SiteStatusBadge.vue'
+import SystemMetricsChart from './SystemMetricsChart.vue'
 import SystemStateBadge from './SystemStateBadge.vue'
 
 const props = defineProps<{
   snapshot: SiteSnapshot<SystemRawData> | null
+  hasSystemUrl?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -53,8 +55,6 @@ function getBoolean(
   return Boolean(value)
 }
 
-const isSystemUrlAvailable = computed(() => !!rawData.value?.system_url)
-
 const updatesAvailable = computed(() =>
   getNumber(rawData.value, 'updates_available', 'updatesAvailable') ?? 0,
 )
@@ -82,7 +82,7 @@ const rebootDetectedAtAgo = computed(() =>
 </script>
 
 <template>
-  <Card class="h-full" :class="{ 'bg-muted/50 opacity-80': !isSystemUrlAvailable }">
+  <Card class="h-full" :class="{ 'bg-muted/50 opacity-80': !hasSystemUrl }">
     <CardHeader class="flex flex-row items-center justify-between pb-3">
       <CardTitle>{{ t('monitor.system', 'System') }}</CardTitle>
       <div class="flex items-center gap-2">
@@ -111,6 +111,8 @@ const rebootDetectedAtAgo = computed(() =>
         </div>
       </template>
       <template v-if="rawData">
+        <SystemMetricsChart :site-id="snapshot?.siteId ?? null" />
+
         <div class="space-y-1.5">
           <div class="flex justify-between">
             <span class="text-muted-foreground">{{ t('monitor.metrics.cpu', 'CPU') }}</span>

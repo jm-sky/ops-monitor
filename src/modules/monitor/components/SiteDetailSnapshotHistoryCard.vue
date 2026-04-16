@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { useQuery } from '@tanstack/vue-query'
-import { VisArea, VisAxis, VisLine, VisXYContainer } from '@unovis/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Pagination from '@/components/data-table/Pagination.vue'
+import Button from '@/components/ui/button/Button.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { HealthRawData, Site, SiteSnapshot, SystemRawData } from '../types'
@@ -23,13 +24,55 @@ const hasSystem = computed(() => !!props.site.systemUrl)
 const defaultTab = computed(() => (hasHealth.value ? 'health' : 'system'))
 const activeTab = ref(defaultTab.value)
 
+const showHistory = ref(false)
+
+const PAGE_SIZE_OPTIONS = [10, 50, 100]
+
+const healthPage = ref(1)
+const healthPageSize = ref(10)
+const healthOffset = computed(() => (healthPage.value - 1) * healthPageSize.value)
+
+const systemPage = ref(1)
+const systemPageSize = ref(10)
+const systemOffset = computed(() => (systemPage.value - 1) * systemPageSize.value)
+
+function setHealthPage(p: number) {
+  healthPage.value = p
+}
+
+function setHealthPageSize(s: number) {
+  healthPageSize.value = s
+  healthPage.value = 1
+}
+
+function setSystemPage(p: number) {
+  systemPage.value = p
+}
+
+function setSystemPageSize(s: number) {
+  systemPageSize.value = s
+  systemPage.value = 1
+}
+
 // ── Health snapshots ────────────────────────────────────────────────────────
 
-const { data: healthSnapshots, isLoading: healthLoading } = useQuery<SiteSnapshot<HealthRawData>[]>({
-  queryKey: computed(() => monitorQueryKeys.snapshots(props.site.id, 'health')),
-  queryFn: () => monitorService.getSnapshots(props.site.id, 'health', 100),
-  enabled: hasHealth,
+const { data: healthPageData, isLoading: healthLoading } = useQuery({
+  queryKey: computed(() => monitorQueryKeys.snapshotsPage(
+    props.site.id,
+    'health',
+    healthPageSize.value,
+    healthOffset.value,
+  )),
+  queryFn: () => monitorService.getSnapshotsPage(props.site.id, 'health', {
+    limit: healthPageSize.value,
+    offset: healthOffset.value,
+  }),
+  enabled: computed(() => showHistory.value && hasHealth.value),
+  placeholderData: previousData => previousData,
 })
+
+const healthSnapshots = computed(() => (healthPageData.value?.items ?? []) as SiteSnapshot<HealthRawData>[])
+const healthTotal = computed(() => healthPageData.value?.total ?? 0)
 
 function nonOkComponents(snap: SiteSnapshot<HealthRawData>): string[] {
   const components = snap.rawData?.components ?? {}
@@ -40,57 +83,40 @@ function nonOkComponents(snap: SiteSnapshot<HealthRawData>): string[] {
 
 // ── System snapshots ────────────────────────────────────────────────────────
 
-const { data: systemSnapshots, isLoading: systemLoading } = useQuery<SiteSnapshot<SystemRawData>[]>({
-  queryKey: computed(() => monitorQueryKeys.snapshots(props.site.id, 'system')),
-  queryFn: () => monitorService.getSnapshots(props.site.id, 'system', 100),
-  enabled: hasSystem,
+const { data: systemPageData, isLoading: systemLoading } = useQuery({
+  queryKey: computed(() => monitorQueryKeys.snapshotsPage(
+    props.site.id,
+    'system',
+    systemPageSize.value,
+    systemOffset.value,
+  )),
+  queryFn: () => monitorService.getSnapshotsPage(props.site.id, 'system', {
+    limit: systemPageSize.value,
+    offset: systemOffset.value,
+  }),
+  enabled: computed(() => showHistory.value && hasSystem.value),
+  placeholderData: previousData => previousData,
 })
 
-interface ChartPoint {
-  index: number
-  cpu: number
-  ram: number
-  disk: number
-  label: string
-}
-
-const CHART_LIMIT = 48
-
-const chartData = computed<ChartPoint[]>(() => {
-  if (!systemSnapshots.value) return []
-  return [...systemSnapshots.value]
-    .reverse()
-    .slice(-CHART_LIMIT)
-    .map((snap, i) => ({
-      index: i,
-      cpu: snap.rawData?.cpu_percent ?? 0,
-      ram: snap.rawData?.memory?.percent ?? 0,
-      disk: snap.rawData?.disk?.percent ?? 0,
-      label: formatMonitorDate(snap.polledAt),
-    }))
-})
-
-const chartLabels = computed(() => chartData.value.map(d => d.label))
-
-function xAccessor(_d: ChartPoint, i: number) {
-  return i
-}
-
-function yAxisFormat(v: number) {
-  return `${v}%`
-}
-
-function xAxisFormat(i: number) {
-  return chartLabels.value[i] ?? ''
-}
+const systemSnapshots = computed(() => (systemPageData.value?.items ?? []) as SiteSnapshot<SystemRawData>[])
+const systemTotal = computed(() => systemPageData.value?.total ?? 0)
 </script>
 
 <template>
-  <Card>
-    <CardHeader class="pb-3">
-      <CardTitle>{{ t('monitor.history.title', 'History') }}</CardTitle>
+  <Card :class="{ 'py-2 bg-muted/50 opacity-80': !showHistory }">
+    <CardHeader :class="showHistory ? 'pb-3': 'pb-0 gap-0'">
+      <div class="flex items-center justify-between gap-3">
+        <CardTitle>{{ t('monitor.history.title', 'History') }}</CardTitle>
+        <Button
+          variant="outline"
+          size="sm"
+          @click="showHistory = !showHistory"
+        >
+          {{ showHistory ? t('monitor.history.hide', 'Hide history') : t('monitor.history.show', 'Show history') }}
+        </Button>
+      </div>
     </CardHeader>
-    <CardContent>
+    <CardContent v-if="showHistory">
       <Tabs v-model="activeTab">
         <TabsList v-if="hasHealth && hasSystem" class="mb-4">
           <TabsTrigger value="health">
@@ -109,43 +135,54 @@ function xAxisFormat(i: number) {
           <div v-else-if="!healthSnapshots?.length" class="py-6 text-center text-sm text-muted-foreground">
             {{ t('monitor.noData', 'No data yet') }}
           </div>
-          <div v-else class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b text-left text-xs text-muted-foreground">
-                  <th class="pb-2 pr-4 font-medium">
-                    {{ t('monitor.history.time', 'Time') }}
-                  </th>
-                  <th class="pb-2 pr-4 font-medium">
-                    {{ t('monitor.history.status', 'Status') }}
-                  </th>
-                  <th class="pb-2 font-medium">
-                    {{ t('monitor.history.issues', 'Issues') }}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="snap in healthSnapshots"
-                  :key="snap.id"
-                  class="border-b last:border-0"
-                >
-                  <td class="py-2 pr-4 text-xs text-muted-foreground whitespace-nowrap">
-                    {{ formatMonitorDate(snap.polledAt) }}
-                  </td>
-                  <td class="py-2 pr-4">
-                    <SiteStatusBadge :status="snap.status" />
-                  </td>
-                  <td class="py-2 text-xs">
-                    <span v-if="snap.error" class="text-destructive">{{ snap.error }}</span>
-                    <span v-else-if="nonOkComponents(snap).length" class="text-amber-600 dark:text-amber-400">
-                      {{ nonOkComponents(snap).join(', ') }}
-                    </span>
-                    <span v-else class="text-muted-foreground">—</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div v-else class="space-y-4">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b text-left text-xs text-muted-foreground">
+                    <th class="pb-2 pr-4 font-medium">
+                      {{ t('monitor.history.time', 'Time') }}
+                    </th>
+                    <th class="pb-2 pr-4 font-medium">
+                      {{ t('monitor.history.status', 'Status') }}
+                    </th>
+                    <th class="pb-2 font-medium">
+                      {{ t('monitor.history.issues', 'Issues') }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="snap in healthSnapshots"
+                    :key="snap.id"
+                    class="border-b last:border-0"
+                  >
+                    <td class="py-2 pr-4 text-xs text-muted-foreground whitespace-nowrap">
+                      {{ formatMonitorDate(snap.polledAt) }}
+                    </td>
+                    <td class="py-2 pr-4">
+                      <SiteStatusBadge :status="snap.status" />
+                    </td>
+                    <td class="py-2 text-xs">
+                      <span v-if="snap.error" class="text-destructive">{{ snap.error }}</span>
+                      <span v-else-if="nonOkComponents(snap).length" class="text-amber-600 dark:text-amber-400">
+                        {{ nonOkComponents(snap).join(', ') }}
+                      </span>
+                      <span v-else class="text-muted-foreground">—</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination
+              :page="healthPage"
+              :page-size="healthPageSize"
+              :total="healthTotal"
+              :page-size-options="PAGE_SIZE_OPTIONS"
+              @update:page="setHealthPage"
+              @update:page-size="setHealthPageSize"
+            />
           </div>
         </TabsContent>
 
@@ -158,122 +195,78 @@ function xAxisFormat(i: number) {
             {{ t('monitor.noData', 'No data yet') }}
           </div>
           <template v-else>
-            <!-- Chart -->
-            <div v-if="chartData.length > 1" class="mb-6">
-              <div class="mb-2 flex gap-4 text-xs text-muted-foreground">
-                <span class="flex items-center gap-1.5">
-                  <span class="inline-block size-2.5 rounded-sm bg-blue-500" />
-                  {{ t('monitor.metrics.cpu', 'CPU') }}
-                </span>
-                <span class="flex items-center gap-1.5">
-                  <span class="inline-block size-2.5 rounded-sm bg-emerald-500" />
-                  {{ t('monitor.metrics.ram', 'RAM') }}
-                </span>
-                <span class="flex items-center gap-1.5">
-                  <span class="inline-block size-2.5 rounded-sm bg-amber-500" />
-                  {{ t('monitor.metrics.disk', 'Disk') }}
-                </span>
-              </div>
-              <VisXYContainer :data="chartData" :height="160" class="w-full">
-                <VisArea
-                  :x="xAccessor"
-                  :y="(d: ChartPoint) => d.cpu"
-                  color="#3b82f6"
-                  :opacity="0.15"
-                />
-                <VisLine
-                  :x="xAccessor"
-                  :y="(d: ChartPoint) => d.cpu"
-                  color="#3b82f6"
-                />
-                <VisArea
-                  :x="xAccessor"
-                  :y="(d: ChartPoint) => d.ram"
-                  color="#10b981"
-                  :opacity="0.15"
-                />
-                <VisLine
-                  :x="xAccessor"
-                  :y="(d: ChartPoint) => d.ram"
-                  color="#10b981"
-                />
-                <VisArea
-                  :x="xAccessor"
-                  :y="(d: ChartPoint) => d.disk"
-                  color="#f59e0b"
-                  :opacity="0.15"
-                />
-                <VisLine
-                  :x="xAccessor"
-                  :y="(d: ChartPoint) => d.disk"
-                  color="#f59e0b"
-                />
-                <VisAxis type="y" :tick-format="yAxisFormat" :num-ticks="5" />
-                <VisAxis type="x" :tick-format="xAxisFormat" :num-ticks="5" />
-              </VisXYContainer>
-            </div>
-
             <!-- Table -->
-            <div class="overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="border-b text-left text-xs text-muted-foreground">
-                    <th class="pb-2 pr-4 font-medium">
-                      {{ t('monitor.history.time', 'Time') }}
-                    </th>
-                    <th class="pb-2 pr-3 font-medium">
-                      {{ t('monitor.metrics.cpu', 'CPU') }}
-                    </th>
-                    <th class="pb-2 pr-3 font-medium">
-                      {{ t('monitor.metrics.ram', 'RAM') }}
-                    </th>
-                    <th class="pb-2 pr-4 font-medium">
-                      {{ t('monitor.metrics.disk', 'Disk') }}
-                    </th>
-                    <th class="pb-2 font-medium">
-                      {{ t('monitor.history.status', 'Status') }}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="snap in systemSnapshots"
-                    :key="snap.id"
-                    class="border-b last:border-0"
-                  >
-                    <td class="py-2 pr-4 text-xs text-muted-foreground whitespace-nowrap">
-                      {{ formatMonitorDate(snap.polledAt) }}
-                    </td>
-                    <td class="py-2 pr-3">
-                      <span
-                        class="text-xs"
-                        :class="metricValueClass(metricLevel(snap.rawData?.cpu_percent))"
-                      >
-                        {{ snap.rawData?.cpu_percent != null ? `${snap.rawData.cpu_percent}%` : '—' }}
-                      </span>
-                    </td>
-                    <td class="py-2 pr-3">
-                      <span
-                        class="text-xs"
-                        :class="metricValueClass(metricLevel(snap.rawData?.memory?.percent))"
-                      >
-                        {{ snap.rawData?.memory?.percent != null ? `${snap.rawData.memory.percent}%` : '—' }}
-                      </span>
-                    </td>
-                    <td class="py-2 pr-4">
-                      <span
-                        class="text-xs"
-                        :class="metricValueClass(metricLevel(snap.rawData?.disk?.percent))"
-                      >
-                        {{ snap.rawData?.disk?.percent != null ? `${snap.rawData.disk.percent}%` : '—' }}
-                      </span>
-                    </td>
-                    <td class="py-2">
-                      <SiteStatusBadge :status="snap.status" />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="space-y-4">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="border-b text-left text-xs text-muted-foreground">
+                      <th class="pb-2 pr-4 font-medium">
+                        {{ t('monitor.history.time', 'Time') }}
+                      </th>
+                      <th class="pb-2 pr-3 font-medium">
+                        {{ t('monitor.metrics.cpu', 'CPU') }}
+                      </th>
+                      <th class="pb-2 pr-3 font-medium">
+                        {{ t('monitor.metrics.ram', 'RAM') }}
+                      </th>
+                      <th class="pb-2 pr-4 font-medium">
+                        {{ t('monitor.metrics.disk', 'Disk') }}
+                      </th>
+                      <th class="pb-2 font-medium">
+                        {{ t('monitor.history.status', 'Status') }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="snap in systemSnapshots"
+                      :key="snap.id"
+                      class="border-b last:border-0"
+                    >
+                      <td class="py-2 pr-4 text-xs text-muted-foreground whitespace-nowrap">
+                        {{ formatMonitorDate(snap.polledAt) }}
+                      </td>
+                      <td class="py-2 pr-3">
+                        <span
+                          class="text-xs"
+                          :class="metricValueClass(metricLevel(snap.rawData?.cpu_percent))"
+                        >
+                          {{ snap.rawData?.cpu_percent != null ? `${snap.rawData.cpu_percent}%` : '—' }}
+                        </span>
+                      </td>
+                      <td class="py-2 pr-3">
+                        <span
+                          class="text-xs"
+                          :class="metricValueClass(metricLevel(snap.rawData?.memory?.percent))"
+                        >
+                          {{ snap.rawData?.memory?.percent != null ? `${snap.rawData.memory.percent}%` : '—' }}
+                        </span>
+                      </td>
+                      <td class="py-2 pr-4">
+                        <span
+                          class="text-xs"
+                          :class="metricValueClass(metricLevel(snap.rawData?.disk?.percent))"
+                        >
+                          {{ snap.rawData?.disk?.percent != null ? `${snap.rawData.disk.percent}%` : '—' }}
+                        </span>
+                      </td>
+                      <td class="py-2">
+                        <SiteStatusBadge :status="snap.status" />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <Pagination
+                :page="systemPage"
+                :page-size="systemPageSize"
+                :total="systemTotal"
+                :page-size-options="PAGE_SIZE_OPTIONS"
+                @update:page="setSystemPage"
+                @update:page-size="setSystemPageSize"
+              />
             </div>
           </template>
         </TabsContent>

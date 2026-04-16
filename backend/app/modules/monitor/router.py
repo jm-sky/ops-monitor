@@ -13,6 +13,7 @@ from app.modules.auth.dependencies import AdminUser, CurrentUser
 from .repositories import SnapshotRepository, SiteRepository
 from .scheduler import activate_live_mode
 from .schemas import (
+    PaginatedSiteSnapshotResponse,
     PollResponse,
     SiteCreate,
     SiteResponse,
@@ -240,6 +241,42 @@ async def get_snapshots(
     snap_repo = SnapshotRepository(db)
     snaps = await snap_repo.get_history(site_id, snapshot_type, limit=limit)
     return [SiteSnapshotResponse(**s.to_response()) for s in snaps]
+
+
+@router.get(
+    "/sites/{site_id}/snapshots/{snapshot_type}/page",
+    response_model=PaginatedSiteSnapshotResponse,
+    summary="Get paginated snapshot history for a site",
+)
+async def get_snapshots_page(
+    site_id: uuid.UUID,
+    snapshot_type: str,
+    _: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    limit: int = Query(10, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+) -> PaginatedSiteSnapshotResponse:
+    if snapshot_type not in ("health", "system"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="snapshot_type must be 'health' or 'system'",
+        )
+    site_repo = SiteRepository(db)
+    site = await site_repo.get_by_id(site_id)
+    if not site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Site not found"
+        )
+
+    snap_repo = SnapshotRepository(db)
+    total = await snap_repo.count_history(site_id, snapshot_type)
+    snaps = await snap_repo.get_history_page(
+        site_id, snapshot_type, limit=limit, offset=offset
+    )
+    return PaginatedSiteSnapshotResponse(
+        items=[SiteSnapshotResponse(**s.to_response()) for s in snaps],
+        total=total,
+    )
 
 
 # ---------------------------------------------------------------------------

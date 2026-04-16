@@ -143,6 +143,36 @@ class SnapshotRepository:
         )
         return list(result.scalars().all())
 
+    async def count_history(self, site_id: uuid.UUID, snapshot_type: str) -> int:
+        result = await self.db.execute(
+            select(func.count())
+            .select_from(SiteSnapshotDB)
+            .where(
+                SiteSnapshotDB.site_id == site_id,
+                SiteSnapshotDB.snapshot_type == snapshot_type,
+            )
+        )
+        return int(result.scalar_one())
+
+    async def get_history_page(
+        self,
+        site_id: uuid.UUID,
+        snapshot_type: str,
+        limit: int,
+        offset: int,
+    ) -> list[SiteSnapshotDB]:
+        result = await self.db.execute(
+            select(SiteSnapshotDB)
+            .where(
+                SiteSnapshotDB.site_id == site_id,
+                SiteSnapshotDB.snapshot_type == snapshot_type,
+            )
+            .order_by(SiteSnapshotDB.polled_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        return list(result.scalars().all())
+
     async def cleanup_old(
         self, site_id: uuid.UUID, snapshot_type: str, keep: int = 1000
     ) -> None:

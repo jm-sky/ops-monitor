@@ -1,6 +1,11 @@
 import { apiClient } from '@/shared/services/apiClient'
 import type { Site, SiteCreate, SiteSnapshot, SiteStatus, SiteUpdate } from '@/modules/monitor/types'
 
+interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+}
+
 class MonitorService {
   async listSites(): Promise<Site[]> {
     const response = await apiClient.get<Site[]>('/monitor/sites')
@@ -35,6 +40,18 @@ class MonitorService {
     const response = await apiClient.get<SiteSnapshot[]>(
       `/monitor/sites/${siteId}/snapshots/${type}`,
       { params: { limit } },
+    )
+    return response.data
+  }
+
+  async getSnapshotsPage(
+    siteId: string,
+    type: 'health' | 'system',
+    params: { limit: number, offset: number },
+  ): Promise<PaginatedResponse<SiteSnapshot>> {
+    const response = await apiClient.get<PaginatedResponse<SiteSnapshot>>(
+      `/monitor/sites/${siteId}/snapshots/${type}/page`,
+      { params },
     )
     return response.data
   }

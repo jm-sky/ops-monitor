@@ -7,6 +7,8 @@ export const monitorQueryKeys = {
   siteStatuses: () => [...monitorQueryKeys.all, 'site-statuses'] as const,
   snapshots: (siteId: string, type: 'health' | 'system') =>
     [...monitorQueryKeys.all, 'snapshots', siteId, type] as const,
+  snapshotsPage: (siteId: string, type: 'health' | 'system', limit: number, offset: number) =>
+    [...monitorQueryKeys.all, 'snapshots-page', siteId, type, limit, offset] as const,
 } as const
 
 export async function fetchSiteStatuses(): Promise<SiteStatus[]> {

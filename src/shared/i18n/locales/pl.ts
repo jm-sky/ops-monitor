@@ -182,6 +182,8 @@ export default {
     },
     history: {
       title: 'Historia',
+      show: 'Pokaż historię',
+      hide: 'Ukryj historię',
       time: 'Czas',
       status: 'Status',
       issues: 'Problemy',

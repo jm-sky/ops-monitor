@@ -236,6 +236,7 @@ watch(error, (queryError, previousError) => {
         />
         <SiteDetailSystemCard
           :snapshot="status.systemSnapshot"
+          :has-system-url="!!status.site.systemUrl"
           @view-raw-response="systemResponseDialogOpen = true"
         />
         <SiteDetailSnapshotHistoryCard :site="status.site" />

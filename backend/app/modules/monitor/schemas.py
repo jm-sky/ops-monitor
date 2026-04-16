@@ -77,6 +77,11 @@ class SiteSnapshotResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PaginatedSiteSnapshotResponse(BaseModel):
+    items: list[SiteSnapshotResponse]
+    total: int
+
+
 class SiteStatusResponse(BaseModel):
     """Current status of a site — latest snapshot of each type."""
 
