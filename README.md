@@ -57,11 +57,23 @@ pnpm type-check
 cp backend/.env.example backend/.env
 # Edit backend/.env — set SECRET_KEY at minimum
 
-docker compose -f backend/docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
+
+# Optional: include agent in development stack
+docker compose -f docker-compose.dev.yml --profile agent up -d
 
 docker exec ops-monitor-app python -m cli db init
 docker exec ops-monitor-app python -m cli db migrate
 docker exec ops-monitor-app python -m cli users create
+```
+
+### Production backend stack (without frontend runtime container)
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+
+# Optional: include agent in production stack
+docker compose -f docker-compose.prod.yml --profile agent up -d
 ```
 
 ### Agent (on monitored server)
@@ -95,8 +107,9 @@ ops-monitor/
 │   ├── migrations/
 │   ├── cli/                # Management CLI (db, users, test)
 │   └── docker-compose.dev.yml
-├── agent.py                # Standalone psutil agent (to be built)
-└── docker-compose.yml      # Production stack
+├── agent/                  # Standalone psutil agent
+├── docker-compose.dev.yml  # Dev full stack (backend + frontend, optional agent)
+└── docker-compose.prod.yml # Prod backend stack (optional agent)
 ```
 
 ## Monitoring Data
