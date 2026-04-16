@@ -7,7 +7,7 @@ import type { SiteStatus } from '../types'
 import { metricLevel, type MetricLevel } from '../composables/useMetricLevel'
 import SiteStatusBadge from './SiteStatusBadge.vue'
 
-interface HealthComponent {
+interface HealthComponentUi {
   status: string
   reason?: string
   stale?: boolean
@@ -27,10 +27,14 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const healthComponents = computed<[string, HealthComponent][]>(() => {
+const healthComponents = computed<[string, HealthComponentUi][]>(() => {
   const raw = props.siteStatus.healthSnapshot?.rawData
-  if (!raw || typeof raw.components !== 'object' || !raw.components) return []
-  return Object.entries(raw.components as Record<string, HealthComponent>)
+  const components = raw?.components
+  if (!components) return []
+  return Object.entries(components).flatMap(([name, c]) => {
+    if (typeof c?.status !== 'string' || c.status.length === 0) return []
+    return [[name, { status: c.status, reason: c.reason, stale: c.stale }]]
+  })
 })
 
 const COMPONENT_ICONS: Record<string, string> = {
@@ -60,11 +64,11 @@ const systemMetrics = computed<SystemMetric[]>(() => {
   const raw = props.siteStatus.systemSnapshot?.rawData
   if (!raw) return []
 
-  const mem = raw.memory as Record<string, number> | undefined
-  const disk = raw.disk as Record<string, number> | undefined
+  const mem = raw.memory
+  const disk = raw.disk
 
   return [
-    { label: 'CPU', value: raw.cpu_percent as number ?? null, level: metricLevel(raw.cpu_percent as number) },
+    { label: 'CPU', value: raw.cpu_percent ?? null, level: metricLevel(raw.cpu_percent) },
     { label: 'RAM', value: mem?.percent ?? null, level: metricLevel(mem?.percent) },
     { label: 'Disk', value: disk?.percent ?? null, level: metricLevel(disk?.percent) },
   ].filter(m => m.value != null)

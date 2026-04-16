@@ -28,8 +28,13 @@ export interface HealthComponent {
 }
 
 export interface HealthRawData {
+  schema_version?: number
   components?: Record<string, HealthComponent>
   status?: string
+  version?: string
+  environment?: string
+  last_activity?: string
+  errors?: string[]
   [key: string]: unknown
 }
 
@@ -49,8 +54,10 @@ export interface SystemRawData {
   cpu_percent?: number
   disk?: SystemDiskData
   memory?: SystemResourceData
+  reboot_detected_at?: string
   reboot_reason?: string
   reboot_required?: boolean
+  security_updates?: number
   system_state?: string
   updates_available?: number
   uptime_seconds?: number

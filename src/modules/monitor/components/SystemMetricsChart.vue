@@ -20,7 +20,9 @@ const { data: systemChartSnapshots } = useQuery<SiteSnapshot<SystemRawData>[]>({
   queryKey: computed(() => props.siteId
     ? [...monitorQueryKeys.snapshots(props.siteId, 'system'), 'chart', CHART_LIMIT] as const
     : [...monitorQueryKeys.all, 'system-chart', 'empty'] as const),
-  queryFn: () => monitorService.getSnapshots(props.siteId as string, 'system', CHART_LIMIT),
+  queryFn: () => props.siteId
+    ? monitorService.getSnapshots(props.siteId, 'system', CHART_LIMIT)
+    : Promise.resolve([]),
   enabled: computed(() => Boolean(props.siteId)),
   placeholderData: previousData => previousData,
 })

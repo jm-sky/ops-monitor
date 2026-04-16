@@ -25,54 +25,12 @@ const { t } = useI18n()
 
 const rawData = computed(() => props.snapshot?.rawData ?? null)
 
-function getNumber(
-  data: SystemRawData | null,
-  snakeKey: string,
-  camelKey: string,
-): number | null {
-  if (!data) return null
-  const value = data[snakeKey] ?? data[camelKey]
-  return typeof value === 'number' ? value : null
-}
-
-function getString(
-  data: SystemRawData | null,
-  snakeKey: string,
-  camelKey: string,
-): string | null {
-  if (!data) return null
-  const value = data[snakeKey] ?? data[camelKey]
-  return typeof value === 'string' && value.length > 0 ? value : null
-}
-
-function getBoolean(
-  data: SystemRawData | null,
-  snakeKey: string,
-  camelKey: string,
-): boolean {
-  if (!data) return false
-  const value = data[snakeKey] ?? data[camelKey]
-  return Boolean(value)
-}
-
-const updatesAvailable = computed(() =>
-  getNumber(rawData.value, 'updates_available', 'updatesAvailable') ?? 0,
-)
-const securityUpdates = computed(() =>
-  getNumber(rawData.value, 'security_updates', 'securityUpdates'),
-)
-const rebootRequired = computed(() =>
-  getBoolean(rawData.value, 'reboot_required', 'rebootRequired'),
-)
-const rebootReason = computed(() =>
-  getString(rawData.value, 'reboot_reason', 'rebootReason'),
-)
-const systemState = computed(() =>
-  getString(rawData.value, 'system_state', 'systemState'),
-)
-const rebootDetectedAt = computed(() =>
-  getString(rawData.value, 'reboot_detected_at', 'rebootDetectedAt'),
-)
+const updatesAvailable = computed(() => rawData.value?.updates_available ?? 0)
+const securityUpdates = computed(() => rawData.value?.security_updates ?? null)
+const rebootRequired = computed(() => rawData.value?.reboot_required ?? false)
+const rebootReason = computed(() => rawData.value?.reboot_reason ?? null)
+const systemState = computed(() => rawData.value?.system_state ?? null)
+const rebootDetectedAt = computed(() => rawData.value?.reboot_detected_at ?? null)
 const rebootDetectedAtFull = computed(() =>
   formatMonitorDate(rebootDetectedAt.value),
 )
