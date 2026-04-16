@@ -78,6 +78,9 @@ COPY --chown=appuser:appuser migrations ./migrations
 # Copy shared code if exists (optional)
 # COPY --chown=appuser:appuser shared /app/shared
 
+# Fix ownership
+RUN mkdir -p /app/data && chown appuser:appuser /app/data
+
 # Switch to non-privileged user
 USER appuser
 
