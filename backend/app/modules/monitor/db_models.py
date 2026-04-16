@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -35,6 +36,7 @@ class SiteDB(Base):
     teams_webhook_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     server_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
     environment: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    tags: Mapped[list[str] | None] = mapped_column(ARRAY(Text()), nullable=True)
     verify_ssl: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
@@ -62,6 +64,7 @@ class SiteDB(Base):
             "teamsWebhookUrl": self.teams_webhook_url,
             "serverLabel": self.server_label,
             "environment": self.environment,
+            "tags": self.tags,
             "verifySSL": self.verify_ssl,
             "createdAt": self.created_at,
             "updatedAt": self.updated_at,

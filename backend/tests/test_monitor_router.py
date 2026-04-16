@@ -37,6 +37,7 @@ class _FakeSite:
             "healthUrl": None,
             "systemUrl": None,
             "token": None,
+            "tags": None,
             "enabled": True,
             "pollingHealth": 300,
             "pollingSystem": 300,

@@ -191,6 +191,7 @@ export default {
       name: 'Nazwa',
       serverLabel: 'Serwer (opcjonalnie)',
       environment: 'Środowisko (opcjonalnie)',
+      tags: 'Tagi (opcjonalnie)',
       healthUrl: 'URL health',
       systemUrl: 'URL system',
       token: 'Token Bearer',
@@ -198,6 +199,8 @@ export default {
       pollingHealth: 'Interwał health (s)',
       pollingSystem: 'Interwał system (s)',
     },
+    tagsPlaceholder: 'Wpisz tag i naciśnij Enter',
+    removeTag: 'Usuń tag',
     alerts: {
       title: 'Kanały alertów',
       addChannel: 'Dodaj kanał',

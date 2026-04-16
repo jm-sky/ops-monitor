@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Site } from '../types'
-import { createDefaultSiteForm, siteToForm, toNullableString } from './useSiteForm'
+import { createDefaultSiteForm, normalizeTags, siteToForm, toNullableString, toNullableTags } from './useSiteForm'
 
 const baseSite: Site = {
   id: 'site-1',
@@ -9,6 +9,7 @@ const baseSite: Site = {
   healthUrl: 'https://example.com/health',
   systemUrl: 'https://example.com/system',
   token: 'secret-token',
+  tags: ['core', 'prod'],
   enabled: true,
   pollingHealth: 300,
   pollingSystem: 600,
@@ -36,6 +37,7 @@ describe('useSiteForm', () => {
     expect(form.serverLabel).toBe('srv-1')
     expect(form.environment).toBe('production')
     expect(form.token).toBe('')
+    expect(form.tags).toEqual(['core', 'prod'])
   })
 
   it('normalizes blank strings to null', () => {
@@ -45,5 +47,14 @@ describe('useSiteForm', () => {
 
   it('trims and returns non-empty strings', () => {
     expect(toNullableString(' abc ')).toBe('abc')
+  })
+
+  it('normalizes tags', () => {
+    expect(normalizeTags(['  prod ', '', 'API', 'api', '  '])).toEqual(['prod', 'API'])
+  })
+
+  it('returns null for empty tags', () => {
+    expect(toNullableTags([])).toBeNull()
+    expect(toNullableTags(['', '   '])).toBeNull()
   })
 })

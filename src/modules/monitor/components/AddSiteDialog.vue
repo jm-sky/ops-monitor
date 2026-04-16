@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { useHandleError } from '@/shared/composables/useHandleError'
 import type { Site, SiteCreate } from '../types'
-import { createDefaultSiteForm, toNullableString } from '../composables/useSiteForm'
+import { createDefaultSiteForm, toNullableString, toNullableTags } from '../composables/useSiteForm'
 import { monitorService } from '../services/monitorService'
 import SiteFormFields from './SiteFormFields.vue'
 
@@ -40,6 +40,7 @@ async function submit() {
       verifySSL: form.value.verifySSL,
       serverLabel: toNullableString(form.value.serverLabel),
       environment: toNullableString(form.value.environment),
+      tags: toNullableTags(form.value.tags),
       healthUrl: toNullableString(form.value.healthUrl),
       systemUrl: toNullableString(form.value.systemUrl),
       token: toNullableString(form.value.token),

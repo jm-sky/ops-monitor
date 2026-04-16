@@ -706,7 +706,9 @@ def seed_database(
                         "server_label": site.get("server")
                         or site.get("server_label")
                         or None,
-                        "environment": site.get("environment") or site.get("env") or None,
+                        "environment": site.get("environment")
+                        or site.get("env")
+                        or None,
                         "verify_ssl": bool(site.get("verify_ssl", True)),
                     },
                 )

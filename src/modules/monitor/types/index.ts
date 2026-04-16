@@ -7,6 +7,7 @@ export interface Site {
   healthUrl: string | null
   systemUrl: string | null
   token: string | null
+  tags: string[] | null
   enabled: boolean
   pollingHealth: number
   pollingSystem: number
@@ -78,6 +79,7 @@ export interface SiteCreate {
   healthUrl?: string | null
   systemUrl?: string | null
   token?: string | null
+  tags?: string[] | null
   enabled?: boolean
   pollingHealth?: number
   pollingSystem?: number

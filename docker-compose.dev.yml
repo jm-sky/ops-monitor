@@ -41,9 +41,9 @@ services:
       - ./backend/tests:/app/tests:rw,delegated
       - ./backend/migrations:/app/migrations:rw,delegated
       - ./backend/main.py:/app/main.py:rw,delegated
-      - ./backend/cli:/app/cli:ro,delegated
-      - ./backend/cli.py:/app/cli.py:ro,delegated
-      - ./backend/seeds:/app/seeds:ro,delegated
+      - ./backend/cli:/app/cli:rw,delegated
+      - ./backend/cli.py:/app/cli.py:rw,delegated
+      - ./backend/seeds:/app/seeds:rw,delegated
     logging:
       driver: 'json-file'
       options:

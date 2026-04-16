@@ -1,8 +1,12 @@
 <script setup lang="ts">
+import { X } from 'lucide-vue-next'
 import Input from '@/components/ui/input/Input.vue'
 import Label from '@/components/ui/label/Label.vue'
+import Badge from '@/components/ui/badge/Badge.vue'
+import Button from '@/components/ui/button/Button.vue'
 import Switch from '@/components/ui/switch/Switch.vue'
-import type { SiteFormData } from '../composables/useSiteForm'
+import { normalizeTags, type SiteFormData } from '../composables/useSiteForm'
+import { ref } from 'vue'
 
 const props = withDefaults(defineProps<{
   idPrefix: string
@@ -12,6 +16,32 @@ const props = withDefaults(defineProps<{
 })
 
 const form = defineModel<SiteFormData>('form', { required: true })
+
+const tagDraft = ref('')
+
+function addTagsFromDraft() {
+  const next = tagDraft.value.trim()
+  if (!next) return
+
+  const parts = next
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean)
+
+  form.value.tags = normalizeTags([...form.value.tags, ...parts])
+  tagDraft.value = ''
+}
+
+function removeTag(tag: string) {
+  form.value.tags = form.value.tags.filter((t) => t !== tag)
+}
+
+function onTagKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter' || event.key === ',') {
+    event.preventDefault()
+    addTagsFromDraft()
+  }
+}
 </script>
 
 <template>
@@ -39,6 +69,33 @@ const form = defineModel<SiteFormData>('form', { required: true })
       v-model="form.environment"
       placeholder="production"
     />
+  </div>
+  <div class="space-y-1.5">
+    <Label :for="`${props.idPrefix}-site-tags`">{{ $t('monitor.fields.tags', 'Tags (optional)') }}</Label>
+    <div class="flex flex-col gap-2">
+      <Input
+        :id="`${props.idPrefix}-site-tags`"
+        v-model="tagDraft"
+        :placeholder="$t('monitor.tagsPlaceholder', 'Type a tag and press Enter')"
+        @keydown="onTagKeydown"
+        @blur="addTagsFromDraft"
+      />
+      <div v-if="form.tags.length > 0" class="flex flex-wrap gap-2">
+        <Badge v-for="tag in form.tags" :key="tag" variant="secondary" class="gap-1 pr-1">
+          <span class="truncate">{{ tag }}</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            class="h-5 w-5"
+            :aria-label="$t('monitor.removeTag', 'Remove tag')"
+            @click="removeTag(tag)"
+          >
+            <X class="size-3" />
+          </Button>
+        </Badge>
+      </div>
+    </div>
   </div>
   <div class="space-y-1.5">
     <Label :for="`${props.idPrefix}-site-health`">{{ $t('monitor.fields.healthUrl', 'Health URL') }}</Label>

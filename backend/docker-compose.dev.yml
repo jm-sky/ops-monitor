@@ -98,9 +98,9 @@ services:
       - ./tests:/app/tests:rw,delegated
       - ./migrations:/app/migrations:rw,delegated
       - ./main.py:/app/main.py:rw,delegated
-      - ./cli:/app/cli:ro,delegated
-      - ./cli.py:/app/cli.py:ro,delegated
-      - ./seeds:/app/seeds:ro,delegated
+      - ./cli:/app/cli:rw,delegated
+      - ./cli.py:/app/cli.py:rw,delegated
+      - ./seeds:/app/seeds:rw,delegated
     logging:
       driver: "json-file"
       options:

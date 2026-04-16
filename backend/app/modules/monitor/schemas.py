@@ -12,6 +12,7 @@ class SiteCreate(BaseModel):
     healthUrl: Optional[str] = None
     systemUrl: Optional[str] = None
     token: Optional[str] = None
+    tags: Optional[list[str]] = None
     enabled: bool = True
     pollingHealth: int = Field(300, ge=30)
     pollingSystem: int = Field(300, ge=30)
@@ -29,6 +30,7 @@ class SiteUpdate(BaseModel):
     healthUrl: Optional[str] = None
     systemUrl: Optional[str] = None
     token: Optional[str] = None
+    tags: Optional[list[str]] = None
     enabled: Optional[bool] = None
     pollingHealth: Optional[int] = Field(None, ge=30)
     pollingSystem: Optional[int] = Field(None, ge=30)
@@ -47,6 +49,7 @@ class SiteResponse(BaseModel):
     healthUrl: Optional[str] = None
     systemUrl: Optional[str] = None
     token: Optional[str] = None
+    tags: Optional[list[str]] = None
     enabled: bool
     pollingHealth: int
     pollingSystem: int
