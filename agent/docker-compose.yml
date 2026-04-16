@@ -1,6 +1,8 @@
 services:
   agent:
+    image: ops-monitor-agent
     build: .
+    container_name: ops-monitor-agent
     restart: unless-stopped
     ports:
       - "${AGENT_PORT:-9100}:${AGENT_PORT:-9100}"

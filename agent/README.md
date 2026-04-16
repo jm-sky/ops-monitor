@@ -44,6 +44,10 @@ docker run -d \
 
 The host volume mounts give the agent access to the host's package state. Without them the counts will always be 0 (container has no updates pending).
 
+### Docker Compose
+
+If you use `[docker-compose.yml](docker-compose.yml)` in this directory, the container is intentionally named `ops-monitor-agent` (so `docker ps` clearly shows it belongs to ops-monitor). The compose project name is set via `.env` as `COMPOSE_PROJECT_NAME=ops-monitor-agent`.
+
 
 ## Environment Variables
 
