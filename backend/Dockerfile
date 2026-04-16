@@ -77,6 +77,7 @@ COPY --chown=appuser:appuser migrations ./migrations
 
 # Copy shared code if exists (optional)
 # COPY --chown=appuser:appuser shared /app/shared
+COPY --chown=appuser:appuser seeds ./seeds
 
 # Fix ownership
 RUN mkdir -p /app/data && chown appuser:appuser /app/data
