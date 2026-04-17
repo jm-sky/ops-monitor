@@ -16,6 +16,7 @@ export interface Site {
   teamsWebhookUrl: string | null
   serverLabel: string | null
   environment: string | null
+  ip: string | null
   verifySSL: boolean
   createdAt: TDateTime
   updatedAt: TDateTime
@@ -95,6 +96,7 @@ export interface SiteCreate {
   teamsWebhookUrl?: string | null
   serverLabel?: string | null
   environment?: string | null
+  ip?: string | null
   verifySSL?: boolean
 }
 

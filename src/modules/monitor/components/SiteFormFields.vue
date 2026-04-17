@@ -71,6 +71,14 @@ function onTagKeydown(event: KeyboardEvent) {
     />
   </div>
   <div class="space-y-1.5">
+    <Label :for="`${props.idPrefix}-site-ip`">{{ $t('monitor.fields.ip', 'IP address (optional)') }}</Label>
+    <Input
+      :id="`${props.idPrefix}-site-ip`"
+      v-model="form.ip"
+      placeholder="10.0.0.10"
+    />
+  </div>
+  <div class="space-y-1.5">
     <Label :for="`${props.idPrefix}-site-tags`">{{ $t('monitor.fields.tags', 'Tags (optional)') }}</Label>
     <div class="flex flex-col gap-2">
       <Input

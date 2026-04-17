@@ -196,6 +196,7 @@ export default {
       name: 'Nazwa',
       serverLabel: 'Serwer (opcjonalnie)',
       environment: 'Środowisko (opcjonalnie)',
+      ip: 'Adres IP (opcjonalnie)',
       tags: 'Tagi (opcjonalnie)',
       healthUrl: 'URL health',
       systemUrl: 'URL system',

@@ -14,6 +14,7 @@ const props = defineProps<{
 
 const serverLabelDraft = defineModel<string>('serverLabelDraft', { required: true })
 const environmentDraft = defineModel<string>('environmentDraft', { required: true })
+const ipDraft = defineModel<string>('ipDraft', { required: true })
 
 const emit = defineEmits<{
   saveConfig: []
@@ -78,6 +79,15 @@ const { t } = useI18n()
               <Input
                 v-model="environmentDraft"
                 placeholder="production"
+              />
+            </div>
+            <div class="space-y-2">
+              <div class="text-muted-foreground">
+                {{ t('monitor.fields.ip', 'IP address (optional)') }}
+              </div>
+              <Input
+                v-model="ipDraft"
+                placeholder="10.0.0.10"
               />
             </div>
           </div>

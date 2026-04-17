@@ -4,6 +4,7 @@ export interface SiteFormData {
   name: string
   serverLabel: string
   environment: string
+  ip: string
   tags: string[]
   healthUrl: string
   systemUrl: string
@@ -18,6 +19,7 @@ const SITE_FORM_DEFAULTS: SiteFormData = {
   name: '',
   serverLabel: '',
   environment: '',
+  ip: '',
   tags: [],
   healthUrl: '',
   systemUrl: '',
@@ -37,6 +39,7 @@ export function siteToForm(site: Site): SiteFormData {
     name: site.name,
     serverLabel: site.serverLabel ?? '',
     environment: site.environment ?? '',
+    ip: site.ip ?? '',
     tags: site.tags ?? [],
     healthUrl: site.healthUrl ?? '',
     systemUrl: site.systemUrl ?? '',

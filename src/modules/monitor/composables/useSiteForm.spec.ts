@@ -18,6 +18,7 @@ const baseSite: Site = {
   teamsWebhookUrl: null,
   serverLabel: 'srv-1',
   environment: 'production',
+  ip: '10.0.0.10',
   verifySSL: true,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
@@ -36,6 +37,7 @@ describe('useSiteForm', () => {
     expect(form.name).toBe('API')
     expect(form.serverLabel).toBe('srv-1')
     expect(form.environment).toBe('production')
+    expect(form.ip).toBe('10.0.0.10')
     expect(form.token).toBe('')
     expect(form.tags).toEqual(['core', 'prod'])
   })

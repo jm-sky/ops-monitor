@@ -108,6 +108,7 @@ async def create_site(
         "server_label": data.serverLabel,
         "environment": data.environment,
         "verify_ssl": data.verifySSL,
+        "ip": data.ip,
     }
     site = await repo.create(site_data)
     return SiteResponse(**site.to_response())
@@ -180,6 +181,7 @@ async def update_site(
         "server_label": "serverLabel",
         "environment": "environment",
         "verify_ssl": "verifySSL",
+        "ip": "ip",
     }
     update_data = {
         db_field: getattr(data, schema_field)

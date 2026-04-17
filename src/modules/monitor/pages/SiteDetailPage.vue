@@ -53,6 +53,7 @@ const polling = ref(false)
 const savingConfig = ref(false)
 const serverLabelDraft = ref('')
 const environmentDraft = ref('')
+const ipDraft = ref('')
 const healthResponseDialogOpen = ref(false)
 const systemResponseDialogOpen = ref(false)
 const showEditDialog = ref(false)
@@ -102,10 +103,12 @@ async function saveConfig() {
     const updatedSite = await monitorService.updateSite(siteId.value, {
       serverLabel: serverLabelDraft.value.trim() || null,
       environment: environmentDraft.value.trim() || null,
+      ip: ipDraft.value.trim() || null,
     })
     updateSiteCache(updatedSite)
     serverLabelDraft.value = updatedSite.serverLabel ?? ''
     environmentDraft.value = updatedSite.environment ?? ''
+    ipDraft.value = updatedSite.ip ?? ''
     toast.success(t('common.saved', 'Saved'))
   } catch (error) {
     handleError(error, { fallbackMessage: t('monitor.updateError', 'Failed to update site') })
@@ -129,6 +132,7 @@ function onSiteUpdated(updatedSite: Site) {
   updateSiteCache(updatedSite)
   serverLabelDraft.value = updatedSite.serverLabel ?? ''
   environmentDraft.value = updatedSite.environment ?? ''
+  ipDraft.value = updatedSite.ip ?? ''
 }
 
 async function toggleEnabled() {
@@ -164,6 +168,7 @@ watch(status, (nextStatus) => {
   if (nextStatus) {
     serverLabelDraft.value = nextStatus.site.serverLabel ?? ''
     environmentDraft.value = nextStatus.site.environment ?? ''
+    ipDraft.value = nextStatus.site.ip ?? ''
   }
 }, { immediate: true })
 
@@ -260,6 +265,7 @@ function goBackFromNotFound() {
         <SiteDetailConfigurationCard
           v-model:server-label-draft="serverLabelDraft"
           v-model:environment-draft="environmentDraft"
+          v-model:ip-draft="ipDraft"
           :saving-config="savingConfig"
           :site="status.site"
           @save-config="saveConfig"
