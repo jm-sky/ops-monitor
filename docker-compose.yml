@@ -1,0 +1,149 @@
+services:
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: ops-monitor-backend:latest
+    container_name: ops-monitor-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - PROJECT_NAME=${PROJECT_NAME:-ops-monitor}
+      - APP_PORT=${APP_PORT:-8000}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-backend}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-ops_monitor}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CORS_ORIGINS=${CORS_ORIGINS:-["http://localhost:5176"]}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5176}
+      - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID}
+      - GOOGLE_OAUTH_CLIENT_SECRET=${GOOGLE_OAUTH_CLIENT_SECRET}
+      - GOOGLE_OAUTH_REDIRECT_URI=${GOOGLE_OAUTH_REDIRECT_URI}
+      - FACEBOOK_OAUTH_CLIENT_ID=${FACEBOOK_OAUTH_CLIENT_ID}
+      - FACEBOOK_OAUTH_CLIENT_SECRET=${FACEBOOK_OAUTH_CLIENT_SECRET}
+      - FACEBOOK_OAUTH_REDIRECT_URI=${FACEBOOK_OAUTH_REDIRECT_URI}
+      - RECAPTCHA_ENABLED=${RECAPTCHA_ENABLED:-false}
+      - RECAPTCHA_SITE_KEY=${RECAPTCHA_SITE_KEY}
+      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
+      - RECAPTCHA_MIN_SCORE=${RECAPTCHA_MIN_SCORE:-0.5}
+    ports:
+      - "127.0.0.1:${APP_PORT:-8000}:8000"
+    volumes:
+      - ./backend/app:/app/app:rw,delegated
+      - ./backend/scripts:/app/scripts:rw,delegated
+      - ./backend/tests:/app/tests:rw,delegated
+      - ./backend/migrations:/app/migrations:rw,delegated
+      - ./backend/main.py:/app/main.py:rw,delegated
+      - ./backend/cli:/app/cli:rw,delegated
+      - ./backend/cli.py:/app/cli.py:rw,delegated
+      - ./backend/seeds:/app/seeds:rw,delegated
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - ops-monitor-network
+
+  db:
+    image: postgres:17-alpine
+    container_name: ops-monitor-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-ops_monitor}
+      - POSTGRES_USER=${POSTGRES_USER:-backend}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - ops_monitor_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-backend}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - ops-monitor-network
+
+  redis:
+    image: redis:8-alpine
+    container_name: ops-monitor-redis
+    restart: unless-stopped
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-changeme}
+    volumes:
+      - ops_monitor_redis_data:/data
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD:-changeme}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "sh", "-c", "redis-cli -a $${REDIS_PASSWORD:-changeme} ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - ops-monitor-network
+
+  agent:
+    build:
+      context: ./agent
+    image: ops-monitor-agent
+    container_name: ops-monitor-agent
+    restart: unless-stopped
+    pid: 'host'
+    profiles:
+      - agent
+    env_file:
+      - ./agent/.env
+    environment:
+      - AGENT_TOKEN=${AGENT_TOKEN:-}
+      - AGENT_HOST=0.0.0.0
+      - AGENT_PORT=${AGENT_PORT:-9100}
+    ports:
+      - "127.0.0.1:${AGENT_PORT:-9100}:${AGENT_PORT:-9100}"
+    volumes:
+      - /var/lib/apt/lists:/var/lib/apt/lists:ro
+      - /var/lib/update-notifier:/var/lib/update-notifier:ro
+      - /var/run/reboot-required:/var/run/reboot-required:ro
+      - /var/run/reboot-required.pkgs:/var/run/reboot-required.pkgs:ro
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - ops-monitor-network
+
+networks:
+  ops-monitor-network:
+    name: ops-monitor-network
+
+volumes:
+  ops_monitor_postgres_data:
+    name: ops_monitor_postgres_data
+  ops_monitor_redis_data:
+    name: ops_monitor_redis_data
