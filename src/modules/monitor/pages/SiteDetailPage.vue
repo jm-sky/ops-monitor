@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { isAxiosError } from 'axios'
 import { Pencil, RefreshCw, Server, Trash2, Zap } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -24,6 +25,7 @@ import SiteDetailConfigurationCard from '../components/SiteDetailConfigurationCa
 import SiteDetailHealthCard from '../components/SiteDetailHealthCard.vue'
 import SiteDetailSnapshotHistoryCard from '../components/SiteDetailSnapshotHistoryCard.vue'
 import SiteDetailSystemCard from '../components/SiteDetailSystemCard.vue'
+import SiteNotFoundState from '../components/SiteNotFoundState.vue'
 import { monitorQueryKeys } from '../services/monitorQueries'
 import { monitorService } from '../services/monitorService'
 
@@ -68,6 +70,11 @@ const formattedSystemResponse = computed(() => {
   const rawData = status.value?.systemSnapshot?.rawData
   if (!rawData) return ''
   return JSON.stringify(rawData, null, 2)
+})
+const hasSiteNotFoundError = computed(() => {
+  if (!error.value || !isAxiosError(error.value)) return false
+  const statusCode = error.value.response?.status
+  return statusCode === 404 || statusCode === 422
 })
 
 async function load() {
@@ -162,9 +169,19 @@ watch(status, (nextStatus) => {
 
 watch(error, (queryError, previousError) => {
   if (queryError && queryError !== previousError) {
+    if (isAxiosError(queryError) && [404, 422].includes(queryError.response?.status ?? 0)) return
     handleError(queryError, { fallbackMessage: t('monitor.loadError', 'Failed to load site') })
   }
 })
+
+function goBackFromNotFound() {
+  if (window.history.length > 1) {
+    router.back()
+    return
+  }
+
+  router.push({ name: 'monitor' })
+}
 </script>
 
 <template>
@@ -271,6 +288,7 @@ watch(error, (queryError, previousError) => {
     <div v-else-if="isLoading || (isFetching && !isFetched && !isError)" class="flex justify-center py-12">
       <RefreshCw class="size-6 animate-spin text-muted-foreground" />
     </div>
+    <SiteNotFoundState v-else-if="hasSiteNotFoundError" @back="goBackFromNotFound" />
 
     <EditSiteDialog
       v-if="status"
