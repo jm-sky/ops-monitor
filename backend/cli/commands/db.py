@@ -684,11 +684,11 @@ def seed_database(
                         INSERT INTO sites (
                             name, description, health_url, system_url, token, enabled,
                             polling_health, polling_system, polling_updates, polling_reboot,
-                            server_label, environment, verify_ssl
+                            server_label, environment, verify_ssl, ip
                         ) VALUES (
                             :name, :description, :health_url, :system_url, :token, :enabled,
                             :polling_health, :polling_system, :polling_updates, :polling_reboot,
-                            :server_label, :environment, :verify_ssl
+                            :server_label, :environment, :verify_ssl, :ip
                         )
                         ON CONFLICT (name) DO NOTHING
                         """),
@@ -710,6 +710,7 @@ def seed_database(
                         or site.get("env")
                         or None,
                         "verify_ssl": bool(site.get("verify_ssl", True)),
+                        "ip": site.get("ip") or None,
                     },
                 )
                 if result.rowcount:

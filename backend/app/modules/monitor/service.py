@@ -3,6 +3,7 @@
 import logging
 from datetime import UTC, datetime
 from typing import Any
+from urllib.parse import urlparse, urlunparse
 
 import httpx
 
@@ -102,6 +103,8 @@ class MonitorService:
 
     async def _poll_health(self, site: SiteDB) -> Any:
         headers = _auth_headers(site.token)
+        url, extra_headers = _resolve_url(site.health_url, site.ip)  # type: ignore[arg-type]
+        headers = {**headers, **extra_headers}
         raw_data = None
         error = None
         status = None
@@ -110,7 +113,7 @@ class MonitorService:
             async with httpx.AsyncClient(
                 timeout=TIMEOUT, verify=site.verify_ssl
             ) as client:
-                resp = await client.get(site.health_url, headers=headers)  # type: ignore[arg-type]
+                resp = await client.get(url, headers=headers)
                 resp.raise_for_status()
                 try:
                     body = resp.json()
@@ -147,6 +150,8 @@ class MonitorService:
 
     async def _poll_system(self, site: SiteDB) -> Any:
         headers = _auth_headers(site.token)
+        url, extra_headers = _resolve_url(site.system_url, site.ip)  # type: ignore[arg-type]
+        headers = {**headers, **extra_headers}
         raw_data = None
         error = None
         status = None
@@ -155,7 +160,7 @@ class MonitorService:
             async with httpx.AsyncClient(
                 timeout=TIMEOUT, verify=site.verify_ssl
             ) as client:
-                resp = await client.get(site.system_url, headers=headers)  # type: ignore[arg-type]
+                resp = await client.get(url, headers=headers)
                 resp.raise_for_status()
                 raw_data = resp.json()
                 reboot_req = raw_data.get("reboot_required", False)
@@ -186,3 +191,14 @@ def _auth_headers(token: str | None) -> dict[str, str]:
     if token:
         return {"Authorization": f"Bearer {token}"}
     return {}
+
+
+def _resolve_url(url: str, ip: str | None) -> tuple[str, dict[str, str]]:
+    if not ip:
+        return url, {}
+    parsed = urlparse(url)
+    original_host = parsed.netloc  # e.g. "bsm-api01.sklodowscy.local:9100"
+    port = parsed.port
+    new_netloc = f"{ip}:{port}" if port else ip
+    new_url = urlunparse(parsed._replace(netloc=new_netloc))
+    return new_url, {"Host": original_host}

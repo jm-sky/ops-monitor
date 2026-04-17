@@ -22,6 +22,7 @@ class SiteCreate(BaseModel):
     serverLabel: Optional[str] = Field(None, max_length=255)
     environment: Optional[str] = Field(None, max_length=100)
     verifySSL: bool = True
+    ip: Optional[str] = Field(None, max_length=45)
 
 
 class SiteUpdate(BaseModel):
@@ -40,6 +41,7 @@ class SiteUpdate(BaseModel):
     serverLabel: Optional[str] = Field(None, max_length=255)
     environment: Optional[str] = Field(None, max_length=100)
     verifySSL: Optional[bool] = None
+    ip: Optional[str] = Field(None, max_length=45)
 
 
 class SiteResponse(BaseModel):
@@ -59,6 +61,7 @@ class SiteResponse(BaseModel):
     serverLabel: Optional[str] = None
     environment: Optional[str] = None
     verifySSL: bool = True
+    ip: Optional[str] = None
     createdAt: datetime
     updatedAt: datetime
 
