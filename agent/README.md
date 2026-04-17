@@ -34,15 +34,15 @@ docker build -t ops-monitor-agent .
 docker run -d \
   -p 9100:9100 \
   -e AGENT_TOKEN=your-secret \
-  -v /var/lib/apt/lists:/var/lib/apt/lists:ro \
-  -v /var/lib/update-notifier:/var/lib/update-notifier:ro \
-  -v /var/run/reboot-required:/var/run/reboot-required:ro \
-  -v /var/run/reboot-required.pkgs:/var/run/reboot-required.pkgs:ro \
+  --mount type=bind,src=/var/lib/apt/lists,dst=/var/lib/apt/lists,readonly \
+  --mount type=bind,src=/var/lib/update-notifier,dst=/var/lib/update-notifier,readonly \
+  --mount type=bind,src=/var/run/reboot-required,dst=/var/run/reboot-required,readonly \
+  --mount type=bind,src=/var/run/reboot-required.pkgs,dst=/var/run/reboot-required.pkgs,readonly \
   --name ops-monitor-agent \
   ops-monitor-agent
 ```
 
-The host volume mounts give the agent access to the host's package state. Without them the counts will always be 0 (container has no updates pending).
+The host bind mounts give the agent access to the host's package state. Without them the counts will always be 0 (container has no updates pending). Using `--mount` avoids accidental host path creation that can happen with `-v` when a source path is missing.
 
 ### Docker Compose
 
