@@ -34,6 +34,24 @@ _UPDATES_CACHE_TTL = 300
 app = FastAPI(title="Ops Monitor Agent", docs_url=None, redoc_url=None)
 
 
+# Prefer host-mounted /var/run when running in Docker.
+_REBOOT_FLAG_CANDIDATES = [
+    Path("/host/var/run/reboot-required"),
+    Path("/var/run/reboot-required"),
+]
+_REBOOT_PKGS_CANDIDATES = [
+    Path("/host/var/run/reboot-required.pkgs"),
+    Path("/var/run/reboot-required.pkgs"),
+]
+
+
+def _first_existing_file(candidates: list[Path]) -> Path | None:
+    for path in candidates:
+        if path.is_file():
+            return path
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Auth
 # ---------------------------------------------------------------------------
@@ -55,8 +73,8 @@ def verify_token(authorization: str | None) -> None:
 
 def _get_reboot_info() -> dict:
     """Detect reboot requirement (Debian/Ubuntu)."""
-    flag = Path("/var/run/reboot-required")
-    if not flag.is_file():
+    flag = _first_existing_file(_REBOOT_FLAG_CANDIDATES)
+    if flag is None:
         return {
             "reboot_required": False,
             "reboot_reason": None,
@@ -68,8 +86,8 @@ def _get_reboot_info() -> dict:
     ).isoformat()
 
     reason: str | None = None
-    pkgs_file = Path("/var/run/reboot-required.pkgs")
-    if pkgs_file.is_file():
+    pkgs_file = _first_existing_file(_REBOOT_PKGS_CANDIDATES)
+    if pkgs_file is not None:
         try:
             pkgs = pkgs_file.read_text().strip().splitlines()
             reason = ", ".join(pkgs[:5]) if pkgs else "kernel update"

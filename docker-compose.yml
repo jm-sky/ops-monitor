@@ -128,18 +128,7 @@ services:
     volumes:
       - /var/lib/apt/lists:/var/lib/apt/lists:ro
       - /var/lib/update-notifier:/var/lib/update-notifier:ro
-      - type: bind
-        source: /var/run/reboot-required
-        target: /var/run/reboot-required
-        read_only: true
-        bind:
-          create_host_path: false
-      - type: bind
-        source: /var/run/reboot-required.pkgs
-        target: /var/run/reboot-required.pkgs
-        read_only: true
-        bind:
-          create_host_path: false
+      - /var/run:/host/var/run:ro
     logging:
       driver: 'json-file'
       options:

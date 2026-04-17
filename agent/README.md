@@ -36,13 +36,12 @@ docker run -d \
   -e AGENT_TOKEN=your-secret \
   --mount type=bind,src=/var/lib/apt/lists,dst=/var/lib/apt/lists,readonly \
   --mount type=bind,src=/var/lib/update-notifier,dst=/var/lib/update-notifier,readonly \
-  --mount type=bind,src=/var/run/reboot-required,dst=/var/run/reboot-required,readonly \
-  --mount type=bind,src=/var/run/reboot-required.pkgs,dst=/var/run/reboot-required.pkgs,readonly \
+  --mount type=bind,src=/var/run,dst=/host/var/run,readonly \
   --name ops-monitor-agent \
   ops-monitor-agent
 ```
 
-The host bind mounts give the agent access to the host's package state. Without them the counts will always be 0 (container has no updates pending). Using `--mount` avoids accidental host path creation that can happen with `-v` when a source path is missing.
+The host bind mounts give the agent access to the host's package state. Without them the counts will always be 0 (container has no updates pending). Mounting `/var/run` as a directory avoids accidental host path creation and still lets the agent read reboot markers if they exist.
 
 ### Docker Compose
 
