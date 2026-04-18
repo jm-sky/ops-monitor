@@ -223,6 +223,50 @@ async def _seed_sites(yaml_file: Path, dry_run: bool) -> None:
     )
 
 
+@monitor_app.command("sites")
+def sites_list(
+    wide: bool = typer.Option(
+        False, "--wide", "-w", help="Show full URLs without truncation"
+    ),
+) -> None:
+    """List all configured sites with their URLs and settings."""
+    asyncio.run(_sites_list(wide))
+
+
+async def _sites_list(wide: bool) -> None:
+    from app.core.database import AsyncSessionLocal
+    from app.modules.monitor.repositories import SiteRepository
+
+    async with AsyncSessionLocal() as db:
+        sites = await SiteRepository(db).get_all()
+
+    table = Table(title=f"Sites ({len(sites)})", show_header=True, header_style="bold")
+    table.add_column("Name")
+    table.add_column("Env")
+    if wide:
+        table.add_column("Health URL", overflow="fold")
+        table.add_column("System URL", overflow="fold")
+    else:
+        table.add_column("Health URL", overflow="ellipsis", max_width=40)
+        table.add_column("System URL", overflow="ellipsis", max_width=40)
+    table.add_column("IP override")
+    table.add_column("SSL")
+    table.add_column("Enabled")
+
+    for site in sites:
+        table.add_row(
+            site.name,
+            site.environment or "—",
+            site.health_url or "—",
+            site.system_url or "—",
+            site.ip or "—",
+            "✓" if site.verify_ssl else "[yellow]✗[/yellow]",
+            "✓" if site.enabled else "[dim]✗[/dim]",
+        )
+
+    console.print(table)
+
+
 @monitor_app.command("status")
 def status(
     errors_only: bool = typer.Option(
