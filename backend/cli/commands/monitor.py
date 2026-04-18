@@ -123,15 +123,24 @@ def seed_sites(
         Path("seeds/sites.yml"),
         help="Path to YAML seed file (relative to /app)",
     ),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be imported without saving"
+    dry_run: bool | None = typer.Option(
+        None,
+        "--dry-run/--no-dry-run",
+        help="Show what would be imported without saving",
+    ),
+    clear: bool | None = typer.Option(
+        None, "--clear/--no-clear", help="Delete all existing sites before seeding"
     ),
 ) -> None:
     """Seed sites from a YAML file (upsert by name)."""
-    asyncio.run(_seed_sites(yaml_file, dry_run))
+    if dry_run is None:
+        dry_run = typer.confirm("Dry run (no changes saved)?", default=False)
+    if clear is None:
+        clear = typer.confirm("Clear all existing sites before seeding?", default=False)
+    asyncio.run(_seed_sites(yaml_file, dry_run, clear))
 
 
-async def _seed_sites(yaml_file: Path, dry_run: bool) -> None:
+async def _seed_sites(yaml_file: Path, dry_run: bool, clear: bool) -> None:
     try:
         import yaml  # type: ignore[import-untyped]
     except ImportError:
@@ -179,6 +188,14 @@ async def _seed_sites(yaml_file: Path, dry_run: bool) -> None:
     async with AsyncSessionLocal() as db:
         created = updated = skipped = 0
 
+        if clear:
+            result = await db.execute(select(SiteDB))
+            existing_sites = result.scalars().all()
+            for site in existing_sites:
+                await db.delete(site)
+            await db.flush()
+            console.print(f"  [red]cleared[/red] {len(existing_sites)} existing sites")
+
         for s in sites:
             name = s.get("name", "").strip()
             if not name:
@@ -225,11 +242,13 @@ async def _seed_sites(yaml_file: Path, dry_run: bool) -> None:
 
 @monitor_app.command("sites")
 def sites_list(
-    wide: bool = typer.Option(
-        False, "--wide", "-w", help="Show full URLs without truncation"
+    wide: bool | None = typer.Option(
+        None, "--wide/--no-wide", "-w", help="Show full URLs without truncation"
     ),
 ) -> None:
     """List all configured sites with their URLs and settings."""
+    if wide is None:
+        wide = typer.confirm("Show full URLs?", default=False)
     asyncio.run(_sites_list(wide))
 
 

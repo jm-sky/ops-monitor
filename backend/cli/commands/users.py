@@ -342,13 +342,16 @@ def users_list(
     limit: int | None = typer.Option(
         None, "--limit", "-l", help="Maximum number of users to show"
     ),
-    detailed: bool = typer.Option(
-        False,
-        "--detailed",
+    detailed: bool | None = typer.Option(
+        None,
+        "--detailed/--no-detailed",
         help="Show detailed information (email verified, 2FA status)",
     ),
-    wide: bool = typer.Option(
-        False, "--wide", "-w", help="Show full IDs and emails without truncation"
+    wide: bool | None = typer.Option(
+        None,
+        "--wide/--no-wide",
+        "-w",
+        help="Show full IDs and emails without truncation",
     ),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ) -> None:
@@ -370,6 +373,16 @@ def users_list(
         # Output as JSON
         python -m cli users list --json
     """
+    if not json_output:
+        if detailed is None:
+            detailed = typer.confirm(
+                "Show detailed info (email verified, 2FA)?", default=False
+            )
+        if wide is None:
+            wide = typer.confirm("Show full IDs and emails?", default=False)
+    else:
+        detailed = detailed or False
+        wide = wide or False
     asyncio.run(
         _users_list_async(
             admins_only,
