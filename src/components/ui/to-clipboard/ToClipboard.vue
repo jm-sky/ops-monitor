@@ -18,7 +18,7 @@ const props = withDefaults(defineProps<{
 })
 
 const { t } = useI18n()
-const { copy } = useClipboard()
+const { copy } = useClipboard({ legacy: true })
 const copied = refAutoReset(false, 3000)
 
 const hasValue = computed(() => Boolean(props.value))
