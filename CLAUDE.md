@@ -15,6 +15,7 @@ docker compose -f backend/docker-compose.dev.yml up
 docker exec ops-monitor-app python -m cli db init
 docker exec ops-monitor-app python -m cli db migrate
 docker exec ops-monitor-app python -m cli users create
+docker exec ops-monitor-app python -m cli monitor status          # latest health/system per site (Rich table); add --errors-only for problems only
 docker exec -it ops-monitor-app python -m cli        # interactive
 
 # Agent (standalone)
