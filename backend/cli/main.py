@@ -50,6 +50,14 @@ COMMAND_GROUPS = {
             "toggle-owner": "Toggle owner status for a user",
         },
     },
+    "monitor": {
+        "name": "Monitor Management",
+        "commands": {
+            "sites": "List configured sites",
+            "status": "Show latest poll status per site",
+            "seed-sites": "Seed sites from a YAML file",
+        },
+    },
     "test": {
         "name": "Testing & Debugging",
         "commands": {
@@ -183,9 +191,12 @@ def show_group_interactive_menu(group_key: str, group_info: dict) -> None:
 
     # Prepare choices for questionary
     commands_list = list(group_info["commands"].items())
-    choices = [
-        questionary.Choice(title=f"{cmd_key:20s} - {cmd_desc}", value=cmd_key)
-        for cmd_key, cmd_desc in commands_list
+    choices: list[questionary.Choice] = [
+        questionary.Choice(title="← Back", value="__back__"),
+        *[
+            questionary.Choice(title=f"{cmd_key:20s} - {cmd_desc}", value=cmd_key)
+            for cmd_key, cmd_desc in commands_list
+        ],
     ]
 
     # Use questionary.select for arrow key navigation
@@ -226,8 +237,11 @@ def show_group_interactive_menu(group_key: str, group_info: dict) -> None:
     ).ask()
 
     if not selected_command:
-        # User cancelled (Ctrl+C)
         console.print("\n[yellow]Cancelled[/yellow]")
+        return
+
+    if selected_command == "__back__":
+        _show_interactive_menu()
         return
 
     # Check if command requires arguments
