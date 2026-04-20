@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { useHandleError } from '@/shared/composables/useHandleError'
 import type { Site, SiteCreate } from '../types'
-import { createDefaultSiteForm, toNullableString, toNullableTags } from '../composables/useSiteForm'
+import { createDefaultSiteForm, toNullableMeta, toNullableString, toNullableTags } from '../composables/useSiteForm'
 import { monitorService } from '../services/monitorService'
 import SiteFormFields from './SiteFormFields.vue'
 
@@ -45,6 +45,7 @@ async function submit() {
       healthUrl: toNullableString(form.value.healthUrl),
       systemUrl: toNullableString(form.value.systemUrl),
       token: toNullableString(form.value.token),
+      expectedMeta: toNullableMeta(form.value.expectedMeta),
     }
     const site = await monitorService.createSite(payload)
     reset()

@@ -164,6 +164,7 @@ export default {
     pollError: 'Sprawdzanie nieudane',
     health: 'Zdrowie',
     system: 'System',
+    configureUrl: 'Konfiguruj URL',
     lastPolled: 'Ostatnio sprawdzono',
     noData: 'Brak danych',
     viewRawResponse: 'Pokaż pełną odpowiedź',

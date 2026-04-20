@@ -1,4 +1,4 @@
-import type { Site } from '../types'
+import type { MetaValue, Site } from '../types'
 
 export interface SiteFormData {
   name: string
@@ -13,6 +13,7 @@ export interface SiteFormData {
   pollingHealth: number
   pollingSystem: number
   verifySSL: boolean
+  expectedMeta: Record<string, string>
 }
 
 const SITE_FORM_DEFAULTS: SiteFormData = {
@@ -28,10 +29,11 @@ const SITE_FORM_DEFAULTS: SiteFormData = {
   pollingHealth: 300,
   pollingSystem: 300,
   verifySSL: true,
+  expectedMeta: {},
 }
 
 export function createDefaultSiteForm(): SiteFormData {
-  return { ...SITE_FORM_DEFAULTS }
+  return { ...SITE_FORM_DEFAULTS, expectedMeta: {} }
 }
 
 export function siteToForm(site: Site): SiteFormData {
@@ -48,6 +50,9 @@ export function siteToForm(site: Site): SiteFormData {
     pollingHealth: site.pollingHealth,
     pollingSystem: site.pollingSystem,
     verifySSL: site.verifySSL,
+    expectedMeta: site.expectedMeta
+      ? Object.fromEntries(Object.entries(site.expectedMeta).map(([k, v]) => [k, String(v)]))
+      : {},
   }
 }
 
@@ -73,4 +78,24 @@ export function normalizeTags(value: string[]): string[] {
 export function toNullableTags(value: string[]): string[] | null {
   const normalized = normalizeTags(value)
   return normalized.length > 0 ? normalized : null
+}
+
+export function toNullableMeta(
+  value: Record<string, string>,
+): Record<string, MetaValue> | null {
+  const entries = Object.entries(value)
+    .map(([k, v]): [string, string] => [k.trim(), v.trim()])
+    .filter(([k]) => k.length > 0)
+
+  if (entries.length === 0) return null
+
+  return Object.fromEntries(
+    entries.map(([k, v]) => {
+      if (v === 'true') return [k, true]
+      if (v === 'false') return [k, false]
+      const num = Number(v)
+      if (v !== '' && !isNaN(num)) return [k, num]
+      return [k, v]
+    }),
+  )
 }

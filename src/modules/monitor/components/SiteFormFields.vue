@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { X } from 'lucide-vue-next'
+import { Plus, X } from 'lucide-vue-next'
 import { ref } from 'vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import Button from '@/components/ui/button/Button.vue'
@@ -42,11 +42,35 @@ function onTagKeydown(event: KeyboardEvent) {
     addTagsFromDraft()
   }
 }
+
+function addMetaEntry() {
+  form.value.expectedMeta = { ...form.value.expectedMeta, '': '' }
+}
+
+function removeMetaEntry(key: string) {
+  const next = { ...form.value.expectedMeta }
+  delete next[key]
+  form.value.expectedMeta = next
+}
+
+function updateMetaKey(oldKey: string, newKey: string) {
+  const entries = Object.entries(form.value.expectedMeta)
+  const idx = entries.findIndex(([k]) => k === oldKey)
+  if (idx === -1) return
+  const current = entries[idx]
+  if (!current) return
+  entries[idx] = [newKey, current[1]]
+  form.value.expectedMeta = Object.fromEntries(entries)
+}
+
+function updateMetaValue(key: string, value: string) {
+  form.value.expectedMeta = { ...form.value.expectedMeta, [key]: value }
+}
 </script>
 
 <template>
   <div class="space-y-1.5">
-    <Label :for="`${props.idPrefix}-site-name`">{{ $t('monitor.fields.name', 'Name') }} *</Label>
+    <Label :for="`${props.idPrefix}-site-name`" required>{{ $t('monitor.fields.name', 'Name') }}</Label>
     <Input
       :id="`${props.idPrefix}-site-name`"
       v-model="form.name"
@@ -138,8 +162,49 @@ function onTagKeydown(event: KeyboardEvent) {
     />
   </div>
   <div class="flex items-center gap-3">
-    <Switch :id="`${props.idPrefix}-verify-ssl`" v-model="form.verifySSL" />
     <Label :for="`${props.idPrefix}-verify-ssl`">{{ $t('monitor.fields.verifySSL', 'Verify SSL certificate') }}</Label>
+    <Switch :id="`${props.idPrefix}-verify-ssl`" v-model="form.verifySSL" />
+  </div>
+  <div class="space-y-1.5">
+    <Label>{{ $t('monitor.fields.expectedMeta', 'Expected meta (optional)') }}</Label>
+    <div class="flex flex-col gap-2">
+      <div
+        v-for="[key, value] in Object.entries(form.expectedMeta)"
+        :key="key"
+        class="grid grid-cols-[1fr_1fr_auto] items-center gap-2"
+      >
+        <Input
+          :value="key"
+          placeholder="key"
+          @change="updateMetaKey(key, ($event.target as HTMLInputElement).value)"
+        />
+        <Input
+          :value="value"
+          placeholder="value"
+          @input="updateMetaValue(key, ($event.target as HTMLInputElement).value)"
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          class="size-9 shrink-0"
+          :aria-label="$t('monitor.removeMetaEntry', 'Remove entry')"
+          @click="removeMetaEntry(key)"
+        >
+          <X class="size-4" />
+        </Button>
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        class="flex gap-2 self-start"
+        @click="addMetaEntry"
+      >
+        <Plus class="size-4" />
+        {{ $t('monitor.addMetaEntry', 'Add entry') }}
+      </Button>
+    </div>
   </div>
   <div class="grid grid-cols-2 gap-4">
     <div class="space-y-1.5">

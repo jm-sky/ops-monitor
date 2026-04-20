@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Braces } from 'lucide-vue-next'
+import { AlertTriangle, Braces } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Button from '@/components/ui/button/Button.vue'
@@ -22,6 +22,14 @@ const components = computed(() => {
   if (!props.snapshot?.rawData?.components) return []
   return Object.entries(props.snapshot.rawData.components)
 })
+
+const metaEntries = computed(() => {
+  const meta = props.snapshot?.rawData?.meta
+  if (!meta) return []
+  return Object.entries(meta)
+})
+
+const mismatches = computed(() => props.snapshot?.metaMismatches ?? [])
 </script>
 
 <template>
@@ -65,6 +73,31 @@ const components = computed(() => {
             </div>
           </div>
         </template>
+        <template v-if="metaEntries.length > 0">
+          <div class="border-t pt-2" />
+          <div
+            v-for="[key, value] in metaEntries"
+            :key="key"
+            class="grid grid-cols-[9rem_1fr] items-center gap-2"
+          >
+            <span class="text-muted-foreground">{{ key }}</span>
+            <span class="text-right font-mono text-xs">{{ value }}</span>
+          </div>
+        </template>
+        <div
+          v-if="mismatches.length > 0"
+          class="rounded border border-amber-400/40 bg-amber-50 px-3 py-2 dark:bg-amber-950/30"
+        >
+          <div class="mb-1 flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+            <AlertTriangle class="size-3.5 shrink-0" />
+            <span class="text-xs font-medium">{{ t('monitor.metaMismatch', 'Expected meta mismatch') }}</span>
+          </div>
+          <ul class="space-y-0.5 text-xs text-amber-700 dark:text-amber-400">
+            <li v-for="msg in mismatches" :key="msg">
+              {{ msg }}
+            </li>
+          </ul>
+        </div>
       </template>
       <p v-else class="text-muted-foreground">
         {{ t('monitor.noData', 'No data yet') }}

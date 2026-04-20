@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { useHandleError } from '@/shared/composables/useHandleError'
 import type { Site, SiteUpdate } from '../types'
-import { siteToForm, toNullableString, toNullableTags } from '../composables/useSiteForm'
+import { siteToForm, toNullableMeta, toNullableString, toNullableTags } from '../composables/useSiteForm'
 import { monitorService } from '../services/monitorService'
 import SiteFormFields from './SiteFormFields.vue'
 
@@ -48,6 +48,7 @@ async function submit() {
       tags: toNullableTags(form.value.tags),
       healthUrl: toNullableString(form.value.healthUrl),
       systemUrl: toNullableString(form.value.systemUrl),
+      expectedMeta: toNullableMeta(form.value.expectedMeta),
     }
     if (nextToken !== null) payload.token = nextToken
     const updated = await monitorService.updateSite(props.site.id, payload)

@@ -103,6 +103,24 @@ const { t } = useI18n()
           </div>
         </div>
       </div>
+
+      <template v-if="props.site.expectedMeta && Object.keys(props.site.expectedMeta).length > 0">
+        <div class="grid gap-x-8 gap-y-2 border-t pt-5">
+          <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {{ t('monitor.expectedMeta', 'Expected meta') }}
+          </div>
+          <div class="grid gap-1">
+            <div
+              v-for="[key, value] in Object.entries(props.site.expectedMeta)"
+              :key="key"
+              class="grid grid-cols-[10rem_1fr] items-center gap-2 text-xs"
+            >
+              <span class="text-muted-foreground">{{ key }}</span>
+              <span class="font-mono">{{ value }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
     </CardContent>
   </Card>
 </template>

@@ -19,6 +19,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   viewRawResponse: []
+  configureUrl: []
 }>()
 
 const { t } = useI18n()
@@ -40,8 +41,8 @@ const rebootDetectedAtAgo = computed(() =>
 </script>
 
 <template>
-  <Card class="h-full" :class="{ 'bg-muted/50 opacity-80': !hasSystemUrl }">
-    <CardHeader class="flex flex-row items-center justify-between pb-3">
+  <Card class="h-full" :class="{ 'py-2 bg-muted/50 opacity-80': !hasSystemUrl }">
+    <CardHeader class="flex flex-row items-center justify-between" :class="hasSystemUrl ? 'pb-3': 'pb-0 gap-0'">
       <CardTitle>{{ t('monitor.system', 'System') }}</CardTitle>
       <div class="flex items-center gap-2">
         <Button
@@ -55,10 +56,13 @@ const rebootDetectedAtAgo = computed(() =>
         >
           <Braces class="size-3" /> {{ t('monitor.fullResponse', 'Full response') }}
         </Button>
-        <SiteStatusBadge :status="snapshot?.status ?? null" />
+        <SiteStatusBadge v-if="hasSystemUrl" :status="snapshot?.status ?? null" />
+        <Button variant="outline" size="sm" @click="emit('configureUrl')">
+          {{ t('monitor.configureUrl', 'Configure URL') }}
+        </Button>
       </div>
     </CardHeader>
-    <CardContent class="space-y-4 text-sm">
+    <CardContent v-if="hasSystemUrl" class="space-y-4 text-sm">
       <template v-if="snapshot">
         <div class="grid grid-cols-[9rem_1fr] items-center gap-2">
           <span class="text-muted-foreground">{{ t('monitor.lastPolled', 'Last polled') }}</span>

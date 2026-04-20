@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Globe, Server } from 'lucide-vue-next'
+import { AlertTriangle, Globe, Server } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -79,6 +79,10 @@ const worstMetricLevel = computed<MetricLevel>(() => {
   if (systemMetrics.value.some(m => m.level === 'warn')) return 'warn'
   return 'ok'
 })
+
+const hasMetaMismatches = computed(
+  () => (props.siteStatus.healthSnapshot?.metaMismatches?.length ?? 0) > 0,
+)
 </script>
 
 <template>
@@ -99,7 +103,14 @@ const worstMetricLevel = computed<MetricLevel>(() => {
           {{ props.siteStatus.site.name }}
         </CardTitle>
       </div>
-      <SiteStatusBadge :status="props.overallStatus(props.siteStatus)" />
+      <div class="flex shrink-0 items-center gap-1.5">
+        <AlertTriangle
+          v-if="hasMetaMismatches"
+          class="size-3.5 text-amber-500"
+          :title="t('monitor.metaMismatch', 'Expected meta mismatch')"
+        />
+        <SiteStatusBadge :status="props.overallStatus(props.siteStatus)" />
+      </div>
     </CardHeader>
     <CardContent :class="props.denseMode ? 'pt-1 px-0 pb-0 space-y-1 text-xs text-muted-foreground' : 'space-y-2 text-sm text-muted-foreground'">
       <div v-if="!props.denseMode && props.siteStatus.site.description" class="truncate">

@@ -260,6 +260,7 @@ function goBackFromNotFound() {
           :snapshot="status.systemSnapshot"
           :has-system-url="!!status.site.systemUrl"
           @view-raw-response="systemResponseDialogOpen = true"
+          @configure-url="showEditDialog = true"
         />
         <SiteDetailSnapshotHistoryCard :site="status.site" />
         <SiteDetailConfigurationCard

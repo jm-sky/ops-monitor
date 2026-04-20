@@ -1,5 +1,7 @@
 import type { TDateTime } from '@/shared/types/base.type'
 
+export type MetaValue = string | number | boolean
+
 export interface Site {
   id: string
   name: string
@@ -18,6 +20,7 @@ export interface Site {
   environment: string | null
   ip: string | null
   verifySSL: boolean
+  expectedMeta: Record<string, MetaValue> | null
   createdAt: TDateTime
   updatedAt: TDateTime
 }
@@ -36,6 +39,7 @@ export interface HealthRawData {
   environment?: string
   last_activity?: string
   errors?: string[]
+  meta?: Record<string, MetaValue>
   [key: string]: unknown
 }
 
@@ -71,6 +75,7 @@ export interface SiteSnapshot<TRawData = Record<string, unknown>> {
   snapshotType: 'health' | 'system'
   status: string | null
   rawData: TRawData | null
+  metaMismatches: string[] | null
   error: string | null
   polledAt: TDateTime
 }
@@ -98,6 +103,7 @@ export interface SiteCreate {
   environment?: string | null
   ip?: string | null
   verifySSL?: boolean
+  expectedMeta?: Record<string, MetaValue> | null
 }
 
 export type SiteUpdate = Partial<SiteCreate>

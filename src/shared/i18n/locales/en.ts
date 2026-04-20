@@ -164,6 +164,7 @@ export default {
     pollError: 'Poll failed',
     health: 'Health',
     system: 'System',
+    configureUrl: 'Configure URL',
     lastPolled: 'Last polled',
     noData: 'No data yet',
     viewRawResponse: 'View full response',

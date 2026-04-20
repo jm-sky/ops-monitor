@@ -20,6 +20,7 @@ const baseSite: Site = {
   environment: 'production',
   ip: '10.0.0.10',
   verifySSL: true,
+  expectedMeta: null,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
 }
