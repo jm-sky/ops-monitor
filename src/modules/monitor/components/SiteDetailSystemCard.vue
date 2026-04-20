@@ -57,7 +57,12 @@ const rebootDetectedAtAgo = computed(() =>
           <Braces class="size-3" /> {{ t('monitor.fullResponse', 'Full response') }}
         </Button>
         <SiteStatusBadge v-if="hasSystemUrl" :status="snapshot?.status ?? null" />
-        <Button variant="outline" size="sm" @click="emit('configureUrl')">
+        <Button
+          v-else
+          variant="outline"
+          size="sm"
+          @click="emit('configureUrl')"
+        >
           {{ t('monitor.configureUrl', 'Configure URL') }}
         </Button>
       </div>
