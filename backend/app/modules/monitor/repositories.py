@@ -62,11 +62,13 @@ class SnapshotRepository:
         raw_data: dict | None,
         error: str | None,
         status: str | None,
+        meta_mismatches: list[str] | None = None,
     ) -> SiteSnapshotDB:
         snap = SiteSnapshotDB(
             site_id=site_id,
             snapshot_type=snapshot_type,
             raw_data=raw_data,
+            meta_mismatches=meta_mismatches or None,
             error=error,
             status=status,
             polled_at=datetime.now(UTC),

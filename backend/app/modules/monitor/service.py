@@ -138,11 +138,15 @@ class MonitorService:
             error = str(e)
             status = "failed"
 
+        meta_mismatches = _compute_meta_mismatches(raw_data, site.expected_meta)
+
         logger.debug("Health poll %s → status=%s error=%s", site.name, status, error)
 
         async with AsyncSessionLocal() as db:
             repo = SnapshotRepository(db)
-            snap = await repo.create(site.id, "health", raw_data, error, status)
+            snap = await repo.create(
+                site.id, "health", raw_data, error, status, meta_mismatches
+            )
             await repo.cleanup_old(site.id, "health")
 
         await dispatch_if_changed(site, snap)
@@ -185,6 +189,23 @@ class MonitorService:
 
         await dispatch_if_changed(site, snap)
         return snap
+
+
+def _compute_meta_mismatches(
+    raw_data: dict | None,
+    expected_meta: dict | None,
+) -> list[str] | None:
+    if not expected_meta:
+        return None
+    reported_meta: dict = (raw_data or {}).get("meta") or {}
+    mismatches = []
+    for key, expected in expected_meta.items():
+        actual = reported_meta.get(key)
+        if actual is None:
+            mismatches.append(f"{key}: expected {expected!r}, not present")
+        elif actual != expected:
+            mismatches.append(f"{key}: expected {expected!r}, got {actual!r}")
+    return mismatches if mismatches else None
 
 
 def _auth_headers(token: str | None) -> dict[str, str]:

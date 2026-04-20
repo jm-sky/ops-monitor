@@ -1,9 +1,11 @@
 """Pydantic schemas for monitor module API."""
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, Field
+
+MetaValue = Union[str, int, float, bool]
 
 
 class SiteCreate(BaseModel):
@@ -23,6 +25,7 @@ class SiteCreate(BaseModel):
     environment: Optional[str] = Field(None, max_length=100)
     verifySSL: bool = True
     ip: Optional[str] = Field(None, max_length=45)
+    expectedMeta: Optional[dict[str, MetaValue]] = None
 
 
 class SiteUpdate(BaseModel):
@@ -42,6 +45,7 @@ class SiteUpdate(BaseModel):
     environment: Optional[str] = Field(None, max_length=100)
     verifySSL: Optional[bool] = None
     ip: Optional[str] = Field(None, max_length=45)
+    expectedMeta: Optional[dict[str, MetaValue]] = None
 
 
 class SiteResponse(BaseModel):
@@ -62,6 +66,7 @@ class SiteResponse(BaseModel):
     environment: Optional[str] = None
     verifySSL: bool = True
     ip: Optional[str] = None
+    expectedMeta: Optional[dict[str, MetaValue]] = None
     createdAt: datetime
     updatedAt: datetime
 
@@ -74,6 +79,7 @@ class SiteSnapshotResponse(BaseModel):
     snapshotType: str
     status: Optional[str] = None
     rawData: Optional[dict[str, Any]] = None
+    metaMismatches: Optional[list[str]] = None
     error: Optional[str] = None
     polledAt: datetime
 

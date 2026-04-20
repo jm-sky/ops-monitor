@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.modules.auth.dependencies import AdminUser, CurrentUser
 
+from .health_schema import get_health_json_schema
 from .repositories import SnapshotRepository, SiteRepository
 from .scheduler import activate_live_mode
 from .schemas import (
@@ -25,6 +26,20 @@ from .service import MonitorService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Health schema
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/health-schema.json",
+    summary="JSON Schema for the /health endpoint contract",
+    include_in_schema=True,
+)
+async def health_schema() -> dict:
+    return get_health_json_schema()
 
 
 # ---------------------------------------------------------------------------
@@ -109,6 +124,7 @@ async def create_site(
         "environment": data.environment,
         "verify_ssl": data.verifySSL,
         "ip": data.ip,
+        "expected_meta": data.expectedMeta,
     }
     site = await repo.create(site_data)
     return SiteResponse(**site.to_response())
@@ -182,6 +198,7 @@ async def update_site(
         "environment": "environment",
         "verify_ssl": "verifySSL",
         "ip": "ip",
+        "expected_meta": "expectedMeta",
     }
     update_data = {
         db_field: getattr(data, schema_field)

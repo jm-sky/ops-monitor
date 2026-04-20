@@ -3,6 +3,8 @@
 All monitored applications must expose a `GET /health` endpoint returning JSON (could be `/api/health`, `/api/health/details` or other similar).
 This document defines the expected response format consumed by ops-monitor.
 
+> **Machine-readable schema:** `GET /api/monitor/health-schema.json` — served as JSON Schema (draft 2020-12) by the ops-monitor API.
+
 ---
 
 ## Response Structure
@@ -29,7 +31,11 @@ This document defines the expected response format consumed by ops-monitor.
     }
   },
   "last_activity": "2026-04-13T10:00:00Z",
-  "errors": []
+  "errors": [],
+  "meta": {
+    "app_env": "TEST",
+    "ksef_env": "DEMO"
+  }
 }
 ```
 
@@ -46,6 +52,7 @@ This document defines the expected response format consumed by ops-monitor.
 | `components` | object | no | Per-component statuses, keyed by component name. |
 | `last_activity` | string | no | ISO 8601 timestamp of the last meaningful user/system activity. |
 | `errors` | array of strings | no | Active error messages contributing to a degraded/failed status. |
+| `meta` | object | no | Arbitrary key-value parameters specific to this application. Values must be `string`, `number`, or `boolean`. |
 
 The top-level `status` must reflect the worst status across all components — if any component is `failed`, the app is `failed`; if any is `degraded`, the app is at least `degraded`.
 
@@ -88,6 +95,33 @@ Ops-monitor assigns a fixed icon to each standard name.
 | 📧 | `mail` | Email delivery service. |
 
 Any additional integration or service can be added under a descriptive name (e.g. `ocr`, `payments`, `maps`). Custom component names will use a generic 🔌 icon.
+
+---
+
+## Meta Fields
+
+The optional `meta` object is an open key-value map for application-specific parameters that ops-monitor should display but not interpret. Values must be scalars (`string`, `number`, or `boolean`).
+
+Use cases:
+- An integration service reporting its own environment dimensions: `{ "app_env": "TEST", "ksef_env": "DEMO" }`
+- A multi-tenant service reporting the active tenant: `{ "tenant": "acme" }`
+- Feature flags or runtime modes visible in the dashboard
+
+```json
+"meta": {
+  "app_env": "TEST",
+  "ksef_env": "DEMO",
+  "tenant": "acme"
+}
+```
+
+Ops-monitor renders `meta` as a key-value table. Keys are used as labels.
+
+### Expected Meta (ops-monitor configuration)
+
+In the ops-monitor site configuration, you can set `expectedMeta` — a map of key-value pairs you expect the application to report. On each health poll, ops-monitor compares the received `meta` against `expectedMeta` and records any mismatches (missing keys or wrong values). Mismatches are visible in the dashboard as a warning indicator.
+
+Example: configure `expectedMeta: { "ksef_env": "PROD" }` — if the application returns `"ksef_env": "DEMO"`, a mismatch is recorded.
 
 ---
 
