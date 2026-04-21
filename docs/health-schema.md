@@ -198,9 +198,24 @@ If token auth is enabled:
 
 ---
 
+## Status Normalization
+
+Ops-monitor accepts common status aliases and maps them to its canonical values:
+
+| Received | Stored as |
+|---|---|
+| `healthy`, `up`, `pass`, `ok` | `ok` |
+| `warn`, `warning`, `degraded` | `degraded` |
+| `down`, `error`, `fail`, `failed` | `failed` |
+
+Any unrecognized value is stored as-is. The canonical values (`ok`, `degraded`, `failed`) are recommended.
+
+---
+
 ## Notes for Implementers
 
 - The endpoint must respond within **5 seconds**. Ops-monitor will treat a timeout as `failed`.
 - The endpoint may be public or protected by token auth. If protected, prefer `Authorization: Bearer <token>` over custom headers.
 - Avoid performing heavy operations (migrations, full DB scans) inside the health handler. Use cached/pre-computed component statuses where possible.
 - `checked_at` and `stale` are optional for always-on components (database, cache) that are verified on every request cycle.
+- A machine-readable JSON Schema is available at `GET /api/monitor/health-schema.json` on the ops-monitor instance.
