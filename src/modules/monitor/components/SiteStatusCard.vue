@@ -98,7 +98,7 @@ const hasMetaMismatches = computed(
   >
     <CardHeader :class="props.denseMode ? 'flex flex-col items-center justify-between gap-2 p-0 overflow-hidden' : 'flex flex-row items-start justify-between gap-2 pb-2'">
       <div class="flex items-center gap-2 min-w-0">
-        <component :is="isPrimary ? Server : Globe" class="size-4 shrink-0 text-muted-foreground" />
+        <component :is="isPrimary ? Server : Globe" class="size-4 shrink-0 text-muted-foreground hidden md:block" />
         <CardTitle :class="props.denseMode ? 'truncate text-sm' : 'truncate text-base'">
           {{ props.siteStatus.site.name }}
         </CardTitle>
