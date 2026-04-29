@@ -690,7 +690,20 @@ def seed_database(
                             :polling_health, :polling_system, :polling_updates, :polling_reboot,
                             :server_label, :environment, :verify_ssl, :ip
                         )
-                        ON CONFLICT (name) DO NOTHING
+                        ON CONFLICT (name) DO UPDATE SET
+                            ip = EXCLUDED.ip,
+                            health_url = EXCLUDED.health_url,
+                            system_url = EXCLUDED.system_url,
+                            token = EXCLUDED.token,
+                            enabled = EXCLUDED.enabled,
+                            polling_health = EXCLUDED.polling_health,
+                            polling_system = EXCLUDED.polling_system,
+                            polling_updates = EXCLUDED.polling_updates,
+                            polling_reboot = EXCLUDED.polling_reboot,
+                            server_label = EXCLUDED.server_label,
+                            environment = EXCLUDED.environment,
+                            verify_ssl = EXCLUDED.verify_ssl,
+                            description = EXCLUDED.description
                         """),
                     {
                         "name": name,
@@ -717,7 +730,7 @@ def seed_database(
                     console.print(f"  [green]created[/green] {name}")
                     inserted += 1
                 else:
-                    console.print(f"  [yellow]skipped[/yellow] {name} (already exists)")
+                    console.print(f"  [yellow]skipped[/yellow] {name} (no changes)")
                     skipped += 1
 
         console.print(
