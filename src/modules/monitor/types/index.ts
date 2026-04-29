@@ -111,3 +111,4 @@ export type SiteUpdate = Partial<SiteCreate>
 export type AppStatus = 'ok' | 'degraded' | 'failed'
 export type RebootStatus = 'ok' | 'reboot_required'
 export type UpdateStatus = 'up_to_date' | 'outdated'
+export type MonitorOverallStatus = AppStatus | RebootStatus | UpdateStatus | 'unknown'

@@ -11,7 +11,7 @@ import Label from '@/components/ui/label/Label.vue'
 import Switch from '@/components/ui/switch/Switch.vue'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
 import { useHandleError } from '@/shared/composables/useHandleError'
-import type { Site, SiteStatus } from '../types'
+import type { MonitorOverallStatus, Site, SiteStatus } from '../types'
 import AddSiteDialog from '../components/AddSiteDialog.vue'
 import MonitorFiltersBar from '../components/MonitorFiltersBar.vue'
 import SiteGroupSection from '../components/SiteGroupSection.vue'
@@ -57,7 +57,7 @@ async function loadSites() {
   await queryClient.invalidateQueries({ queryKey: monitorQueryKeys.siteStatuses() })
 }
 
-function overallStatus(s: SiteStatus): string {
+function overallStatus(s: SiteStatus): MonitorOverallStatus {
   const h = s.healthSnapshot?.status
   const sys = s.systemSnapshot?.status
   if (h === 'failed' || sys === 'failed') return 'failed'

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SiteStatus } from '../types'
+import type { MonitorOverallStatus, SiteStatus } from '../types'
 import SiteStatusCard from './SiteStatusCard.vue'
 
 interface SiteGroup {
@@ -10,7 +10,7 @@ interface SiteGroup {
 
 const props = defineProps<{
   group: SiteGroup
-  overallStatus: (siteStatus: SiteStatus) => string
+  overallStatus: (siteStatus: SiteStatus) => MonitorOverallStatus
   disabledLabel: string
   denseMode?: boolean
 }>()

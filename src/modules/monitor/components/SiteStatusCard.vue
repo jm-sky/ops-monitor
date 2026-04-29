@@ -3,7 +3,7 @@ import { AlertTriangle, Globe, Server } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import type { SiteStatus } from '../types'
+import type { MonitorOverallStatus, SiteStatus } from '../types'
 import { metricLevel, type MetricLevel } from '../composables/useMetricLevel'
 import SiteStatusBadge from './SiteStatusBadge.vue'
 
@@ -16,7 +16,7 @@ interface HealthComponentUi {
 const props = defineProps<{
   siteStatus: SiteStatus
   isPrimary?: boolean
-  overallStatus: (siteStatus: SiteStatus) => string
+  overallStatus: (siteStatus: SiteStatus) => MonitorOverallStatus
   disabledLabel: string
   denseMode?: boolean
 }>()
