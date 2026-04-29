@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Input from '@/components/ui/input/Input.vue'
+import PasswordInput from '@/components/ui/input/PasswordInput.vue'
 import Label from '@/components/ui/label/Label.vue'
 import Switch from '@/components/ui/switch/Switch.vue'
 import { normalizeTags, type SiteFormData } from '../composables/useSiteForm'
@@ -154,10 +155,9 @@ function updateMetaValue(key: string, value: string) {
   </div>
   <div class="space-y-1.5">
     <Label :for="`${props.idPrefix}-site-token`">{{ $t('monitor.fields.token', 'Bearer token') }}</Label>
-    <Input
+    <PasswordInput
       :id="`${props.idPrefix}-site-token`"
       v-model="form.token"
-      type="password"
       :placeholder="props.tokenPlaceholder"
     />
   </div>
