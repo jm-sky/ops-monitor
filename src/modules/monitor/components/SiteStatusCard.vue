@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { AlertTriangle, Globe, Server, ShieldAlert } from 'lucide-vue-next'
+import { AlertTriangle, Globe, Server } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { MonitorOverallStatus, SiteStatus } from '../types'
 import { metricLevel, type MetricLevel } from '../composables/useMetricLevel'
+import SecurityUpdatesCountBadge from './SecurityUpdatesCountBadge.vue'
 import SiteStatusBadge from './SiteStatusBadge.vue'
 
 interface HealthComponentUi {
@@ -89,11 +90,6 @@ const securityUpdatesCount = computed(() => {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0
 })
 
-const hasSecurityUpdates = computed(() => securityUpdatesCount.value > 0)
-
-const securityUpdatesTitle = computed(() =>
-  t('monitor.securityUpdatesAvailable', { count: securityUpdatesCount.value }),
-)
 </script>
 
 <template>
@@ -107,27 +103,20 @@ const securityUpdatesTitle = computed(() =>
     ]"
     @click="emit('select', props.siteStatus.site.id)"
   >
-    <CardHeader :class="props.denseMode ? 'flex flex-col items-center justify-between gap-2 p-0 overflow-hidden' : 'flex flex-row items-start justify-between gap-2 pb-2'">
-      <div class="flex items-center gap-2 min-w-0">
+    <CardHeader :class="props.denseMode ? 'flex flex-col items-stretch gap-2 p-0 overflow-hidden' : 'flex flex-row items-start justify-between gap-2 pb-2'">
+      <div :class="props.denseMode ? 'flex items-center gap-2 min-w-0 justify-center' : 'flex items-center gap-2 min-w-0'">
         <component :is="isPrimary ? Server : Globe" class="size-4 shrink-0 text-muted-foreground hidden md:block" />
         <CardTitle :class="props.denseMode ? 'truncate text-sm' : 'truncate text-base'">
           {{ props.siteStatus.site.name }}
         </CardTitle>
       </div>
-      <div class="flex shrink-0 items-center gap-1.5">
+      <div :class="props.denseMode ? 'flex flex-wrap items-center justify-center gap-1.5 min-w-0' : 'flex shrink-0 items-center gap-1.5'">
         <AlertTriangle
           v-if="hasMetaMismatches"
           class="size-3.5 text-amber-500"
           :title="t('monitor.metaMismatch', 'Expected meta mismatch')"
         />
-        <span
-          v-if="hasSecurityUpdates"
-          class="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300"
-          :title="securityUpdatesTitle"
-        >
-          <ShieldAlert class="size-3" />
-          {{ securityUpdatesCount }}
-        </span>
+        <SecurityUpdatesCountBadge :count="securityUpdatesCount" />
         <SiteStatusBadge :status="props.overallStatus(props.siteStatus)" />
       </div>
     </CardHeader>
