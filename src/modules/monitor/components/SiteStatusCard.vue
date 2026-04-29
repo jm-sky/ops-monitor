@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, Globe, Server } from 'lucide-vue-next'
+import { AlertTriangle, Globe, Server, ShieldAlert } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -83,6 +83,17 @@ const worstMetricLevel = computed<MetricLevel>(() => {
 const hasMetaMismatches = computed(
   () => (props.siteStatus.healthSnapshot?.metaMismatches?.length ?? 0) > 0,
 )
+
+const securityUpdatesCount = computed(() => {
+  const value = props.siteStatus.systemSnapshot?.rawData?.security_updates
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+})
+
+const hasSecurityUpdates = computed(() => securityUpdatesCount.value > 0)
+
+const securityUpdatesTitle = computed(() =>
+  t('monitor.securityUpdatesAvailable', { count: securityUpdatesCount.value }),
+)
 </script>
 
 <template>
@@ -109,6 +120,14 @@ const hasMetaMismatches = computed(
           class="size-3.5 text-amber-500"
           :title="t('monitor.metaMismatch', 'Expected meta mismatch')"
         />
+        <span
+          v-if="hasSecurityUpdates"
+          class="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300"
+          :title="securityUpdatesTitle"
+        >
+          <ShieldAlert class="size-3" />
+          {{ securityUpdatesCount }}
+        </span>
         <SiteStatusBadge :status="props.overallStatus(props.siteStatus)" />
       </div>
     </CardHeader>

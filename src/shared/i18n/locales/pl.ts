@@ -170,6 +170,7 @@ export default {
     viewRawResponse: 'Pokaż pełną odpowiedź',
     uptime: 'Czas działania',
     updates: 'Aktualizacje',
+    securityUpdatesAvailable: 'Dostępne aktualizacje bezpieczeństwa: {count}',
     rebootRequired: 'Wymagany restart',
     status: {
       degraded: 'Pogorszony',

@@ -170,6 +170,7 @@ export default {
     viewRawResponse: 'View full response',
     uptime: 'Uptime',
     updates: 'Updates',
+    securityUpdatesAvailable: 'Security updates available: {count}',
     rebootRequired: 'Reboot required',
     status: {
       degraded: 'Degraded',
