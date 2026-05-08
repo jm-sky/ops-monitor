@@ -2,11 +2,14 @@
 
 import logging
 import uuid
+from datetime import UTC, datetime, time, timedelta
+from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.core.database import AsyncSessionLocal
 
 from ..db_models import SiteDB, SiteSnapshotDB
-from .db_models import AlertChannelDB
+from .db_models import AlertChannelDB, AlertEventDB
 from .repositories import AlertChannelRepository, AlertEventRepository
 from .senders.base import AlertPayload, BaseSender
 from .senders.email import EmailSender
@@ -28,12 +31,14 @@ _ALERT_STATUSES: dict[str, set[str]] = {
     "updates": {"outdated"},
 }
 
+_DEFAULT_TZ = "Europe/Warsaw"
+
 
 async def dispatch_if_changed(
     site: SiteDB,
     snapshot: SiteSnapshotDB,
 ) -> None:
-    """Check snapshot against last recorded alert; fire if status changed."""
+    """For each enabled channel: if filters match and dedup/cooldown allow, send."""
     if not snapshot.status:
         return
 
@@ -42,13 +47,6 @@ async def dispatch_if_changed(
         return
 
     async with AsyncSessionLocal() as db:
-        event_repo = AlertEventRepository(db)
-        last_status = await event_repo.get_last_status(site.id, alert_type)
-
-        # Only alert on status change (or first occurrence)
-        if last_status == snapshot.status:
-            return
-
         channel_repo = AlertChannelRepository(db)
         channels = await channel_repo.get_enabled()
 
@@ -64,6 +62,14 @@ async def dispatch_if_changed(
     )
 
     for channel in channels:
+        if not _matches_filters(channel, site, snapshot, alert_type):
+            continue
+        async with AsyncSessionLocal() as db:
+            event_repo = AlertEventRepository(db)
+            last_event = await event_repo.get_last_for_channel(channel.id, site.id, alert_type)
+        cooldown = _cooldown_minutes(channel)
+        if not _should_fire(last_event, snapshot.status, cooldown):
+            continue
         await _send_to_channel(channel, payload, site.id, alert_type, snapshot.status)
 
 
@@ -92,14 +98,105 @@ def _build_detail(snapshot: SiteSnapshotDB) -> str | None:
         return "; ".join(parts) or None
     if snapshot.snapshot_type == "health":
         components = raw.get("components", {})
-        failed = [
-            k
-            for k, v in components.items()
-            if isinstance(v, dict) and v.get("status") != "ok"
-        ]
+        failed = [k for k, v in components.items() if isinstance(v, dict) and v.get("status") != "ok"]
         if failed:
             return f"Affected components: {', '.join(failed)}"
     return None
+
+
+def _matches_filters(
+    channel: AlertChannelDB,
+    site: SiteDB,
+    snapshot: SiteSnapshotDB,
+    alert_type: str,
+) -> bool:
+    """Check whether this channel's filters allow the alert through."""
+    filters: dict[str, Any] = channel.filters or {}
+
+    types = filters.get("alert_types") or []
+    if types and alert_type not in types:
+        return False
+
+    if alert_type == "health":
+        min_sev = filters.get("min_health_severity") or "degraded"
+        if min_sev == "failed" and snapshot.status != "failed":
+            return False
+
+    site_ids_raw = filters.get("site_ids") or []
+    tags_raw = filters.get("tags") or []
+    if site_ids_raw or tags_raw:
+        site_id_str = str(site.id)
+        in_sites = site_id_str in site_ids_raw
+        site_tags = set(site.tags or [])
+        in_tags = bool(set(tags_raw) & site_tags)
+        if not (in_sites or in_tags):
+            return False
+
+    quiet = filters.get("quiet_hours") or {}
+    if quiet.get("enabled") and _is_in_quiet_hours(quiet):
+        return False
+
+    return True
+
+
+def _is_in_quiet_hours(quiet: dict[str, Any], now: datetime | None = None) -> bool:
+    """Return True if `now` falls inside the quiet hours window.
+
+    Supports windows that wrap past midnight (e.g. 22:00–07:00).
+    """
+    start_str = quiet.get("start") or "22:00"
+    end_str = quiet.get("end") or "07:00"
+    tz_name = quiet.get("timezone") or _DEFAULT_TZ
+    try:
+        tz = ZoneInfo(tz_name)
+    except ZoneInfoNotFoundError:
+        tz = ZoneInfo(_DEFAULT_TZ)
+    try:
+        start = _parse_hhmm(start_str)
+        end = _parse_hhmm(end_str)
+    except ValueError:
+        return False
+
+    current = (now or datetime.now(UTC)).astimezone(tz).time()
+    if start == end:
+        return False
+    if start < end:
+        return start <= current < end
+    # Wraps past midnight
+    return current >= start or current < end
+
+
+def _parse_hhmm(value: str) -> time:
+    hh, mm = value.split(":", 1)
+    return time(int(hh), int(mm))
+
+
+def _cooldown_minutes(channel: AlertChannelDB) -> int | None:
+    filters = channel.filters or {}
+    raw = filters.get("re_alert_after_minutes")
+    if raw is None:
+        return None
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return None
+    return value if value >= 1 else None
+
+
+def _should_fire(
+    last_event: AlertEventDB | None,
+    status: str,
+    cooldown_minutes: int | None,
+) -> bool:
+    """Per-channel dedup + cooldown check."""
+    if last_event is None:
+        return True
+    if last_event.status != status:
+        return True
+    if cooldown_minutes is None:
+        return False
+    deadline = last_event.sent_at + timedelta(minutes=cooldown_minutes)
+    return bool(datetime.now(UTC) >= deadline)
 
 
 async def _send_to_channel(
@@ -134,7 +231,7 @@ async def _send_to_channel(
         )
         return  # Don't record the event if sending failed
 
-    # Record event only on success (for deduplication)
+    # Record event only on success (for deduplication + cooldown)
     async with AsyncSessionLocal() as db:
         event_repo = AlertEventRepository(db)
         await event_repo.record(site_id, channel.id, alert_type, status)

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Bell, Mail, MessageSquare, Plus, Send, Trash2, Tv } from 'lucide-vue-next'
+import { Bell, Mail, MessageSquare, Pencil, Plus, Send, Trash2, Tv } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
@@ -12,6 +12,8 @@ import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
 import { useHandleError } from '@/shared/composables/useHandleError'
 import type { AlertChannel, AlertChannelType, AlertEvent } from '../types/alerts'
 import AddChannelDialog from '../components/AddChannelDialog.vue'
+import ChannelFiltersSummary from '../components/ChannelFiltersSummary.vue'
+import EditChannelDialog from '../components/EditChannelDialog.vue'
 import SiteStatusBadge from '../components/SiteStatusBadge.vue'
 import { alertChannelService } from '../services/alertChannelService'
 
@@ -22,7 +24,9 @@ const channels = ref<AlertChannel[]>([])
 const events = ref<AlertEvent[]>([])
 const loading = ref(false)
 const showAddDialog = ref(false)
+const showEditDialog = ref(false)
 const showDeleteDialog = ref(false)
+const channelToEdit = ref<AlertChannel | null>(null)
 const channelToDelete = ref<AlertChannel | null>(null)
 const testingId = ref<string | null>(null)
 const deletingId = ref<string | null>(null)
@@ -87,6 +91,11 @@ function deleteChannel(channel: AlertChannel) {
   showDeleteDialog.value = true
 }
 
+function editChannel(channel: AlertChannel) {
+  channelToEdit.value = channel
+  showEditDialog.value = true
+}
+
 async function confirmDelete() {
   if (!channelToDelete.value) return
   const channel = channelToDelete.value
@@ -108,6 +117,12 @@ function onCreated(channel: AlertChannel) {
   channels.value.push(channel)
   showAddDialog.value = false
   toast.success(t('monitor.alerts.created', 'Channel added'))
+}
+
+function onUpdated(channel: AlertChannel) {
+  const idx = channels.value.findIndex(c => c.id === channel.id)
+  if (idx !== -1) channels.value[idx] = channel
+  toast.success(t('monitor.alerts.updated', 'Channel updated'))
 }
 
 const deleteConfirmDescription = computed(() =>
@@ -143,13 +158,14 @@ onMounted(load)
         <CardHeader class="flex flex-row items-center justify-between gap-4 py-3">
           <div class="flex items-center gap-3 min-w-0">
             <component :is="channelIcon(ch.type)" class="size-5 shrink-0 text-muted-foreground" />
-            <div class="min-w-0">
+            <div class="min-w-0 space-y-1">
               <CardTitle class="text-base">
                 {{ ch.name }}
               </CardTitle>
               <p class="text-xs text-muted-foreground">
                 {{ channelLabel(ch.type) }}
               </p>
+              <ChannelFiltersSummary :filters="ch.filters" />
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
@@ -164,6 +180,14 @@ onMounted(load)
             >
               <Send class="size-4" />
               {{ t('monitor.alerts.test', 'Test') }}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              @click="editChannel(ch)"
+            >
+              <Pencil class="size-4" />
+              {{ t('common.edit', 'Edit') }}
             </Button>
             <Button
               variant="ghost"
@@ -199,7 +223,6 @@ onMounted(load)
       </Button>
     </div>
 
-    <!-- Alert log -->
     <div class="mt-10">
       <h2 class="text-lg font-semibold mb-3">
         {{ t('monitor.alerts.log.title', 'Alert log') }}
@@ -231,6 +254,12 @@ onMounted(load)
     </div>
 
     <AddChannelDialog v-model:open="showAddDialog" @created="onCreated" />
+    <EditChannelDialog
+      v-if="channelToEdit"
+      v-model:open="showEditDialog"
+      :channel="channelToEdit"
+      @updated="onUpdated"
+    />
     <ConfirmDialog
       v-model:open="showDeleteDialog"
       :title="t('monitor.alerts.deleteConfirm', 'Delete channel?')"

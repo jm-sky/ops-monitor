@@ -12,8 +12,10 @@ import {
 import Input from '@/components/ui/input/Input.vue'
 import Label from '@/components/ui/label/Label.vue'
 import { useHandleError } from '@/shared/composables/useHandleError'
-import type { AlertChannel, AlertChannelCreate, AlertChannelType } from '../types/alerts'
+import type { AlertChannel, AlertChannelCreate, AlertChannelFilters, AlertChannelType } from '../types/alerts'
 import { alertChannelService } from '../services/alertChannelService'
+import { DEFAULT_FILTERS } from '../types/alerts'
+import ChannelFiltersForm from './ChannelFiltersForm.vue'
 
 const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{ created: [channel: AlertChannel] }>()
@@ -26,14 +28,18 @@ const name = ref('')
 const type = ref<AlertChannelType>('teams')
 const enabled = ref(true)
 
-// Type-specific fields
 const teamsWebhook = ref('')
-const emailTo = ref('')         // comma-separated
+const emailTo = ref('')
 const emailPrefix = ref('[OpsMonitor]')
 const telegramToken = ref('')
 const telegramChatId = ref('')
 
-const types: { value: AlertChannelType; label: string }[] = [
+const filters = ref<AlertChannelFilters>({
+  ...DEFAULT_FILTERS,
+  quiet_hours: { ...DEFAULT_FILTERS.quiet_hours },
+})
+
+const types: { value: AlertChannelType, label: string }[] = [
   { value: 'teams', label: 'MS Teams' },
   { value: 'email', label: 'Email' },
   { value: 'telegram', label: 'Telegram' },
@@ -66,6 +72,10 @@ function reset() {
   emailPrefix.value = '[OpsMonitor]'
   telegramToken.value = ''
   telegramChatId.value = ''
+  filters.value = {
+    ...DEFAULT_FILTERS,
+    quiet_hours: { ...DEFAULT_FILTERS.quiet_hours },
+  }
 }
 
 watch(open, (v) => { if (!v) reset() })
@@ -78,6 +88,7 @@ async function submit() {
       type: type.value,
       enabled: enabled.value,
       config: buildConfig(),
+      filters: filters.value,
     }
     const channel = await alertChannelService.create(payload)
     emit('created', channel)
@@ -91,13 +102,12 @@ async function submit() {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent class="sm:max-w-lg">
+    <DialogContent class="sm:max-w-lg max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{{ t('monitor.alerts.addChannel', 'Add alert channel') }}</DialogTitle>
       </DialogHeader>
 
       <form class="space-y-4" @submit.prevent="submit">
-        <!-- Name -->
         <div class="space-y-1.5">
           <Label for="ch-name">{{ t('monitor.alerts.fields.name', 'Name') }} *</Label>
           <Input
@@ -108,7 +118,6 @@ async function submit() {
           />
         </div>
 
-        <!-- Type -->
         <div class="space-y-1.5">
           <Label>{{ t('monitor.alerts.fields.type', 'Type') }} *</Label>
           <div class="flex gap-2">
@@ -125,7 +134,6 @@ async function submit() {
           </div>
         </div>
 
-        <!-- Teams config -->
         <template v-if="type === 'teams'">
           <div class="space-y-1.5">
             <Label for="teams-webhook">Webhook URL *</Label>
@@ -133,7 +141,6 @@ async function submit() {
           </div>
         </template>
 
-        <!-- Email config -->
         <template v-else-if="type === 'email'">
           <div class="space-y-1.5">
             <Label for="email-to">{{ t('monitor.alerts.fields.emailTo', 'Recipients (comma-separated)') }} *</Label>
@@ -145,7 +152,6 @@ async function submit() {
           </div>
         </template>
 
-        <!-- Telegram config -->
         <template v-else-if="type === 'telegram'">
           <div class="space-y-1.5">
             <Label for="tg-token">Bot token *</Label>
@@ -161,6 +167,8 @@ async function submit() {
             <Input id="tg-chat" v-model="telegramChatId" placeholder="-1001234567890" />
           </div>
         </template>
+
+        <ChannelFiltersForm v-model="filters" />
 
         <DialogFooter>
           <Button type="button" variant="outline" @click="open = false">

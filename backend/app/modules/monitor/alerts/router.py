@@ -55,6 +55,7 @@ async def create_channel(
         "type": data.type,
         "enabled": data.enabled,
         "config": data.config,
+        "filters": data.filters.model_dump(),
     }
     channel = await repo.create(channel_data)
     return AlertChannelResponse(**channel.to_response())
@@ -73,9 +74,7 @@ async def get_channel(
     repo = AlertChannelRepository(db)
     channel = await repo.get_by_id(channel_id)
     if not channel:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Channel not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Channel not found")
     return AlertChannelResponse(**channel.to_response())
 
 
@@ -93,9 +92,7 @@ async def update_channel(
     repo = AlertChannelRepository(db)
     channel = await repo.get_by_id(channel_id)
     if not channel:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Channel not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Channel not found")
 
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     channel = await repo.update(channel, update_data)
@@ -115,9 +112,7 @@ async def delete_channel(
     repo = AlertChannelRepository(db)
     channel = await repo.get_by_id(channel_id)
     if not channel:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Channel not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Channel not found")
     await repo.delete(channel)
 
 
@@ -134,9 +129,7 @@ async def test_channel_endpoint(
     repo = AlertChannelRepository(db)
     channel = await repo.get_by_id(channel_id)
     if not channel:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Channel not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Channel not found")
 
     success, message = await test_channel(channel)
     return TestAlertResponse(success=success, message=message)

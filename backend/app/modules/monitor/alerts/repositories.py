@@ -16,23 +16,15 @@ class AlertChannelRepository:
         self.db = db
 
     async def get_all(self) -> list[AlertChannelDB]:
-        result = await self.db.execute(
-            select(AlertChannelDB).order_by(AlertChannelDB.name)
-        )
+        result = await self.db.execute(select(AlertChannelDB).order_by(AlertChannelDB.name))
         return list(result.scalars().all())
 
     async def get_enabled(self) -> list[AlertChannelDB]:
-        result = await self.db.execute(
-            select(AlertChannelDB)
-            .where(AlertChannelDB.enabled.is_(True))
-            .order_by(AlertChannelDB.name)
-        )
+        result = await self.db.execute(select(AlertChannelDB).where(AlertChannelDB.enabled.is_(True)).order_by(AlertChannelDB.name))
         return list(result.scalars().all())
 
     async def get_by_id(self, channel_id: uuid.UUID) -> AlertChannelDB | None:
-        result = await self.db.execute(
-            select(AlertChannelDB).where(AlertChannelDB.id == channel_id)
-        )
+        result = await self.db.execute(select(AlertChannelDB).where(AlertChannelDB.id == channel_id))
         return result.scalar_one_or_none()
 
     async def create(self, data: dict[str, Any]) -> AlertChannelDB:
@@ -42,9 +34,7 @@ class AlertChannelRepository:
         await self.db.refresh(channel)
         return channel
 
-    async def update(
-        self, channel: AlertChannelDB, data: dict[str, Any]
-    ) -> AlertChannelDB:
+    async def update(self, channel: AlertChannelDB, data: dict[str, Any]) -> AlertChannelDB:
         for key, value in data.items():
             setattr(channel, key, value)
         channel.updated_at = datetime.now(UTC)
@@ -74,6 +64,25 @@ class AlertEventRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_last_for_channel(
+        self,
+        channel_id: uuid.UUID,
+        site_id: uuid.UUID,
+        alert_type: str,
+    ) -> AlertEventDB | None:
+        """Return the most recent alert event for a (channel, site, alert_type)."""
+        result = await self.db.execute(
+            select(AlertEventDB)
+            .where(
+                AlertEventDB.channel_id == channel_id,
+                AlertEventDB.site_id == site_id,
+                AlertEventDB.alert_type == alert_type,
+            )
+            .order_by(AlertEventDB.sent_at.desc())
+            .limit(1)
+        )
+        return cast(AlertEventDB | None, result.scalar_one_or_none())
+
     async def record(
         self,
         site_id: uuid.UUID,
@@ -97,13 +106,7 @@ class AlertEventRepository:
         site_id: uuid.UUID | None = None,
     ) -> list[tuple[AlertEventDB, str, str]]:
         """Return (event, site_name, channel_name) tuples, newest first."""
-        query = (
-            select(AlertEventDB, SiteDB.name, AlertChannelDB.name)
-            .join(SiteDB, AlertEventDB.site_id == SiteDB.id)
-            .join(AlertChannelDB, AlertEventDB.channel_id == AlertChannelDB.id)
-            .order_by(AlertEventDB.sent_at.desc())
-            .limit(limit)
-        )
+        query = select(AlertEventDB, SiteDB.name, AlertChannelDB.name).join(SiteDB, AlertEventDB.site_id == SiteDB.id).join(AlertChannelDB, AlertEventDB.channel_id == AlertChannelDB.id).order_by(AlertEventDB.sent_at.desc()).limit(limit)
         if site_id is not None:
             query = query.where(AlertEventDB.site_id == site_id)
         result = await self.db.execute(query)
