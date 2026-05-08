@@ -63,9 +63,13 @@ function loadFromChannel() {
   }
 }
 
-watch(open, (isOpen) => {
-  if (isOpen) loadFromChannel()
-})
+watch(
+  [open, () => props.channel],
+  ([isOpen]) => {
+    if (isOpen) loadFromChannel()
+  },
+  { immediate: true },
+)
 
 const isValid = computed(() => {
   if (!name.value) return false
