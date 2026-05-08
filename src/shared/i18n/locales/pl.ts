@@ -236,6 +236,7 @@ export default {
         health: 'Zdrowie',
         reboot: 'Restart',
         updates: 'Aktualizacje',
+        security_updates: 'Aktualizacje bezpieczeństwa',
       },
       filters: {
         title: 'Filtry',

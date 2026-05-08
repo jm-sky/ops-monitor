@@ -1,5 +1,5 @@
 export type AlertChannelType = 'teams' | 'email' | 'telegram'
-export type AlertType = 'health' | 'reboot' | 'updates'
+export type AlertType = 'health' | 'reboot' | 'updates' | 'security_updates'
 export type HealthSeverity = 'degraded' | 'failed'
 
 export interface QuietHoursConfig {

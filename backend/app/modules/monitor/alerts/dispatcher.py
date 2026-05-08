@@ -42,7 +42,7 @@ async def dispatch_if_changed(
     if not snapshot.status:
         return
 
-    alert_type = _alert_type_for_snapshot(snapshot.snapshot_type, snapshot.status)
+    alert_type = _alert_type_for_snapshot(snapshot)
     if alert_type is None:
         return
 
@@ -73,13 +73,21 @@ async def dispatch_if_changed(
         await _send_to_channel(channel, payload, site.id, alert_type, snapshot.status)
 
 
-def _alert_type_for_snapshot(snapshot_type: str, status: str) -> str | None:
-    """Map a snapshot type + status to an alert_type, or None if no alert needed."""
-    if snapshot_type == "health" and status in _ALERT_STATUSES["health"]:
+def _alert_type_for_snapshot(snapshot: SiteSnapshotDB) -> str | None:
+    """Map a snapshot to an alert_type, or None if no alert needed."""
+    if snapshot.snapshot_type == "health" and snapshot.status in _ALERT_STATUSES["health"]:
         return "health"
-    if snapshot_type == "system" and status in _ALERT_STATUSES["reboot"]:
+    if snapshot.snapshot_type == "system" and snapshot.status in _ALERT_STATUSES["reboot"]:
         return "reboot"
-    if snapshot_type == "system" and status in _ALERT_STATUSES["updates"]:
+
+    # security updates: separate alert type for routing
+    if snapshot.snapshot_type == "system":
+        raw = snapshot.raw_data or {}
+        value = raw.get("security_updates")
+        if isinstance(value, int) and value > 0:
+            return "security_updates"
+
+    if snapshot.snapshot_type == "system" and snapshot.status in _ALERT_STATUSES["updates"]:
         return "updates"
     return None
 

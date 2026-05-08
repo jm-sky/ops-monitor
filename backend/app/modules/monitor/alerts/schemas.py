@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-AlertType = Literal["health", "reboot", "updates"]
+AlertType = Literal["health", "reboot", "updates", "security_updates"]
 HealthSeverity = Literal["degraded", "failed"]
 
 _HHMM_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")

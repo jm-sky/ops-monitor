@@ -26,7 +26,7 @@ const { handleError } = useHandleError()
 const sites = ref<Site[]>([])
 const loadingSites = ref(false)
 
-const ALERT_TYPES: AlertType[] = ['health', 'reboot', 'updates']
+const ALERT_TYPES: AlertType[] = ['health', 'reboot', 'updates', 'security_updates']
 
 const TIMEZONES: string[] = [
   'Europe/Warsaw',

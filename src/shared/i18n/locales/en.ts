@@ -236,6 +236,7 @@ export default {
         health: 'Health',
         reboot: 'Reboot',
         updates: 'Updates',
+        security_updates: 'Security updates',
       },
       filters: {
         title: 'Filters',

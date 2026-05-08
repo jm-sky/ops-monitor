@@ -13,7 +13,7 @@ const chips = computed<string[]>(() => {
   if (!f) return []
   const items: string[] = []
 
-  if (f.alert_types?.length && f.alert_types.length < 3) {
+  if (f.alert_types?.length && f.alert_types.length < 4) {
     const labels = f.alert_types.map(type =>
       t(`monitor.alerts.type.${type}`, type),
     )
