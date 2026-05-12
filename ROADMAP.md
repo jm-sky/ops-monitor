@@ -5,9 +5,9 @@ This roadmap groups current work into three priorities.
 ## P1 - High Priority
 
 - Monitoring "live mode" behavior and docs consistency:
-  - Keep default polling at a lower frequency for normal background mode (for example: every 5 minutes).
-  - Increase polling frequency when a user is actively viewing the monitoring dashboard (for example: every 2 minutes).
-  - Ensure this behavior is configurable via backend settings and clearly documented.
+  - Keep default polling at a lower frequency for normal background mode (for example: every 5 minutes). (done)
+  - Increase polling frequency when a user is actively viewing the monitoring dashboard (for example: every 2 minutes). (done for monitor list + site detail with visible-tab check)
+  - Ensure this behavior is configurable via backend settings and clearly documented. (done via `/api/monitor/config` + env-based monitor runtime settings)
 
 ## P2 - Medium Priority
 

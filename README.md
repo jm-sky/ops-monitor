@@ -160,7 +160,23 @@ Quick reference:
 
 Intervals are configurable per site in Postgres. Recommended default is background mode at **300s (5 min)**. Four types: `health`, `system`, `updates`, `reboot`.
 
-**Live mode**: when the monitoring dashboard is open, frontend sends heartbeat to `/monitor/heartbeat` and backend temporarily increases polling frequency (for example to **120s / 2 min**). When no heartbeat is received for the live-mode TTL window, polling reverts back to default background intervals. Both default and live frequencies should stay configurable.
+UI data refresh runs in two modes:
+- **Normal mode**: monitor queries refetch every **300s (5 min)**.
+- **Active mode**: while user is on monitor list/detail and tab is visible, refetch interval is **120s (2 min)**.
+
+These UI intervals and heartbeat cadence are now provided by backend config (`GET /api/monitor/config`) and can be overridden via environment variables:
+- `MONITOR_UI_BACKGROUND_REFETCH_SECONDS`
+- `MONITOR_UI_ACTIVE_REFETCH_SECONDS`
+- `MONITOR_HEARTBEAT_INTERVAL_SECONDS`
+- `MONITOR_CHECK_INTERVAL_SECONDS`
+- `MONITOR_LIVE_POLL_INTERVAL_SECONDS`
+- `MONITOR_LIVE_MODE_TTL_SECONDS`
+
+**Heartbeat live mode**: frontend sends heartbeat to `/monitor/heartbeat` while monitor list/detail is actively viewed (visible tab). Backend uses heartbeat to keep live mode on and can poll due sites more aggressively during its live-mode TTL window. When heartbeat stops, backend returns to background behavior after TTL expiry.
+
+Frontend refresh interval and backend poll cadence are intentionally separate:
+- frontend controls how often dashboard data is re-fetched from API,
+- backend controls how often remote site endpoints are polled.
 
 ## Alerts
 

@@ -676,6 +676,49 @@ class WebAuthnSettings(BaseSettings):
     )
 
 
+class MonitorSettings(BaseSettings):
+    """Monitoring runtime configuration."""
+
+    model_config = _base_config
+
+    check_interval_seconds: int = Field(
+        default=10,
+        validation_alias="MONITOR_CHECK_INTERVAL_SECONDS",
+        description="Scheduler loop interval for due-site checks",
+        ge=1,
+    )
+    live_poll_interval_seconds: int = Field(
+        default=30,
+        validation_alias="MONITOR_LIVE_POLL_INTERVAL_SECONDS",
+        description="Max effective per-site polling interval while live mode is active",
+        ge=1,
+    )
+    live_mode_ttl_seconds: int = Field(
+        default=60,
+        validation_alias="MONITOR_LIVE_MODE_TTL_SECONDS",
+        description="Live mode TTL without heartbeat refresh",
+        ge=1,
+    )
+    ui_background_refetch_seconds: int = Field(
+        default=300,
+        validation_alias="MONITOR_UI_BACKGROUND_REFETCH_SECONDS",
+        description="Frontend monitoring refetch interval outside active monitor view",
+        ge=1,
+    )
+    ui_active_refetch_seconds: int = Field(
+        default=120,
+        validation_alias="MONITOR_UI_ACTIVE_REFETCH_SECONDS",
+        description="Frontend monitoring refetch interval in active monitor view",
+        ge=1,
+    )
+    heartbeat_interval_seconds: int = Field(
+        default=30,
+        validation_alias="MONITOR_HEARTBEAT_INTERVAL_SECONDS",
+        description="Frontend heartbeat interval for live mode keepalive",
+        ge=1,
+    )
+
+
 class Settings(BaseSettings):
     """
     Main application settings composed of nested configuration classes.
@@ -700,6 +743,7 @@ class Settings(BaseSettings):
     sentry: SentrySettings = Field(default_factory=SentrySettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
     webauthn: WebAuthnSettings = Field(default_factory=WebAuthnSettings)
+    monitor: MonitorSettings = Field(default_factory=MonitorSettings)
 
     # Legacy compatibility - still accessible at root level
     frontend_url: str = Field(

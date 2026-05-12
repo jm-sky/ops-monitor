@@ -101,3 +101,12 @@ class SiteStatusResponse(BaseModel):
 
 class PollResponse(BaseModel):
     message: str
+
+
+class MonitorConfigResponse(BaseModel):
+    checkIntervalSeconds: int
+    livePollIntervalSeconds: int
+    liveModeTtlSeconds: int
+    uiBackgroundRefetchSeconds: int
+    uiActiveRefetchSeconds: int
+    heartbeatIntervalSeconds: int

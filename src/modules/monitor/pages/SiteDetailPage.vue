@@ -26,6 +26,8 @@ import SiteDetailHealthCard from '../components/SiteDetailHealthCard.vue'
 import SiteDetailSnapshotHistoryCard from '../components/SiteDetailSnapshotHistoryCard.vue'
 import SiteDetailSystemCard from '../components/SiteDetailSystemCard.vue'
 import SiteNotFoundState from '../components/SiteNotFoundState.vue'
+import { useHeartbeat } from '../composables/useHeartbeat'
+import { useMonitorViewActivity } from '../composables/useMonitorViewActivity'
 import { monitorQueryKeys } from '../services/monitorQueries'
 import { monitorService } from '../services/monitorService'
 
@@ -34,6 +36,16 @@ const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 const { handleError } = useHandleError()
+const {
+  isMonitoringViewActive,
+  monitorHeartbeatIntervalMs,
+  monitorRefetchIntervalMs,
+} = useMonitorViewActivity()
+
+useHeartbeat({
+  enabled: isMonitoringViewActive,
+  intervalMs: monitorHeartbeatIntervalMs,
+})
 
 const siteId = computed(() => route.params.id as string)
 const {
@@ -47,6 +59,7 @@ const {
   queryKey: computed(() => monitorQueryKeys.site(siteId.value)),
   queryFn: () => monitorService.getSite(siteId.value),
   placeholderData: previousData => previousData,
+  refetchInterval: () => monitorRefetchIntervalMs.value,
 })
 const status = computed<SiteStatus | null>(() => queryData.value ?? null)
 const polling = ref(false)

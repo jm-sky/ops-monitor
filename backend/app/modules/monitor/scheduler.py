@@ -4,13 +4,15 @@ import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 
+from app.core.config import settings
+
 from .service import MonitorService
 
 logger = logging.getLogger(__name__)
 
-CHECK_INTERVAL = 10  # seconds between "which sites are due?" iterations
-LIVE_POLL_INTERVAL = 30  # shortened per-site interval while live mode is active
-LIVE_MODE_TTL = 60  # seconds before live mode expires without a new heartbeat
+CHECK_INTERVAL = settings.monitor.check_interval_seconds
+LIVE_POLL_INTERVAL = settings.monitor.live_poll_interval_seconds
+LIVE_MODE_TTL = settings.monitor.live_mode_ttl_seconds
 
 # Module-level live mode expiry (set by heartbeat endpoint)
 _live_mode_until: datetime | None = None

@@ -1,5 +1,12 @@
 import { apiClient } from '@/shared/services/apiClient'
-import type { Site, SiteCreate, SiteSnapshot, SiteStatus, SiteUpdate } from '@/modules/monitor/types'
+import type {
+  MonitorRuntimeConfig,
+  Site,
+  SiteCreate,
+  SiteSnapshot,
+  SiteStatus,
+  SiteUpdate,
+} from '@/modules/monitor/types'
 
 interface PaginatedResponse<T> {
   items: T[]
@@ -14,6 +21,11 @@ class MonitorService {
 
   async listSiteStatuses(): Promise<SiteStatus[]> {
     const response = await apiClient.get<SiteStatus[]>('/monitor/site-statuses')
+    return response.data
+  }
+
+  async getConfig(): Promise<MonitorRuntimeConfig> {
+    const response = await apiClient.get<MonitorRuntimeConfig>('/monitor/config')
     return response.data
   }
 

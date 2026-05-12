@@ -86,6 +86,15 @@ export interface SiteStatus {
   systemSnapshot: SiteSnapshot<SystemRawData> | null
 }
 
+export interface MonitorRuntimeConfig {
+  checkIntervalSeconds: number
+  livePollIntervalSeconds: number
+  liveModeTtlSeconds: number
+  uiBackgroundRefetchSeconds: number
+  uiActiveRefetchSeconds: number
+  heartbeatIntervalSeconds: number
+}
+
 export interface SiteCreate {
   name: string
   description?: string | null

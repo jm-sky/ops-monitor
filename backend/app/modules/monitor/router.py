@@ -7,6 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.modules.auth.dependencies import AdminUser, CurrentUser
 
@@ -14,6 +15,7 @@ from .health_schema import get_health_json_schema
 from .repositories import SnapshotRepository, SiteRepository
 from .scheduler import activate_live_mode
 from .schemas import (
+    MonitorConfigResponse,
     PaginatedSiteSnapshotResponse,
     PollResponse,
     SiteCreate,
@@ -26,6 +28,27 @@ from .service import MonitorService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Runtime config
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/config",
+    response_model=MonitorConfigResponse,
+    summary="Monitoring runtime configuration for frontend and scheduler",
+)
+async def get_monitor_config(_: CurrentUser) -> MonitorConfigResponse:
+    return MonitorConfigResponse(
+        checkIntervalSeconds=settings.monitor.check_interval_seconds,
+        livePollIntervalSeconds=settings.monitor.live_poll_interval_seconds,
+        liveModeTtlSeconds=settings.monitor.live_mode_ttl_seconds,
+        uiBackgroundRefetchSeconds=settings.monitor.ui_background_refetch_seconds,
+        uiActiveRefetchSeconds=settings.monitor.ui_active_refetch_seconds,
+        heartbeatIntervalSeconds=settings.monitor.heartbeat_interval_seconds,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -333,7 +356,7 @@ async def poll_now(
 @router.post(
     "/heartbeat",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Keep live mode active — call every ~30 s while dashboard is open",
+    summary="Keep live mode active — call at configured heartbeat interval while dashboard is open",
 )
 async def heartbeat(_: CurrentUser) -> None:
     activate_live_mode()

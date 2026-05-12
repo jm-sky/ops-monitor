@@ -16,14 +16,23 @@ import AddSiteDialog from '../components/AddSiteDialog.vue'
 import MonitorFiltersBar from '../components/MonitorFiltersBar.vue'
 import SiteGroupSection from '../components/SiteGroupSection.vue'
 import { useHeartbeat } from '../composables/useHeartbeat'
+import { useMonitorViewActivity } from '../composables/useMonitorViewActivity'
 import { fetchSiteStatuses, monitorQueryKeys } from '../services/monitorQueries'
 
 const { t } = useI18n()
 const router = useRouter()
 const queryClient = useQueryClient()
 const { handleError } = useHandleError()
+const {
+  isMonitoringViewActive,
+  monitorHeartbeatIntervalMs,
+  monitorRefetchIntervalMs,
+} = useMonitorViewActivity()
 
-useHeartbeat()
+useHeartbeat({
+  enabled: isMonitoringViewActive,
+  intervalMs: monitorHeartbeatIntervalMs,
+})
 
 const showAddDialog = ref(false)
 const searchQuery = ref('')
@@ -44,6 +53,7 @@ const {
   queryKey: monitorQueryKeys.siteStatuses(),
   queryFn: fetchSiteStatuses,
   placeholderData: previousData => previousData,
+  refetchInterval: () => monitorRefetchIntervalMs.value,
 })
 const statuses = computed<SiteStatus[]>(() => queryData.value ?? [])
 
