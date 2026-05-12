@@ -32,8 +32,8 @@ docker exec ops-monitor-app python -m black . && docker exec ops-monitor-app pyt
 ## Structure
 
 ```
-src/modules/        auth | user | settings | admin | monitor (to build)
-backend/app/modules auth | users | admin | settings | logs | two_factor | monitor (to build)
+src/modules/        auth | user | settings | admin | monitor
+backend/app/modules auth | users | admin | settings | logs | two_factor | monitor
 agent/              Standalone psutil agent (agent.py)
 ```
 

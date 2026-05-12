@@ -95,7 +95,7 @@ ops-monitor/
 │   │   ├── user/           # User profile
 │   │   ├── settings/       # App settings
 │   │   ├── admin/          # Admin (users only)
-│   │   └── monitor/        # Monitoring dashboard (to be built)
+│   │   └── monitor/        # Monitoring dashboard
 │   ├── components/         # Shared UI components
 │   ├── layouts/            # authenticated / guest / public
 │   ├── router/
@@ -103,7 +103,7 @@ ops-monitor/
 ├── backend/                # FastAPI backend
 │   ├── app/
 │   │   ├── core/           # Config, DB, email, auth middleware
-│   │   └── modules/        # auth, users, admin, settings, logs, two_factor
+│   │   └── modules/        # auth, users, admin, settings, logs, two_factor, monitor
 │   ├── migrations/
 │   ├── cli/                # Management CLI (db, users, test)
 │   └── docker-compose.dev.yml
@@ -158,9 +158,9 @@ Quick reference:
 
 ## Polling
 
-Intervals configured per site in Postgres, default **300s**. Four types: `health`, `system`, `updates`, `reboot`.
+Intervals are configurable per site in Postgres. Recommended default is background mode at **300s (5 min)**. Four types: `health`, `system`, `updates`, `reboot`.
 
-**Live mode**: when dashboard is open, frontend sends heartbeat → backend increases polling frequency globally (configurable, e.g. 30s). Reverts after inactivity timeout.
+**Live mode**: when the monitoring dashboard is open, frontend sends heartbeat to `/monitor/heartbeat` and backend temporarily increases polling frequency (for example to **120s / 2 min**). When no heartbeat is received for the live-mode TTL window, polling reverts back to default background intervals. Both default and live frequencies should stay configurable.
 
 ## Alerts
 
