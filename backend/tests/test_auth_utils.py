@@ -103,6 +103,20 @@ class TestTokenCreation:
         payload = verify_token(token)
         assert payload["type"] == "refresh"
 
+    def test_create_tokens_include_jti_and_token_version(self) -> None:
+        """Test access/refresh tokens include jti and tv claims."""
+        jti = "session-jti-123"
+        access = create_access_token(data={"sub": "user123", "jti": jti, "tv": 3})
+        refresh = create_refresh_token(data={"sub": "user123", "jti": jti, "tv": 3})
+
+        access_payload = verify_token(access)
+        refresh_payload = verify_token(refresh)
+
+        assert access_payload.get("jti") == jti
+        assert refresh_payload.get("jti") == jti
+        assert access_payload.get("tv") == 3
+        assert refresh_payload.get("tv") == 3
+
     def test_create_password_reset_token_returns_string(self) -> None:
         """Test that password reset token is returned as string."""
         token = create_password_reset_token(

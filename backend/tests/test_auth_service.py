@@ -45,6 +45,28 @@ def auth_service(mock_repository: AsyncMock) -> AuthService:
     return AuthService(user_repository=mock_repository)
 
 
+@pytest.fixture
+def mock_blacklist_service() -> AsyncMock:
+    """Create a mock blacklist service."""
+    service = AsyncMock()
+    service.is_blacklisted.return_value = False
+    service.is_jti_blacklisted.return_value = False
+    service.blacklist_all_user_tokens.return_value = 0
+    return service
+
+
+@pytest.fixture
+def auth_service_with_blacklist(
+    mock_repository: AsyncMock,
+    mock_blacklist_service: AsyncMock,
+) -> AuthService:
+    """Create AuthService with blacklist service enabled."""
+    return AuthService(
+        user_repository=mock_repository,
+        token_blacklist_service=mock_blacklist_service,
+    )
+
+
 class TestRegisterUser:
     """Tests for user registration."""
 
@@ -202,6 +224,23 @@ class TestRefreshAccessToken:
 
         with pytest.raises(InvalidTokenError):
             await auth_service.refresh_access_token(refresh_token)
+
+    @pytest.mark.asyncio
+    async def test_refresh_access_token_rejects_token_version_mismatch(
+        self,
+        auth_service_with_blacklist: AuthService,
+        mock_repository: AsyncMock,
+        sample_user: User,
+    ) -> None:
+        """Test refresh rejects tokens from previous token version."""
+        from app.modules.auth.auth_utils import create_refresh_token
+
+        sample_user.tokenVersion = 2
+        refresh_token = create_refresh_token(data={"sub": "user123", "tv": 1})
+        mock_repository.get_user_by_id.return_value = sample_user
+
+        with pytest.raises(InvalidTokenError, match="Token version mismatch"):
+            await auth_service_with_blacklist.refresh_access_token(refresh_token)
 
 
 class TestPasswordReset:
@@ -363,3 +402,54 @@ class TestEmailVerification:
 
             assert result is True
             mock_repository.get_user_by_email.assert_called_once()
+
+
+class TestDeleteAndOAuthHardening:
+    """Tests for account deletion and OAuth hardening flows."""
+
+    @pytest.mark.asyncio
+    async def test_delete_account_cleans_up_auth_artifacts(
+        self,
+        auth_service_with_blacklist: AuthService,
+        mock_repository: AsyncMock,
+        sample_user: User,
+        mock_blacklist_service: AsyncMock,
+    ) -> None:
+        """Test deletion triggers cleanup/revoke methods."""
+        mock_repository.get_user_by_id.return_value = sample_user
+        mock_repository.delete_user.return_value = True
+        mock_repository.delete_all_oauth_connections.return_value = 1
+
+        with patch("app.modules.auth.service.get_email_service") as mock_email_service:
+            mock_email_service.return_value.send_account_deleted_email = AsyncMock()
+
+            result = await auth_service_with_blacklist.delete_account(
+                user_id=sample_user.id,
+                confirmation="DELETE",
+            )
+
+        assert result is True
+        mock_repository.delete_all_oauth_connections.assert_called_once_with(
+            sample_user.id
+        )
+        mock_blacklist_service.blacklist_all_user_tokens.assert_called_once_with(
+            user_id=sample_user.id,
+            reason="account_deleted",
+        )
+
+    @pytest.mark.asyncio
+    async def test_login_with_oauth_rejects_inactive_user(
+        self, auth_service: AuthService, mock_repository: AsyncMock, sample_user: User
+    ) -> None:
+        """Test OAuth login does not issue tokens for inactive users."""
+        sample_user.isActive = False
+        mock_repository.get_user_by_oauth_provider.return_value = sample_user
+
+        with pytest.raises(InvalidCredentialsError, match="User account is inactive"):
+            await auth_service.login_with_oauth(
+                "google",
+                {
+                    "email": "test@example.com",
+                    "providerId": "provider-user-1",
+                },
+            )

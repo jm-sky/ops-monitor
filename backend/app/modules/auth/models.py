@@ -76,6 +76,7 @@ class User(BaseModel):
     emailVerificationToken: str | None = None
     emailVerificationSentAt: datetime | None = None
     emailVerifiedAt: datetime | None = None
+    tokenVersion: int = 0
     oauthProvider: str | None = None  # 'google', 'github', etc.
     oauthProviderId: str | None = None  # Provider's user ID
     avatarUrl: str | None = None  # Profile picture URL

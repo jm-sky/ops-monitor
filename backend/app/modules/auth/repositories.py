@@ -15,7 +15,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 
 from fastapi import Depends
-from sqlalchemy import select, func
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -75,6 +75,7 @@ class UserRepository(SearchMixin, UserRepositoryInterface):
             emailVerificationToken=user_db.email_verification_token,
             emailVerificationSentAt=user_db.email_verification_sent_at,
             emailVerifiedAt=user_db.email_verified_at,
+            tokenVersion=user_db.token_version,
             oauthProvider=user_db.oauth_provider,
             oauthProviderId=user_db.oauth_provider_id,
             avatarUrl=user_db.avatar_url,
@@ -230,6 +231,7 @@ class UserRepository(SearchMixin, UserRepositoryInterface):
         user_db.email_verification_token = user.emailVerificationToken
         user_db.email_verification_sent_at = user.emailVerificationSentAt
         user_db.email_verified_at = user.emailVerifiedAt
+        user_db.token_version = user.tokenVersion
         user_db.avatar_url = user.avatarUrl
 
         await self.db.commit()
@@ -329,16 +331,40 @@ class UserRepository(SearchMixin, UserRepositoryInterface):
         if not user_db:
             return False
 
+        # Always remove OAuth connections tied to this user.
+        await self.db.execute(
+            delete(OAuthConnectionDB).where(OAuthConnectionDB.user_id == user_id)
+        )
+        # Best-effort cleanup for 2FA artifacts (module may be disabled in some deployments).
+        try:
+            from app.modules.two_factor.db_models import PasskeyDB, TotpConfigDB
+
+            await self.db.execute(
+                delete(TotpConfigDB).where(TotpConfigDB.user_id == user_id)
+            )
+            await self.db.execute(delete(PasskeyDB).where(PasskeyDB.user_id == user_id))
+        except ImportError:
+            pass
+
         if soft_delete:
             # Soft delete: mark as deleted and anonymize data
             user_db.deleted_at = datetime.now(UTC)
             user_db.is_active = False
+            user_db.token_version += 1
             # Anonymize email and name for GDPR compliance
             user_db.email = f"deleted_{user_db.id}@deleted.local"
             user_db.name = "Deleted User"
             # Clear sensitive data
+            user_db.hashed_password = None  # type: ignore[assignment]
             user_db.reset_token = None
             user_db.reset_token_expiry = None
+            user_db.email_verification_token = None
+            user_db.email_verification_sent_at = None
+            user_db.email_verified_at = None
+            user_db.oauth_provider = None
+            user_db.oauth_provider_id = None
+            user_db.avatar_url = None
+            user_db.openrouter_api_token = None
         else:
             # Hard delete: physically remove from database
             await self.db.delete(user_db)
@@ -534,6 +560,30 @@ class UserRepository(SearchMixin, UserRepositoryInterface):
         await self.db.delete(connection)
         await self.db.commit()
         return True
+
+    async def delete_all_oauth_connections(self, user_id: str) -> int:
+        """Delete all OAuth connections for a user."""
+        count_stmt = select(func.count(OAuthConnectionDB.id)).where(
+            OAuthConnectionDB.user_id == user_id
+        )
+        count_result = await self.db.execute(count_stmt)
+        deleted_count = int(count_result.scalar_one() or 0)
+        await self.db.execute(
+            delete(OAuthConnectionDB).where(OAuthConnectionDB.user_id == user_id)
+        )
+        await self.db.commit()
+        return deleted_count
+
+    async def increment_token_version(self, user_id: str) -> int | None:
+        """Increment token version and return the new value."""
+        stmt = select(UserDB).where(UserDB.id == user_id)
+        result = await self.db.execute(stmt)
+        user_db = result.scalar_one_or_none()
+        if not user_db:
+            return None
+        user_db.token_version += 1
+        await self.db.commit()
+        return user_db.token_version
 
 
 def get_user_repository(

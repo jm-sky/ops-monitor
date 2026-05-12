@@ -188,4 +188,4 @@ class AdminService:
                 detail="Only Owners can delete admin users",
             )
 
-        return await self.user_repository.delete_user(user_id)
+        return await self.auth_user_repository.delete_user(user_id, soft_delete=True)

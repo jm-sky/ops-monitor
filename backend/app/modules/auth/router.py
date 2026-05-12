@@ -236,6 +236,14 @@ async def logout(
         expires_at=expires_at,
         reason="logout",
     )
+    jti = payload.get("jti")
+    if jti:
+        await blacklist.revoke_session(
+            user_id=current_user.id,
+            jti=jti,
+            expires_at=expires_at,
+            reason="logout",
+        )
 
     return MessageResponse(message="Logged out successfully")
 
@@ -518,6 +526,14 @@ async def delete_account(
                 expires_at=expires_at,
                 reason="account_deleted",
             )
+            jti = payload.get("jti")
+            if jti:
+                await blacklist.revoke_session(
+                    user_id=current_user.id,
+                    jti=jti,
+                    expires_at=expires_at,
+                    reason="account_deleted",
+                )
             logger.info(
                 f"Token blacklisted after account deletion: user_id={current_user.id}"
             )

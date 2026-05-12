@@ -3,6 +3,8 @@
 import logging
 import os
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING, cast
+from uuid import uuid4
 
 from ...core.config import settings
 from ...core.email import get_email_service
@@ -23,6 +25,10 @@ from .models import User
 from .schemas import LoginResponse, UserResponse
 from .types.repository import UserRepositoryInterface
 
+if TYPE_CHECKING:
+    from app.core.auth.token_blacklist import TokenBlacklistService
+    from app.modules.two_factor.types.repository import TwoFactorRepositoryInterface
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,8 +37,57 @@ class AuthService:
 
     user_repository: UserRepositoryInterface
 
-    def __init__(self, user_repository: UserRepositoryInterface):
+    def __init__(
+        self,
+        user_repository: UserRepositoryInterface,
+        token_blacklist_service: "TokenBlacklistService | None" = None,
+        two_factor_repository: object | None = None,
+    ):
         self.user_repository = user_repository
+        self.token_blacklist_service = token_blacklist_service
+        self.two_factor_repository = two_factor_repository
+
+    async def _issue_login_tokens(
+        self,
+        user: User,
+        *,
+        tfa_verified: bool = False,
+        tfa_method: str | None = None,
+    ) -> tuple[str, str]:
+        session_jti = str(uuid4())
+        token_version = user.tokenVersion
+        access_token = create_access_token(
+            data={
+                "sub": user.id,
+                "email": user.email,
+                "tfaVerified": tfa_verified,
+                "tfaMethod": tfa_method,
+                "emailVerified": user.isEmailVerified,
+                "jti": session_jti,
+                "tv": token_version,
+            }
+        )
+        refresh_token = create_refresh_token(
+            data={
+                "sub": user.id,
+                "email": user.email,
+                "tfaVerified": tfa_verified,
+                "tfaMethod": tfa_method,
+                "emailVerified": user.isEmailVerified,
+                "jti": session_jti,
+                "tv": token_version,
+            }
+        )
+        if self.token_blacklist_service:
+            payload = verify_token(refresh_token)
+            expires_at = payload.get("exp")
+            if expires_at:
+                await self.token_blacklist_service.track_user_session(
+                    user_id=user.id,
+                    jti=session_jti,
+                    expires_at=expires_at,
+                )
+        return access_token, refresh_token
 
     async def register_user(
         self,
@@ -114,24 +169,7 @@ class AuthService:
             raise InvalidCredentialsError("User account is inactive")
 
         # Generate tokens
-        access_token = create_access_token(
-            data={
-                "sub": user.id,
-                "email": user.email,
-                "tfaVerified": False,
-                "tfaMethod": None,
-                "emailVerified": user.isEmailVerified,
-            }
-        )
-        refresh_token = create_refresh_token(
-            data={
-                "sub": user.id,
-                "email": user.email,
-                "tfaVerified": False,
-                "tfaMethod": None,
-                "emailVerified": user.isEmailVerified,
-            }
-        )
+        access_token, refresh_token = await self._issue_login_tokens(user)
 
         return LoginResponse(
             user=UserResponse(**user.to_response()),
@@ -162,6 +200,15 @@ class AuthService:
             if payload.get("type") != "refresh":
                 raise InvalidTokenError("Invalid token type")
 
+            if self.token_blacklist_service:
+                if await self.token_blacklist_service.is_blacklisted(refresh_token):
+                    raise InvalidTokenError("Token has been revoked")
+                token_jti = payload.get("jti")
+                if token_jti and await self.token_blacklist_service.is_jti_blacklisted(
+                    token_jti
+                ):
+                    raise InvalidTokenError("Session has been revoked")
+
             # Get user ID
             user_id = payload.get("sub")
             if not user_id:
@@ -171,6 +218,8 @@ class AuthService:
             user = await self.user_repository.get_user_by_id(user_id)
             if not user or not user.isActive:
                 raise InvalidTokenError("User not found or inactive")
+            if payload.get("tv", 0) != user.tokenVersion:
+                raise InvalidTokenError("Token version mismatch")
 
             # Preserve 2FA state from refresh token
             old_tfa_verified = payload.get("tfaVerified", False)
@@ -181,25 +230,27 @@ class AuthService:
             tfa_verified_bool = (
                 old_tfa_verified if old_tfa_verified is not None else False
             )
-            new_access_token = create_access_token(
-                data={
-                    "sub": user_id,
-                    "email": user.email,
-                    "tfaVerified": tfa_verified_bool,
-                    "tfaMethod": old_tfa_method,
-                    "emailVerified": user.isEmailVerified,
-                    # tid/trol NOT preserved (security)
-                }
+            new_access_token, new_refresh_token = await self._issue_login_tokens(
+                user,
+                tfa_verified=tfa_verified_bool,
+                tfa_method=old_tfa_method,
             )
-            new_refresh_token = create_refresh_token(
-                data={
-                    "sub": user_id,
-                    "email": user.email,
-                    "tfaVerified": tfa_verified_bool,
-                    "tfaMethod": old_tfa_method,
-                    "emailVerified": user.isEmailVerified,
-                }
-            )
+            if self.token_blacklist_service:
+                old_jti = payload.get("jti")
+                old_exp = payload.get("exp")
+                if old_jti and old_exp:
+                    await self.token_blacklist_service.revoke_session(
+                        user_id=user_id,
+                        jti=old_jti,
+                        expires_at=old_exp,
+                        reason="refresh_rotated",
+                    )
+                if old_exp:
+                    await self.token_blacklist_service.blacklist_token(
+                        token=refresh_token,
+                        expires_at=old_exp,
+                        reason="refresh_rotated",
+                    )
 
             return {
                 "accessToken": new_access_token,
@@ -288,6 +339,20 @@ class AuthService:
         )
         if not success:
             raise InvalidTokenError("Invalid or expired reset token")
+        try:
+            payload = verify_token(token)
+            user_id = payload.get("sub")
+            if user_id:
+                await self.user_repository.increment_token_version(user_id)
+                if self.token_blacklist_service:
+                    await self.token_blacklist_service.blacklist_all_user_tokens(
+                        user_id=user_id,
+                        reason="password_reset",
+                    )
+        except Exception:
+            logger.warning(
+                "Failed to revoke sessions after password reset", exc_info=True
+            )
         return True
 
     async def resend_email_verification(
@@ -384,6 +449,15 @@ class AuthService:
                 raise UserNotFoundError("User not found")
             raise InvalidCredentialsError("Current password is incorrect")
 
+        await self.user_repository.increment_token_version(user_id)
+        if self.token_blacklist_service:
+            await self.token_blacklist_service.blacklist_all_user_tokens(
+                user_id=user_id,
+                reason="password_changed",
+            )
+
+        user = await self.user_repository.get_user_by_id(user_id)
+
         # Send password changed notification email
         try:
             email_service = get_email_service()
@@ -449,11 +523,30 @@ class AuthService:
         user_name = user.name
 
         # Delete user account
+        if self.two_factor_repository:
+            two_factor_repository = cast(
+                "TwoFactorRepositoryInterface", self.two_factor_repository
+            )
+            try:
+                await two_factor_repository.disable_totp(user_id)
+                await two_factor_repository.delete_all_passkeys(user_id)
+            except Exception:
+                logger.warning(
+                    "Failed to cleanup 2FA artifacts during account deletion",
+                    exc_info=True,
+                )
+        await self.user_repository.delete_all_oauth_connections(user_id)
         success = await self.user_repository.delete_user(
             user_id, soft_delete=soft_delete
         )
         if not success:
             raise UserNotFoundError("Failed to delete user account")
+
+        if self.token_blacklist_service:
+            await self.token_blacklist_service.blacklist_all_user_tokens(
+                user_id=user_id,
+                reason="account_deleted",
+            )
 
         # Send account deletion confirmation email (before account is deleted)
         try:
@@ -544,6 +637,9 @@ class AuthService:
                     avatar_url=avatar_url,
                 )
 
+        if not user.isActive:
+            raise InvalidCredentialsError("User account is inactive")
+
         # Create or update OAuth connection in oauth_connections table
         await self.user_repository.create_oauth_connection(
             user_id=user.id,
@@ -555,8 +651,7 @@ class AuthService:
         )
 
         # Generate tokens
-        access_token = create_access_token({"sub": user.id})
-        refresh_token = create_refresh_token({"sub": user.id})
+        access_token, refresh_token = await self._issue_login_tokens(user)
 
         return LoginResponse(
             user=UserResponse(**user.to_response()),

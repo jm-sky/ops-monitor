@@ -49,7 +49,9 @@ class EmailSender(BaseSender):
 
 def _html(payload: AlertPayload) -> str:
     color = "#dc2626" if payload.status in ("failed", "degraded") else "#16a34a"
-    detail_row = f"<p style='color:#6b7280'>{payload.detail}</p>" if payload.detail else ""
+    detail_row = (
+        f"<p style='color:#6b7280'>{payload.detail}</p>" if payload.detail else ""
+    )
     return f"""
 <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
   <h2 style="color:{color}">{payload.title}</h2>

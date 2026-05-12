@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from uuid import uuid4
 
 from sqlalchemy import select
 
@@ -115,6 +116,7 @@ class TwoFactorService:
             create_access_token,
             create_refresh_token,
         )
+        from app.modules.auth.db_models import UserDB
 
         # Verify 2FA token
         payload = verify_two_factor_token(two_factor_token)
@@ -128,9 +130,20 @@ class TwoFactorService:
 
             raise InvalidTwoFactorCodeError("Invalid verification code")
 
+        user_result = await self.repository.db.execute(
+            select(UserDB).where(UserDB.id == user_id)
+        )
+        user_db = user_result.scalar_one_or_none()
+        token_version = user_db.token_version if user_db else 0
+        session_jti = str(uuid4())
+
         # Create access and refresh tokens
-        access_token = create_access_token(data={"sub": user_id})
-        refresh_token = create_refresh_token(data={"sub": user_id})
+        access_token = create_access_token(
+            data={"sub": user_id, "jti": session_jti, "tv": token_version}
+        )
+        refresh_token = create_refresh_token(
+            data={"sub": user_id, "jti": session_jti, "tv": token_version}
+        )
 
         return {
             "accessToken": access_token,

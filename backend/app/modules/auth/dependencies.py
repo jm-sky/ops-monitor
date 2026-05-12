@@ -36,6 +36,9 @@ except (ImportError, Exception):
 
 def get_auth_service(
     user_repository: Annotated[UserRepositoryInterface, Depends(get_user_repository)],
+    blacklist_service: Annotated[
+        TokenBlacklistService, Depends(get_token_blacklist_service)
+    ],
     two_factor_repository: Any = (
         Depends(lambda: None) if not HAS_2FA else Depends(get_two_factor_repository)
     ),
@@ -47,6 +50,7 @@ def get_auth_service(
         service = get_auth_service_with_2fa(
             user_repository=user_repository,
             two_factor_repository=two_factor_repository,
+            token_blacklist_service=blacklist_service,
         )
         # Debug logging
         import logging
@@ -61,7 +65,11 @@ def get_auth_service(
 
         logger = logging.getLogger(__name__)
         logger.debug("Using regular AuthService (2FA not available)")
-        return AuthService(user_repository)
+        return AuthService(
+            user_repository=user_repository,
+            token_blacklist_service=blacklist_service,
+            two_factor_repository=two_factor_repository,
+        )
 
 
 async def _verify_user_token(
@@ -124,6 +132,22 @@ async def _verify_user_token(
         # Check if user is active
         if not user.isActive:
             raise InactiveUserError("User account is inactive")
+
+        token_version = payload.get("tv", 0)
+        if token_version != user.tokenVersion:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        token_jti = payload.get("jti")
+        if token_jti and await blacklist_service.is_jti_blacklisted(token_jti):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
         if not user.isEmailVerified:
             raise EmailNotVerifiedError("Email verification required")

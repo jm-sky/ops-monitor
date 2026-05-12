@@ -15,13 +15,19 @@ from app.core.database import Base
 class AlertChannelDB(Base):
     __tablename__ = "alert_channels"
 
-    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    type: Mapped[str] = mapped_column(String(50), nullable=False)  # teams|email|telegram
+    type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # teams|email|telegram
     enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     config: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     filters: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
@@ -47,7 +53,9 @@ class AlertEventDB(Base):
 
     __tablename__ = "alert_events"
 
-    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     site_id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True),
         ForeignKey("sites.id", ondelete="CASCADE"),
@@ -58,8 +66,14 @@ class AlertEventDB(Base):
         ForeignKey("alert_channels.id", ondelete="CASCADE"),
         nullable=False,
     )
-    alert_type: Mapped[str] = mapped_column(String(50), nullable=False)  # health|reboot|updates
+    alert_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # health|reboot|updates
     status: Mapped[str] = mapped_column(String(50), nullable=False)
-    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    sent_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
 
-    __table_args__ = (Index("ix_alert_events_site_type", "site_id", "alert_type", "sent_at"),)
+    __table_args__ = (
+        Index("ix_alert_events_site_type", "site_id", "alert_type", "sent_at"),
+    )

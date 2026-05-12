@@ -1,6 +1,7 @@
 """Authentication utilities for JWT token management and password hashing."""
 
 from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 import bcrypt
 import jwt
@@ -50,6 +51,8 @@ def create_access_token(
         "tfaVerified": data.get("tfaVerified", False),
         "tfaMethod": data.get("tfaMethod"),
         "emailVerified": data.get("emailVerified"),
+        "jti": data.get("jti", str(uuid4())),
+        "tv": data.get("tv", 0),
     }
     encoded_jwt = jwt.encode(
         dict(payload),
@@ -98,6 +101,8 @@ def create_refresh_token(data: CreateRefreshTokenOptions) -> str:
         "tfaVerified": data.get("tfaVerified", False),
         "tfaMethod": data.get("tfaMethod"),
         "emailVerified": data.get("emailVerified"),
+        "jti": data.get("jti", str(uuid4())),
+        "tv": data.get("tv", 0),
         # NOTE: tid/trol are NOT preserved in refresh token (security)
     }
     encoded_jwt = jwt.encode(

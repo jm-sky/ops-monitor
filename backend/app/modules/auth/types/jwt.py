@@ -42,6 +42,8 @@ class JWTPayload(TypedDict, total=False):
     tfaMethod: str | None  # 'totp' | 'webauthn'
     type: str
     emailVerified: bool | None
+    jti: str
+    tv: int
 
 
 class CreateAccessTokenOptions(TypedDict, total=False):
@@ -63,6 +65,8 @@ class CreateAccessTokenOptions(TypedDict, total=False):
     tfaVerified: bool
     tfaMethod: str | None  # 'totp' | 'webauthn'
     emailVerified: bool | None
+    jti: str
+    tv: int
 
 
 class CreateRefreshTokenOptions(TypedDict, total=False):
@@ -82,3 +86,5 @@ class CreateRefreshTokenOptions(TypedDict, total=False):
     tfaVerified: bool
     tfaMethod: str | None  # 'totp' | 'webauthn'
     emailVerified: bool | None
+    jti: str
+    tv: int

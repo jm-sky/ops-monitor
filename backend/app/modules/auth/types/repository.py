@@ -252,3 +252,13 @@ class UserRepositoryInterface(ABC):
             True if connection deleted, False if not found
         """
         ...
+
+    @abstractmethod
+    async def delete_all_oauth_connections(self, user_id: str) -> int:
+        """Delete all OAuth connections for a user."""
+        ...
+
+    @abstractmethod
+    async def increment_token_version(self, user_id: str) -> int | None:
+        """Increment token version and return the new value."""
+        ...

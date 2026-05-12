@@ -708,21 +708,13 @@ async def _delete_user_from_db(user_id: str) -> None:
         user_id: User ID to delete
     """
     from app.core.database import get_db
-    from app.modules.auth.db_models import UserDB
-    from sqlalchemy import select
+    from app.modules.auth.repositories import UserRepository
 
     async for db in get_db():
-        # Find user
-        stmt = select(UserDB).where(UserDB.id == user_id)
-        result = await db.execute(stmt)
-        user_db = result.scalar_one_or_none()
-
-        if not user_db:
+        repo = UserRepository(db)
+        success = await repo.delete_user(user_id=user_id, soft_delete=False)
+        if not success:
             raise ValueError(f"User with id {user_id} not found")
-
-        # Delete user
-        await db.delete(user_db)
-        await db.commit()
 
 
 @users_app.command("toggle-admin")

@@ -69,6 +69,7 @@ class UserDB(Base):
     email_verification_sent_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    token_version: Mapped[int] = mapped_column(nullable=False, default=0)
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, default=None
     )
