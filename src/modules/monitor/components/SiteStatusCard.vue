@@ -96,7 +96,7 @@ const securityUpdatesCount = computed(() => {
   <Card
     :class="[
       'cursor-pointer transition-all hover:shadow-lg hover:scale-101 hover:-translate-y-1 gap-2',
-      props.denseMode ? 'w-full max-w-full md:w-56 min-h-20 p-3' : '',
+      props.denseMode ? 'w-full max-w-full min-h-20 p-3' : '',
       isPrimary && 'ring-2 ring-primary/40',
       worstMetricLevel === 'crit' && 'ring-2 ring-destructive/50',
       worstMetricLevel === 'warn' && !isPrimary && 'ring-2 ring-amber-400/50',
