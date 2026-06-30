@@ -16,6 +16,7 @@ import AddSiteDialog from '../components/AddSiteDialog.vue'
 import MonitorFiltersBar from '../components/MonitorFiltersBar.vue'
 import SiteGroupSection from '../components/SiteGroupSection.vue'
 import { useHeartbeat } from '../composables/useHeartbeat'
+import { useMonitorFiltersRouteSync } from '../composables/useMonitorFiltersRouteSync'
 import { useMonitorViewActivity } from '../composables/useMonitorViewActivity'
 import { fetchSiteStatuses, monitorQueryKeys } from '../services/monitorQueries'
 
@@ -39,6 +40,9 @@ const searchQuery = ref('')
 const debouncedSearchQuery = ref('')
 const quickFilter = ref<'all' | 'issues'>('all')
 const selectedEnvironment = ref('__all__')
+
+useMonitorFiltersRouteSync(searchQuery, quickFilter, selectedEnvironment)
+
 const DENSE_MODE_STORAGE_KEY = 'monitor.denseMode'
 const denseMode = ref(localStorage.getItem(DENSE_MODE_STORAGE_KEY) === 'true')
 let searchDebounceTimeout: ReturnType<typeof setTimeout> | undefined
