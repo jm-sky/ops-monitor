@@ -175,6 +175,18 @@ class SnapshotRepository:
         )
         return list(result.scalars().all())
 
+    async def delete_all_for_type(
+        self, site_id: uuid.UUID, snapshot_type: str
+    ) -> None:
+        """Delete all snapshots for a site and snapshot type."""
+        await self.db.execute(
+            delete(SiteSnapshotDB).where(
+                SiteSnapshotDB.site_id == site_id,
+                SiteSnapshotDB.snapshot_type == snapshot_type,
+            )
+        )
+        await self.db.commit()
+
     async def cleanup_old(
         self, site_id: uuid.UUID, snapshot_type: str, keep: int = 1000
     ) -> None:

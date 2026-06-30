@@ -18,6 +18,7 @@ import SiteGroupSection from '../components/SiteGroupSection.vue'
 import { useHeartbeat } from '../composables/useHeartbeat'
 import { useMonitorFiltersRouteSync } from '../composables/useMonitorFiltersRouteSync'
 import { useMonitorViewActivity } from '../composables/useMonitorViewActivity'
+import { siteOverallStatus } from '../composables/useSiteOverallStatus'
 import { fetchSiteStatuses, monitorQueryKeys } from '../services/monitorQueries'
 
 const { t } = useI18n()
@@ -72,14 +73,7 @@ async function loadSites() {
 }
 
 function overallStatus(s: SiteStatus): MonitorOverallStatus {
-  const h = s.healthSnapshot?.status
-  const sys = s.systemSnapshot?.status
-  if (h === 'failed' || sys === 'failed') return 'failed'
-  if (h === 'degraded') return 'degraded'
-  if (sys === 'reboot_required') return 'reboot_required'
-  if (sys === 'outdated') return 'outdated'
-  if (h === 'ok' || sys === 'up_to_date') return 'ok'
-  return 'unknown'
+  return siteOverallStatus(s)
 }
 
 function goToSite(id: string) {

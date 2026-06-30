@@ -74,10 +74,10 @@ def _row_style_and_kind(
     has_h = bool(site.health_url)
     has_s = bool(site.system_url)
 
-    h_err = (health_snap.error or "").strip() if health_snap else ""
-    s_err = (system_snap.error or "").strip() if system_snap else ""
-    h_stat = health_snap.status if health_snap else None
-    s_stat = system_snap.status if system_snap else None
+    h_err = (health_snap.error or "").strip() if has_h and health_snap else ""
+    s_err = (system_snap.error or "").strip() if has_s and system_snap else ""
+    h_stat = health_snap.status if has_h and health_snap else None
+    s_stat = system_snap.status if has_s and system_snap else None
 
     if h_err or s_err:
         return "red", "error"
@@ -327,8 +327,8 @@ async def _status(errors_only: bool) -> None:
 
     for site in sites:
         snaps = by_site.get(site.id, {})
-        health_snap = snaps.get("health")
-        system_snap = snaps.get("system")
+        health_snap = snaps.get("health") if site.health_url else None
+        system_snap = snaps.get("system") if site.system_url else None
         row_style, kind = _row_style_and_kind(site, health_snap, system_snap)
         if errors_only and not _include_in_errors_only(kind):
             continue

@@ -28,7 +28,10 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
+const hasHealthUrl = computed(() => Boolean(props.siteStatus.site.healthUrl))
+
 const healthComponents = computed<[string, HealthComponentUi][]>(() => {
+  if (!hasHealthUrl.value) return []
   const raw = props.siteStatus.healthSnapshot?.rawData
   const components = raw?.components
   if (!components) return []
@@ -82,7 +85,7 @@ const worstMetricLevel = computed<MetricLevel>(() => {
 })
 
 const hasMetaMismatches = computed(
-  () => (props.siteStatus.healthSnapshot?.metaMismatches?.length ?? 0) > 0,
+  () => hasHealthUrl.value && (props.siteStatus.healthSnapshot?.metaMismatches?.length ?? 0) > 0,
 )
 
 const securityUpdatesCount = computed(() => {
@@ -125,7 +128,7 @@ const securityUpdatesCount = computed(() => {
         {{ props.siteStatus.site.description }}
       </div>
       <div v-if="!props.denseMode" class="flex flex-wrap gap-4 pt-1">
-        <span v-if="props.siteStatus.healthSnapshot && !healthComponents.length" class="flex items-center gap-1">
+        <span v-if="hasHealthUrl && props.siteStatus.healthSnapshot && !healthComponents.length" class="flex items-center gap-1">
           <span class="font-medium text-foreground">{{ t('monitor.health', 'Health') }}:</span>
           <SiteStatusBadge :status="props.siteStatus.healthSnapshot.status ?? 'unknown'" size="sm" />
         </span>
@@ -134,27 +137,35 @@ const securityUpdatesCount = computed(() => {
           <SiteStatusBadge :status="props.siteStatus.systemSnapshot.status ?? 'unknown'" size="sm" />
         </span>
       </div>
-      <div v-if="!props.denseMode && healthComponents.length" class="grid grid-cols-2 gap-x-6 gap-y-1 pt-1">
+      <div v-if="!props.denseMode && hasHealthUrl && healthComponents.length" class="grid grid-cols-2 gap-x-6 gap-y-1 pt-1">
         <span
           v-for="[name, component] in healthComponents"
           :key="name"
-          class="flex items-center justify-between gap-2 text-xs"
-          :title="component.reason"
+          class="flex min-w-0 items-center justify-between gap-2 text-xs"
         >
-          <div class="flex items-center gap-1">
+          <div class="flex min-w-0 items-center gap-1">
             <span>{{ componentIcon(name) }}</span>
             <span class="text-muted-foreground">{{ componentLabel(name) }}:</span>
           </div>
-          <SiteStatusBadge :status="component.status" size="sm" />
-          <span
-            v-if="component.stale"
-            class="text-muted-foreground/60"
-            :title="t('monitor.statusMayBeStale', 'Status may be stale')"
-          >~</span>
+          <div class="flex min-w-0 shrink items-center gap-1.5">
+            <span
+              v-if="component.reason && component.status !== 'ok'"
+              class="max-w-[8rem] truncate text-amber-700 dark:text-amber-400"
+              :title="component.reason"
+            >
+              {{ component.reason }}
+            </span>
+            <SiteStatusBadge :status="component.status" size="sm" />
+            <span
+              v-if="component.stale"
+              class="text-muted-foreground/60"
+              :title="t('monitor.statusMayBeStale', 'Status may be stale')"
+            >~</span>
+          </div>
         </span>
       </div>
       <div
-        v-if="!props.denseMode && props.siteStatus.healthSnapshot?.status === 'failed' && props.siteStatus.healthSnapshot.error"
+        v-if="!props.denseMode && props.siteStatus.healthSnapshot?.status === 'failed' && props.siteStatus.healthSnapshot.error && hasHealthUrl"
         class="truncate text-xs text-destructive"
       >
         {{ t('monitor.health', 'Health') }}: {{ props.siteStatus.healthSnapshot.error }}

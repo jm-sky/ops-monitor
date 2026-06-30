@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { AlertTriangle } from 'lucide-vue-next'
 import type { MonitorOverallStatus, SiteStatus } from '../types'
+import { siteOverallStatus } from '../composables/useSiteOverallStatus'
 import SiteStatusCard from './SiteStatusCard.vue'
 
 interface SiteGroup {
@@ -26,15 +27,7 @@ function groupPrimaryStatus(group: SiteGroup): MonitorOverallStatus | 'unknown' 
   const serverSiteStatus = group.items.find(siteStatus => siteStatus.site.name === group.key)
   if (!serverSiteStatus) return null
 
-  const healthStatus = (serverSiteStatus.healthSnapshot?.status ?? null) as MonitorOverallStatus | null
-  const systemStatus = (serverSiteStatus.systemSnapshot?.status ?? null) as MonitorOverallStatus | null
-
-  if (healthStatus === 'failed' || systemStatus === 'failed') return 'failed'
-  if (healthStatus === 'degraded' || systemStatus === 'degraded') return 'degraded'
-  if (systemStatus === 'reboot_required') return 'reboot_required'
-  if (systemStatus === 'outdated') return 'outdated'
-  if (healthStatus === 'ok' || systemStatus === 'up_to_date') return 'ok'
-  return 'unknown'
+  return siteOverallStatus(serverSiteStatus)
 }
 
 function groupHasIssue(group: SiteGroup): boolean {
@@ -51,8 +44,9 @@ function hasBadServerHealth(group: SiteGroup): boolean {
   if (group.key === '__ungrouped__') return false
 
   const serverSiteStatus = group.items.find(siteStatus => siteStatus.site.name === group.key)
-  const healthStatus = serverSiteStatus?.healthSnapshot?.status
+  if (!serverSiteStatus?.site.healthUrl) return false
 
+  const healthStatus = serverSiteStatus.healthSnapshot?.status
   return healthStatus === 'failed' || healthStatus === 'degraded'
 }
 </script>

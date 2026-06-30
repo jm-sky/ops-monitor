@@ -267,6 +267,7 @@ function goBackFromNotFound() {
 
       <div class="mt-6 grid grid-cols-1 gap-6" :aria-busy="isFetching ? 'true' : 'false'">
         <SiteDetailHealthCard
+          v-if="status.site.healthUrl"
           :snapshot="status.healthSnapshot"
           @view-raw-response="healthResponseDialogOpen = true"
         />

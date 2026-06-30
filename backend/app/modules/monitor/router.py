@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.modules.auth.dependencies import AdminUser, CurrentUser
 
+from .db_models import SiteDB, SiteSnapshotDB
 from .health_schema import get_health_json_schema
 from .repositories import SnapshotRepository, SiteRepository
 from .scheduler import activate_live_mode
@@ -28,6 +29,39 @@ from .service import MonitorService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def _snapshot_for_site(
+    site: SiteDB,
+    snapshot: SiteSnapshotDB | None,
+    snapshot_type: str,
+) -> SiteSnapshotDB | None:
+    """Return snapshot only when the site has the corresponding URL configured."""
+    if snapshot is None:
+        return None
+    if snapshot_type == "health" and site.health_url:
+        return snapshot
+    if snapshot_type == "system" and site.system_url:
+        return snapshot
+    return None
+
+
+def _site_status_response(
+    site: SiteDB,
+    health_snapshot: SiteSnapshotDB | None,
+    system_snapshot: SiteSnapshotDB | None,
+) -> SiteStatusResponse:
+    health = _snapshot_for_site(site, health_snapshot, "health")
+    system = _snapshot_for_site(site, system_snapshot, "system")
+    return SiteStatusResponse(
+        site=SiteResponse(**site.to_response()),
+        healthSnapshot=(
+            SiteSnapshotResponse(**health.to_response()) if health else None
+        ),
+        systemSnapshot=(
+            SiteSnapshotResponse(**system.to_response()) if system else None
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -101,18 +135,10 @@ async def list_site_statuses(
     snapshots_by_site = await snap_repo.get_latest_for_sites(site_ids)
 
     return [
-        SiteStatusResponse(
-            site=SiteResponse(**site.to_response()),
-            healthSnapshot=(
-                SiteSnapshotResponse(**health_snapshot.to_response())
-                if (health_snapshot := snapshots_by_site.get(site.id, {}).get("health"))
-                else None
-            ),
-            systemSnapshot=(
-                SiteSnapshotResponse(**system_snapshot.to_response())
-                if (system_snapshot := snapshots_by_site.get(site.id, {}).get("system"))
-                else None
-            ),
+        _site_status_response(
+            site,
+            snapshots_by_site.get(site.id, {}).get("health"),
+            snapshots_by_site.get(site.id, {}).get("system"),
         )
         for site in sites
     ]
@@ -175,15 +201,7 @@ async def get_site(
     health_snap = await snap_repo.get_latest(site_id, "health")
     system_snap = await snap_repo.get_latest(site_id, "system")
 
-    return SiteStatusResponse(
-        site=SiteResponse(**site.to_response()),
-        healthSnapshot=(
-            SiteSnapshotResponse(**health_snap.to_response()) if health_snap else None
-        ),
-        systemSnapshot=(
-            SiteSnapshotResponse(**system_snap.to_response()) if system_snap else None
-        ),
-    )
+    return _site_status_response(site, health_snap, system_snap)
 
 
 @router.put(
@@ -197,8 +215,9 @@ async def update_site(
     _: AdminUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> SiteResponse:
-    repo = SiteRepository(db)
-    site = await repo.get_by_id(site_id)
+    site_repo = SiteRepository(db)
+    snap_repo = SnapshotRepository(db)
+    site = await site_repo.get_by_id(site_id)
     if not site:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Site not found"
@@ -228,7 +247,11 @@ async def update_site(
         for db_field, schema_field in field_map.items()
         if schema_field in data.model_fields_set
     }
-    site = await repo.update(site, update_data)
+    if "healthUrl" in data.model_fields_set and not data.healthUrl:
+        await snap_repo.delete_all_for_type(site_id, "health")
+    if "systemUrl" in data.model_fields_set and not data.systemUrl:
+        await snap_repo.delete_all_for_type(site_id, "system")
+    site = await site_repo.update(site, update_data)
     return SiteResponse(**site.to_response())
 
 

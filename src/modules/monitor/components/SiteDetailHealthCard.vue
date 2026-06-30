@@ -65,9 +65,16 @@ const mismatches = computed(() => props.snapshot?.metaMismatches ?? [])
           <div
             v-for="[key, comp] in components"
             :key="key"
-            class="grid grid-cols-[9rem_1fr] items-center gap-2"
+            class="grid grid-cols-[9rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1"
           >
             <span class="text-muted-foreground capitalize">{{ key }}</span>
+            <span
+              v-if="comp?.reason"
+              class="truncate text-right text-xs text-amber-700 dark:text-amber-400"
+            >
+              {{ comp.reason }}
+            </span>
+            <span v-else />
             <div class="flex justify-end">
               <SiteStatusBadge :status="comp?.status ?? null" />
             </div>
