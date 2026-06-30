@@ -46,10 +46,12 @@ export default {
     darkMode: 'ciemny',
     lightMode: 'jasny',
     toggleLanguage: 'Przełącz język na {locale}',
+    copyFailed: 'Nie udało się skopiować',
     copyToClipboard: {
       success: 'Skopiowano do schowka',
       copied: 'Skopiowano',
       copy: 'Skopiuj',
+      manualFallback: 'Zaznaczono tekst — użyj Ctrl+C, aby skopiować',
     },
     pagination: {
       totalRows: 'Łącznie {total} wierszy',

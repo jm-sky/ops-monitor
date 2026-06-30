@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { refAutoReset, useClipboard } from '@vueuse/core'
+import { refAutoReset } from '@vueuse/core'
 import { Check, Copy } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { copyToClipboard } from '@/lib/copyToClipboard'
 import { cn } from '@/lib/utils'
 
 const props = withDefaults(defineProps<{
@@ -18,7 +19,6 @@ const props = withDefaults(defineProps<{
 })
 
 const { t } = useI18n()
-const { copy } = useClipboard({ legacy: true })
 const copied = refAutoReset(false, 3000)
 
 const hasValue = computed(() => Boolean(props.value))
@@ -27,13 +27,15 @@ const displayText = computed(() => props.value ?? props.emptyText)
 async function copyValue() {
   if (!props.value) return
 
-  try {
-    await copy(props.value)
+  const result = await copyToClipboard(props.value)
+
+  if (result === 'copied') {
     copied.value = true
     toast.success(t('common.copyToClipboard.copied', 'Copied to clipboard'))
-  } catch {
-    toast.error(t('common.copyFailed', 'Failed to copy'))
+    return
   }
+
+  toast.error(t('common.copyFailed', 'Failed to copy'))
 }
 </script>
 

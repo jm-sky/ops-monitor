@@ -46,10 +46,12 @@ export default {
     darkMode: 'dark',
     lightMode: 'light',
     toggleLanguage: 'Switch language to {locale}',
+    copyFailed: 'Failed to copy',
     copyToClipboard: {
       success: 'Copied to clipboard',
       copied: 'Copied',
       copy: 'Copy',
+      manualFallback: 'Text selected — press Ctrl+C to copy',
     },
     pagination: {
       totalRows: '{total} row(s) total',
