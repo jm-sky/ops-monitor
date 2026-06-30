@@ -20,6 +20,7 @@ import Switch from '@/components/ui/switch/Switch.vue'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
 import { useHandleError } from '@/shared/composables/useHandleError'
 import type { Site, SiteStatus } from '../types'
+import CopyablePre from '../components/CopyablePre.vue'
 import EditSiteDialog from '../components/EditSiteDialog.vue'
 import SiteDetailConfigurationCard from '../components/SiteDetailConfigurationCard.vue'
 import SiteDetailHealthCard from '../components/SiteDetailHealthCard.vue'
@@ -291,7 +292,7 @@ function goBackFromNotFound() {
           <DialogHeader>
             <DialogTitle>{{ t('monitor.healthEndpointResponse', 'Health endpoint response') }}</DialogTitle>
           </DialogHeader>
-          <pre class="rounded-md bg-muted p-4 text-xs leading-5 overflow-x-auto">{{ formattedHealthResponse }}</pre>
+          <CopyablePre :value="formattedHealthResponse" />
         </DialogScrollContent>
       </Dialog>
 
@@ -300,7 +301,7 @@ function goBackFromNotFound() {
           <DialogHeader>
             <DialogTitle>{{ t('monitor.systemEndpointResponse', 'System endpoint response') }}</DialogTitle>
           </DialogHeader>
-          <pre class="rounded-md bg-muted p-4 text-xs leading-5 overflow-x-auto">{{ formattedSystemResponse }}</pre>
+          <CopyablePre :value="formattedSystemResponse" />
         </DialogScrollContent>
       </Dialog>
     </div>

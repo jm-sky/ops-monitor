@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { MonitorOverallStatus, SiteStatus } from '../types'
 import { AlertTriangle } from 'lucide-vue-next'
+import type { MonitorOverallStatus, SiteStatus } from '../types'
 import SiteStatusCard from './SiteStatusCard.vue'
 
 interface SiteGroup {
