@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { MonitorOverallStatus, SiteStatus } from '../types'
 import { metricLevel, type MetricLevel } from '../composables/useMetricLevel'
+import { resolveSystemSnapshotStatus } from '../utils/resolveUpdateStatus'
 import SecurityUpdatesCountBadge from './SecurityUpdatesCountBadge.vue'
 import SiteStatusBadge from './SiteStatusBadge.vue'
 
@@ -93,6 +94,13 @@ const securityUpdatesCount = computed(() => {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0
 })
 
+const systemDisplayStatus = computed(() =>
+  resolveSystemSnapshotStatus(
+    props.siteStatus.systemSnapshot?.status,
+    securityUpdatesCount.value,
+  ),
+)
+
 </script>
 
 <template>
@@ -134,7 +142,7 @@ const securityUpdatesCount = computed(() => {
         </span>
         <span v-if="props.siteStatus.systemSnapshot" class="flex items-center gap-1">
           <span class="font-medium text-foreground">{{ t('monitor.system', 'System') }}:</span>
-          <SiteStatusBadge :status="props.siteStatus.systemSnapshot.status ?? 'unknown'" size="sm" />
+          <SiteStatusBadge :status="systemDisplayStatus ?? 'unknown'" size="sm" />
         </span>
       </div>
       <div v-if="!props.denseMode && hasHealthUrl && healthComponents.length" class="grid grid-cols-2 gap-x-6 gap-y-1 pt-1">

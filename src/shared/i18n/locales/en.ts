@@ -180,6 +180,7 @@ export default {
       failed: 'Failed',
       ok: 'OK',
       outdated: 'Outdated',
+      outdatedSecurity: 'Security updates',
       rebootRequired: 'Reboot required',
       upToDate: 'Up to date',
     },

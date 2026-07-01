@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { SiteSnapshot, SystemRawData } from '../types'
 import { metricBarClass, metricLevel, metricValueClass } from '../composables/useMetricLevel'
 import { formatGb, formatMbToGb, formatMonitorDate, formatTimeAgo, formatUptime } from '../composables/useMonitorFormatters'
+import { resolveSystemSnapshotStatus } from '../utils/resolveUpdateStatus'
 import SiteStatusBadge from './SiteStatusBadge.vue'
 import SystemMetricsChart from './SystemMetricsChart.vue'
 import SystemStateBadge from './SystemStateBadge.vue'
@@ -38,6 +39,13 @@ const rebootDetectedAtFull = computed(() =>
 const rebootDetectedAtAgo = computed(() =>
   formatTimeAgo(rebootDetectedAt.value),
 )
+
+const systemDisplayStatus = computed(() =>
+  resolveSystemSnapshotStatus(
+    props.snapshot?.status,
+    securityUpdates.value ?? undefined,
+  ),
+)
 </script>
 
 <template>
@@ -56,7 +64,7 @@ const rebootDetectedAtAgo = computed(() =>
         >
           <Braces class="size-3" /> {{ t('monitor.fullResponse', 'Full response') }}
         </Button>
-        <SiteStatusBadge v-if="hasSystemUrl" :status="snapshot?.status ?? null" />
+        <SiteStatusBadge v-if="hasSystemUrl" :status="systemDisplayStatus" />
         <Button
           v-else
           variant="outline"
@@ -141,7 +149,7 @@ const rebootDetectedAtAgo = computed(() =>
         <div v-if="systemState" class="grid grid-cols-[9rem_1fr] items-center gap-2">
           <span class="text-muted-foreground">{{ t('monitor.systemState', 'System state') }}</span>
           <div class="flex justify-end">
-            <SystemStateBadge :state="systemState" />
+            <SystemStateBadge :state="systemState" :security-updates="securityUpdates" />
           </div>
         </div>
         <div v-if="rebootDetectedAt" class="grid grid-cols-[9rem_1fr] items-center gap-2">

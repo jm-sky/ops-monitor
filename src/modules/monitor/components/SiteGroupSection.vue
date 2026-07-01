@@ -2,6 +2,13 @@
 import { AlertTriangle } from 'lucide-vue-next'
 import type { MonitorOverallStatus, SiteStatus } from '../types'
 import { siteOverallStatus } from '../composables/useSiteOverallStatus'
+import {
+  groupBackgroundClass,
+  groupBorderClass,
+  groupHasCriticalIssue,
+  groupHasIssue,
+  groupIconClass,
+} from '../utils/statusStyles'
 import SiteStatusCard from './SiteStatusCard.vue'
 
 interface SiteGroup {
@@ -30,16 +37,6 @@ function groupPrimaryStatus(group: SiteGroup): MonitorOverallStatus | 'unknown' 
   return siteOverallStatus(serverSiteStatus)
 }
 
-function groupHasIssue(group: SiteGroup): boolean {
-  const status = groupPrimaryStatus(group)
-  if (!status || status === 'ok') return false
-  return status !== 'unknown'
-}
-
-function groupHasCriticalIssue(group: SiteGroup): boolean {
-  return groupPrimaryStatus(group) === 'failed'
-}
-
 function hasBadServerHealth(group: SiteGroup): boolean {
   if (group.key === '__ungrouped__') return false
 
@@ -55,10 +52,10 @@ function hasBadServerHealth(group: SiteGroup): boolean {
   <section :class="props.denseMode ? 'space-y-2 min-w-0 break-inside-avoid' : 'space-y-3'">
     <h2 class="flex items-center gap-2 text-sm font-medium text-muted-foreground">
       <AlertTriangle
-        v-if="groupHasIssue(props.group)"
+        v-if="groupHasIssue(groupPrimaryStatus(props.group))"
         :class="[
           'size-4 shrink-0',
-          groupHasCriticalIssue(props.group) ? 'text-destructive' : 'text-amber-500',
+          groupIconClass(groupPrimaryStatus(props.group)),
         ]"
         :title="String(groupPrimaryStatus(props.group) ?? '')"
       />
@@ -68,10 +65,9 @@ function hasBadServerHealth(group: SiteGroup): boolean {
       :class="[
         props.denseMode ? 'rounded-xl border-2 border-dashed p-3' : 'rounded-xl border-2 border-dashed p-4',
         hasBadServerHealth(props.group) && 'border-destructive/50',
-        groupHasCriticalIssue(props.group) && 'border-destructive/60',
-        groupHasIssue(props.group) && !groupHasCriticalIssue(props.group) && 'border-amber-400/60',
-        groupHasCriticalIssue(props.group) && 'bg-destructive/5',
-        groupHasIssue(props.group) && !groupHasCriticalIssue(props.group) && 'bg-amber-500/5',
+        groupHasIssue(groupPrimaryStatus(props.group)) && groupBorderClass(groupPrimaryStatus(props.group)),
+        groupHasCriticalIssue(groupPrimaryStatus(props.group)) && 'bg-destructive/5',
+        groupHasIssue(groupPrimaryStatus(props.group)) && !groupHasCriticalIssue(groupPrimaryStatus(props.group)) && groupBackgroundClass(groupPrimaryStatus(props.group)),
       ]"
     >
       <div

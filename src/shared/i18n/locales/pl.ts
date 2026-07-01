@@ -180,6 +180,7 @@ export default {
       failed: 'Awaria',
       ok: 'OK',
       outdated: 'Nieaktualne',
+      outdatedSecurity: 'Aktualizacje bezpieczeństwa',
       rebootRequired: 'Wymagany restart',
       upToDate: 'Aktualne',
     },

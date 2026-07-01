@@ -34,6 +34,15 @@ function makeStatus(overrides: Partial<SiteStatus>): SiteStatus {
   }
 }
 
+const systemSnapshotBase = {
+  id: 'snap-2',
+  siteId: baseSite.id,
+  snapshotType: 'system' as const,
+  error: null,
+  metaMismatches: null,
+  polledAt: '2026-01-01T00:00:00Z',
+}
+
 describe('siteOverallStatus', () => {
   it('ignores failed health snapshot when health URL is not configured', () => {
     const status = makeStatus({
@@ -48,14 +57,9 @@ describe('siteOverallStatus', () => {
         polledAt: '2026-01-01T00:00:00Z',
       },
       systemSnapshot: {
-        id: 'snap-2',
-        siteId: baseSite.id,
-        snapshotType: 'system',
+        ...systemSnapshotBase,
         status: 'up_to_date',
         rawData: null,
-        error: null,
-        metaMismatches: null,
-        polledAt: '2026-01-01T00:00:00Z',
       },
     })
 
@@ -78,5 +82,64 @@ describe('siteOverallStatus', () => {
     })
 
     expect(siteOverallStatus(status)).toBe('failed')
+  })
+
+  it('returns outdated_security when system is outdated with security updates', () => {
+    const status = makeStatus({
+      systemSnapshot: {
+        ...systemSnapshotBase,
+        status: 'outdated',
+        rawData: { security_updates: 3 },
+      },
+    })
+
+    expect(siteOverallStatus(status)).toBe('outdated_security')
+  })
+
+  it('returns outdated when system is outdated without security updates', () => {
+    const status = makeStatus({
+      systemSnapshot: {
+        ...systemSnapshotBase,
+        status: 'outdated',
+        rawData: { security_updates: 0 },
+      },
+    })
+
+    expect(siteOverallStatus(status)).toBe('outdated')
+  })
+
+  it('prefers reboot_required over outdated_security', () => {
+    const status = makeStatus({
+      systemSnapshot: {
+        ...systemSnapshotBase,
+        status: 'reboot_required',
+        rawData: { security_updates: 5 },
+      },
+    })
+
+    expect(siteOverallStatus(status)).toBe('reboot_required')
+  })
+
+  it('prefers degraded health over outdated_security system status', () => {
+    const status = makeStatus({
+      site: { ...baseSite, healthUrl: 'https://example.com/health' },
+      healthSnapshot: {
+        id: 'snap-1',
+        siteId: baseSite.id,
+        snapshotType: 'health',
+        status: 'degraded',
+        rawData: null,
+        error: null,
+        metaMismatches: null,
+        polledAt: '2026-01-01T00:00:00Z',
+      },
+      systemSnapshot: {
+        ...systemSnapshotBase,
+        status: 'outdated',
+        rawData: { security_updates: 2 },
+      },
+    })
+
+    expect(siteOverallStatus(status)).toBe('degraded')
   })
 })
