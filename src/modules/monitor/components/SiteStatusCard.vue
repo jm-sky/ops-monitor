@@ -101,6 +101,23 @@ const systemDisplayStatus = computed(() =>
   ),
 )
 
+const degradedHealthComponents = computed(() =>
+  healthComponents.value
+    .filter(([, c]) => c.status === 'degraded')
+    .slice(0, 3),
+)
+
+const remainingDegradedCount = computed(() => {
+  const total = healthComponents.value.filter(([, c]) => c.status === 'degraded').length
+  return Math.max(0, total - 3)
+})
+
+const showDegradedComponentBadges = computed(() =>
+  props.denseMode
+  && props.overallStatus(props.siteStatus) === 'degraded'
+  && degradedHealthComponents.value.length > 0,
+)
+
 </script>
 
 <template>
@@ -196,6 +213,26 @@ const systemDisplayStatus = computed(() =>
           ]"
         >
           {{ metric.label }} {{ metric.value }}%
+        </span>
+      </div>
+      <div
+        v-if="showDegradedComponentBadges"
+        class="flex flex-nowrap items-center justify-center gap-0.5 overflow-hidden"
+      >
+        <span
+          v-for="[name, component] in degradedHealthComponents"
+          :key="name"
+          class="scale-90 opacity-80 inline-flex shrink-0 items-center whitespace-nowrap rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300"
+          :title="component.reason ?? componentLabel(name)"
+        >
+          {{ componentLabel(name) }}
+        </span>
+        <span
+          v-if="remainingDegradedCount > 0"
+          class="shrink-0 whitespace-nowrap text-[11px] text-muted-foreground"
+          :title="t('monitor.moreDegradedComponents', { count: remainingDegradedCount }, '{count} more degraded components')"
+        >
+          +{{ remainingDegradedCount }}
         </span>
       </div>
       <div v-if="!props.siteStatus.site.enabled" :class="props.denseMode ? 'text-[11px] text-muted-foreground italic' : 'text-xs text-muted-foreground italic'">
