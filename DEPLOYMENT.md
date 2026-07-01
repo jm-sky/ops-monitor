@@ -110,19 +110,30 @@ To add the SSH key secret:
 
 ## Manual Deployment
 
-To deploy manually:
+There are two deploy scripts, one per backend compose flavor:
+
+- `scripts/deploy.sh` — **prod-flavored** backend: root `docker-compose.yml`, builds
+  `backend/Dockerfile` (no `--reload`), baked image. This is what GitHub Actions runs.
+- `scripts/deploy_dev.sh` — **dev-flavored** backend: `backend/docker-compose.dev.yml`,
+  builds `backend/Dockerfile.dev` (`--reload`), source bind-mounted.
 
 ```bash
 cd /home/$USER/projects/ops-monitor
-bash scripts/deploy.sh
+bash scripts/deploy.sh       # or scripts/deploy_dev.sh
 ```
 
-This script will:
+Each script will:
 1. Pull latest changes from git
 2. Install frontend dependencies with pnpm
 3. Build the frontend
 4. Deploy to `/var/www/ops-monitor/`
-5. Restart backend Docker containers and run migrations
+5. Rebuild and force-recreate the backend app container, then run migrations
+
+**Important:** always rebuild and `--force-recreate` the `app` container after a `git
+pull`, even for the bind-mounted dev compose file — the process doesn't hot-reload
+in the prod Dockerfile, and a plain `docker compose up -d` is a no-op when the compose
+config hasn't changed, so the old code keeps running in memory despite the new files
+being on disk and migrations having applied.
 
 ## Automated Deployment (GitHub Actions)
 
@@ -140,13 +151,13 @@ The GitHub Actions workflow (`.github/workflows/deploy.yml`) automatically deplo
 
 2. **Deploy** (runs on your server via SSH)
    - Connect to server as `deploy` user
-   - Run the deployment script
+   - Run `scripts/deploy.sh` (prod-flavored backend)
 
 The workflow will fail if linting or type checking fails, preventing broken code from being deployed.
 
 ## Deployment Script Details
 
-The `scripts/deploy.sh` script performs the following:
+`scripts/deploy.sh` (prod) and `scripts/deploy_dev.sh` (dev) both perform:
 
 1. **Pull latest changes** - `git pull`
 2. **Install dependencies** - `pnpm install --frozen-lockfile`
@@ -155,10 +166,14 @@ The `scripts/deploy.sh` script performs the following:
    - Remove old files: `sudo rm -rf /var/www/ops-monitor/*`
    - Copy new build: `sudo cp -r dist/* /var/www/ops-monitor/`
    - Fix ownership: `sudo chown -R caddy:deploy /var/www/ops-monitor`
-5. **Restart backend and migrate**
-   - Stop Docker Compose: `docker compose -f docker-compose.dev.yml down`
-   - Start Docker Compose: `docker compose -f docker-compose.dev.yml up -d`
-   - Run migrations: `docker compose -f docker-compose.dev.yml exec app python cli.py db migrate`
+5. **Restart backend and migrate** (via `scripts/backend_restart_migrate_prod.sh` or
+   `scripts/backend_restart_migrate_dev.sh`)
+   - Build the app image: `docker compose -f <compose-file> build app`
+   - Force-recreate the container: `docker compose -f <compose-file> up -d --force-recreate app`
+   - Run migrations: `docker compose -f <compose-file> exec app python -m cli db migrate`
+
+Where `<compose-file>` is `docker-compose.yml` (prod, run from repo root) or
+`backend/docker-compose.dev.yml` (dev, run from `backend/`).
 
 ## Permission Structure
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Deploy ops-monitor using the prod-flavored backend (root docker-compose.yml —
-# backend/Dockerfile, no --reload). For the dev-flavored backend
-# (backend/docker-compose.dev.yml, Dockerfile.dev with --reload), use deploy_dev.sh instead.
-# Run from the project root: bash scripts/deploy.sh
+# Deploy ops-monitor using the dev-flavored backend (backend/docker-compose.dev.yml —
+# bind-mounted source, Dockerfile.dev with --reload). For the prod-flavored backend
+# (root docker-compose.yml, baked image, no reload), use deploy.sh instead.
+# Run from the project root: bash scripts/deploy_dev.sh
 set -euo pipefail
 
 RED='\033[0;31m'
@@ -27,7 +27,7 @@ echo -e "${YELLOW}Step 2: Building and deploying frontend...${NC}"
 "$SCRIPTS_DIR/frontend_build_deploy.sh"
 
 echo -e "${YELLOW}Step 3: Restarting backend and running migrations...${NC}"
-"$SCRIPTS_DIR/backend_restart_migrate_prod.sh"
+"$SCRIPTS_DIR/backend_restart_migrate_dev.sh"
 
 echo ""
 echo -e "${GREEN}Deployment complete. https://ops-monitor.dev-made.it${NC}"
