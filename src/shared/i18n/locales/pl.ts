@@ -170,6 +170,7 @@ export default {
     lastPolled: 'Ostatnio sprawdzono',
     noData: 'Brak danych',
     viewRawResponse: 'Pokaż pełną odpowiedź',
+    copyComponentIssue: 'Kliknij, aby skopiować kontekst problemu',
     uptime: 'Czas działania',
     updates: 'Aktualizacje',
     securityUpdatesAvailable: 'Dostępne aktualizacje bezpieczeństwa: {count}',

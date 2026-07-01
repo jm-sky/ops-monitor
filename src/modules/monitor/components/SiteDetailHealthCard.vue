@@ -6,6 +6,7 @@ import Button from '@/components/ui/button/Button.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { HealthRawData, SiteSnapshot } from '../types'
 import { formatMonitorDate } from '../composables/useMonitorFormatters'
+import ComponentHealthBadge from './ComponentHealthBadge.vue'
 import SiteStatusBadge from './SiteStatusBadge.vue'
 
 const props = defineProps<{
@@ -76,7 +77,11 @@ const mismatches = computed(() => props.snapshot?.metaMismatches ?? [])
             </span>
             <span v-else />
             <div class="flex justify-end">
-              <SiteStatusBadge :status="comp?.status ?? null" />
+              <ComponentHealthBadge
+                :component-name="key"
+                :status="comp?.status ?? null"
+                :raw-data="snapshot?.rawData ?? null"
+              />
             </div>
           </div>
         </template>

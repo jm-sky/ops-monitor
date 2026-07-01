@@ -170,6 +170,7 @@ export default {
     lastPolled: 'Last polled',
     noData: 'No data yet',
     viewRawResponse: 'View full response',
+    copyComponentIssue: 'Click to copy issue context',
     uptime: 'Uptime',
     updates: 'Updates',
     securityUpdatesAvailable: 'Security updates available: {count}',

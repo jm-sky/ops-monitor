@@ -29,6 +29,9 @@ export interface HealthComponent {
   reason?: string
   stale?: boolean
   status?: string
+  since?: string
+  checked_at?: string
+  [key: string]: unknown
 }
 
 export interface HealthRawData {
