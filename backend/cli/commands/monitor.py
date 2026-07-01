@@ -251,6 +251,8 @@ async def _seed_sites(yaml_file: Path, dry_run: bool, clear: bool) -> None:
                 "polling_system": int(s.get("polling_system", 300)),
                 "polling_updates": int(s.get("polling_updates", 43200)),
                 "polling_reboot": int(s.get("polling_reboot", 1800)),
+                "ssl_check_url": s.get("ssl_check_url") or None,
+                "polling_ssl": int(s.get("polling_ssl", 43200)),
                 "teams_webhook_url": s.get("teams_webhook_url") or None,
                 "server_label": s.get("server") or s.get("server_label") or None,
                 "environment": s.get("environment") or s.get("env") or None,
