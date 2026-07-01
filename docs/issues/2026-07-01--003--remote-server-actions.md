@@ -6,10 +6,10 @@ todos:
     content: "Agent: POST /actions/reboot, AGENT_ACTIONS_ENABLED, mutex, dokumentacja systemd/Docker"
     status: pending
   - id: phase1-backend
-    content: "Backend: site_action_logs, ActionService, router reboot, migracja DB, derive URL z system_url"
+    content: "Backend: site_action_logs + actions_enabled (default false) na sites, ActionService, router reboot, migracja DB, derive URL z system_url, activate_live_mode() po sukcesie"
     status: pending
   - id: phase1-frontend
-    content: "Frontend: reboot w SiteDetailSystemCard, ConfirmDialog, action logs card, monitorService + typy"
+    content: "Frontend: reboot w SiteDetailSystemCard, ConfirmDialog, action logs card, actionsEnabled toggle w SiteFormFields, monitorService + typy"
     status: pending
   - id: phase2-security
     content: "Agent + backend + UI: POST /actions/upgrade scope=security"
@@ -65,6 +65,13 @@ sequenceDiagram
 | Uprawnienia agenta | Agent musi działać jako root lub mieć sudo na `reboot` / `apt` (zmiana unit systemd / Docker) |
 | Bezpieczeństwo | `AdminUser` + `ConfirmDialog` + tabela audytu (bez dodatkowego 2FA) |
 | Zakres faz | 1) reboot → 2) security upgrade → 3) full upgrade → 4) masowe |
+| Wsparcie dla agentów w Dockerze | **Poza zakresem v1** — patrz sekcja „Uwaga: agent w Dockerze" niżej |
+
+## Uwaga: agent w Dockerze nie może dziś wykonać reboot/upgrade hosta
+
+Sprawdzone w [`agent/docker-compose.yml`](agent/docker-compose.yml) i [`agent/README.md`](agent/README.md): kontener agenta ma **tylko read-only bind mounty** (`/var/lib/apt/lists`, `/var/lib/update-notifier`, `/var/run`) i nie jest `--privileged`. `shutdown -r` / `apt upgrade` wykonane wewnątrz takiego kontenera działają na przestrzeni nazw kontenera, nie hosta — nie zrestartują ani nie zaktualizują serwera. Żeby to zadziałało, kontener musiałby dostać `--privileged` + `--pid=host` (praktycznie ucieczka z kontenera przez design) albo agent musiałby wykonywać komendy przez zamontowany `docker.sock`/`nsenter` na hoście — to osobny, większy kawałek pracy niż jedna linijka w tabeli bezpieczeństwa sugerowała.
+
+**Decyzja dla v1**: akcje (`reboot` / `upgrade`) wspierane wyłącznie dla agentów zainstalowanych przez **systemd** (root lub sudoers, patrz „Wdrożenie agenta"). Dla site'ów, gdzie agent działa w Dockerze, `actions_enabled` (patrz niżej) powinno pozostać `false` — najlepiej ustawiane ręcznie po weryfikacji sposobu wdrożenia, nie domyślnie `true` dla wszystkich site'ów z `system_url`. Wsparcie dla akcji przez Dockera (jeśli w ogóle potrzebne) to osobny temat na przyszłość.
 
 ## Faza 1 — Reboot (MVP)
 
@@ -74,7 +81,7 @@ Rozszerzyć [`agent/agent.py`](agent/agent.py):
 
 - `POST /actions/reboot` — planowany restart (`shutdown -r +1` lub `systemctl reboot`)
 - Flaga `AGENT_ACTIONS_ENABLED` (domyślnie `false`) — bez niej endpointy zwracają 403
-- Ten sam `verify_token()` co `/system`
+- Ten sam `verify_token()` co `/system`, **ale**: jeśli `AGENT_ACTIONS_ENABLED=true` i `AGENT_TOKEN` jest puste, agent powinien odmówić startu (albo zwracać 500 na akcjach) zamiast dziedziczyć dzisiejsze zachowanie „puste = dev mode, brak auth". To zachowanie jest akceptowalne dla odczytu metryk, ale nie dla reboot/upgrade — zbyt duży blast radius na przypadkowo niedokonfigurowanym hoście
 - **Mutex in-process** — odrzucenie równoległych akcji na jednym hoście
 - Odpowiedź synchroniczna: `{ "status": "scheduled", "message": "..." }` (reboot rozłącza po ~60s)
 
@@ -112,12 +119,12 @@ GET  /api/monitor/actions?site_id=&limit=          # historia audytu
 
 **Logika wywołania agenta** — reużyć wzorce z [`service.py`](backend/app/modules/monitor/service.py):
 
-- `_auth_headers()`, `_resolve_url()` — URL akcji wyliczyć z `system_url` (np. zamiana `/system` → `/actions/reboot`)
+- `_auth_headers()`, `_resolve_url()` — URL akcji wyliczyć z `system_url` przez `urlparse`, zamieniając tylko końcowy segment ścieżki na `/actions/reboot` (nie surowy string-replace na `/system` — mogłoby trafić np. na `/foo-system/system`)
 - Dłuższy timeout dla upgrade (np. 300s) vs reboot (30s)
-- Walidacja: site włączony, ma `system_url`, opcjonalnie `actions_enabled` per site (nowa kolumna bool, domyślnie `true`)
-- Po sukcesie reboot: `asyncio.create_task` z opóźnionym `poll_site_now` (np. po 90s)
+- Walidacja: site włączony, ma `system_url`, **`actions_enabled` per site — nowa kolumna bool, domyślnie `false`** (nie `true`; patrz „Uwaga: agent w Dockerze" — nie chcemy domyślnie włączonych akcji na site'ach, których sposób wdrożenia agenta nie został zweryfikowany)
+- Po sukcesie reboot/upgrade: zamiast osobnego `asyncio.create_task` z ręcznym opóźnieniem, wywołać istniejące `activate_live_mode()` z [`scheduler.py`](backend/app/modules/monitor/scheduler.py) — poller już wtedy odpytuje due site'y w krótszym `LIVE_POLL_INTERVAL` przez `LIVE_MODE_TTL`, więc świeży status przyjdzie bez nowego mechanizmu i bez ryzyka pojedynczego nietrafionego jednorazowego opóźnienia
 
-Migracja DB + wpis w `cli db migrate`.
+Migracja DB — **dwie zmiany**: nowa tabela `site_action_logs` + nowa kolumna `actions_enabled` (bool, default `false`) na `sites`. Wpis w `cli db migrate`.
 
 ### 3. Frontend — pojedynczy reboot
 
@@ -134,6 +141,7 @@ W [`src/modules/monitor/`](src/modules/monitor/):
 1. [`SiteDetailSystemCard.vue`](src/modules/monitor/components/SiteDetailSystemCard.vue) — przycisk **Reboot** widoczny gdy `reboot_required === true` (destructive outline)
 2. [`SiteDetailPage.vue`](src/modules/monitor/pages/SiteDetailPage.vue) — `ConfirmDialog` z nazwą serwera + ostrzeżeniem; po sukcesie toast + invalidate queries
 3. Nowa karta **`SiteDetailActionsCard.vue`** — ostatnie akcje na tym site (GET `/actions?site_id=`)
+4. Toggle **`actionsEnabled`** w [`SiteFormFields.vue`](src/modules/monitor/components/SiteFormFields.vue) / [`useSiteForm.ts`](src/modules/monitor/composables/useSiteForm.ts) (ten sam wzorzec co istniejący `verifySSL`) — bez tego kill switch z sekcji „Bezpieczeństwo" byłby ustawialny tylko z poziomu DB/CLI, co kłóci się z założeniem, że admin ma nad tym kontrolę z UI
 
 Wzorzec jak przy usuwaniu site w `SiteDetailPage` — `ConfirmDialog` + `useHandleError` + `vue-sonner`.
 
@@ -147,6 +155,7 @@ i18n: `src/modules/monitor/i18n/` — klucze `monitor.actions.*`.
 - `POST /actions/upgrade` z body `{ "scope": "security" }`
 - Wykonanie: `DEBIAN_FRONTEND=noninteractive apt-get update && apt-get upgrade -y $(apt list --upgradable 2>/dev/null | grep security ...)` lub `unattended-upgrade` / `apt upgrade` z filtrem security
 - Zwraca podsumowanie: ile pakietów, czy wymaga rebootu
+- **Ważne**: `apt upgrade` może trwać dłużej niż jest to wygodne dla pojedynczego blokującego requestu. Zaprojektować to od razu jako uruchomienie procesu w tle (subprocess odpięty od requestu) + endpoint zwracający `202` z `job_id` natychmiast, zamiast bloków HTTP handlera na cały czas trwania apt. W przeciwnym razie: backend timeout (300s) ucina połączenie, ale apt na agencie może dalej działać — stan „czy upgrade się wykonał" staje się niejednoznaczny. Nie odkładać tego do „jeśli sync nie wystarczy" (patrz sekcja Ryzyka) — przy realnych aktualizacjach security prawdopodobieństwo przekroczenia sync-timeoutu jest wysokie od pierwszego wdrożenia
 
 ### Backend + UI
 - Endpoint `POST .../actions/upgrade` z walidacją `scope`
@@ -200,9 +209,9 @@ Brak gotowego wzorca bulk w module — alert channels mają tylko checkboxy filt
 
 Obecny agent nie wymaga root do odczytu metryk. Dla akcji:
 
-- **systemd**: `User=root` lub `CapabilityBoundingSet=CAP_SYS_BOOT` + sudoers dla apt
-- **Docker**: `--privileged` lub montowanie socketów + odpowiedni user; dokumentacja w `agent/README.md`
-- Rolling update agentów na serwerach przed włączeniem guzików w UI
+- **systemd**: `User=root` lub `CapabilityBoundingSet=CAP_SYS_BOOT` + sudoers dla apt — jedyna wspierana ścieżka dla akcji w v1
+- **Docker**: poza zakresem v1 (patrz „Uwaga: agent w Dockerze" wyżej) — `--privileged` + `--pid=host` to w praktyce kontrolowana ucieczka z kontenera i wymaga osobnej analizy bezpieczeństwa, nie jest to jednolinijkowa zmiana konfiguracji compose
+- Rolling update agentów na serwerach przed włączeniem guzików w UI — dla site'ów z agentem w Dockerze zostawić `actions_enabled=false` do czasu decyzji o tej ścieżce
 
 ---
 
@@ -220,7 +229,7 @@ Obecny agent nie wymaga root do odczytu metryk. Dla akcji:
 ## Ryzyka
 
 - **Reboot rozłącza agenta** — UI musi komunikować „zaplanowano”, nie „ukończono natychmiast”; weryfikacja przez poll po czasie
-- **Upgrade trwa długo** — HTTP timeout; rozważyć `202 Accepted` + polling statusu w fazie 2 jeśli sync nie wystarczy
+- **Upgrade trwa długo** — HTTP timeout; agent musi uruchamiać apt jako proces w tle i zwracać `202 Accepted` + `job_id` od razu w fazie 2 (patrz decyzja w sekcji Fazy 2), a nie tylko „w razie potrzeby"
 - **Sieć** — centralny backend musi mieć dostęp POST do agenta (ten sam co GET dziś)
 - **Wersjonowanie agenta** — backend powinien obsłużyć brak endpointu (404 → czytelny błąd „zaktualizuj agenta”)
 
