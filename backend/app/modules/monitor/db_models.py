@@ -33,6 +33,8 @@ class SiteDB(Base):
     polling_system: Mapped[int] = mapped_column(Integer, default=300, nullable=False)
     polling_updates: Mapped[int] = mapped_column(Integer, default=43200, nullable=False)
     polling_reboot: Mapped[int] = mapped_column(Integer, default=1800, nullable=False)
+    ssl_check_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    polling_ssl: Mapped[int] = mapped_column(Integer, default=43200, nullable=False)
     teams_webhook_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     server_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
     environment: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -63,6 +65,8 @@ class SiteDB(Base):
             "pollingSystem": self.polling_system,
             "pollingUpdates": self.polling_updates,
             "pollingReboot": self.polling_reboot,
+            "sslCheckUrl": self.ssl_check_url,
+            "pollingSsl": self.polling_ssl,
             "teamsWebhookUrl": self.teams_webhook_url,
             "serverLabel": self.server_label,
             "environment": self.environment,

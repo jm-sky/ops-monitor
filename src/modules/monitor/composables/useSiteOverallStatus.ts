@@ -5,6 +5,7 @@ export function siteOverallStatus(s: SiteStatus): MonitorOverallStatus {
   const h = s.site.healthUrl ? s.healthSnapshot?.status : undefined
   const sys = s.site.systemUrl ? s.systemSnapshot?.status : undefined
   if (h === 'failed' || sys === 'failed') return 'failed'
+  if (s.site.sslCheckUrl && s.sslSnapshot?.status === 'expired') return 'cert_expired'
   if (h === 'degraded') return 'degraded'
   if (sys === 'reboot_required') return 'reboot_required'
   const updateStatus = resolveUpdateStatus(sys, s.systemSnapshot?.rawData?.security_updates)

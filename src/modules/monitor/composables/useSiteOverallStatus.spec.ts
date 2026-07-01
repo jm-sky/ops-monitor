@@ -15,6 +15,8 @@ const baseSite: Site = {
   pollingSystem: 300,
   pollingUpdates: 43200,
   pollingReboot: 1800,
+  sslCheckUrl: null,
+  pollingSsl: 43200,
   teamsWebhookUrl: null,
   serverLabel: null,
   environment: null,
@@ -30,6 +32,7 @@ function makeStatus(overrides: Partial<SiteStatus>): SiteStatus {
     site: baseSite,
     healthSnapshot: null,
     systemSnapshot: null,
+    sslSnapshot: null,
     ...overrides,
   }
 }
@@ -141,5 +144,91 @@ describe('siteOverallStatus', () => {
     })
 
     expect(siteOverallStatus(status)).toBe('degraded')
+  })
+
+  it('returns cert_expired when ssl certificate is expired', () => {
+    const status = makeStatus({
+      site: { ...baseSite, sslCheckUrl: 'https://example.com' },
+      sslSnapshot: {
+        id: 'snap-3',
+        siteId: baseSite.id,
+        snapshotType: 'ssl',
+        status: 'expired',
+        rawData: null,
+        error: null,
+        metaMismatches: null,
+        polledAt: '2026-01-01T00:00:00Z',
+      },
+    })
+
+    expect(siteOverallStatus(status)).toBe('cert_expired')
+  })
+
+  it('prefers failed health over cert_expired', () => {
+    const status = makeStatus({
+      site: { ...baseSite, healthUrl: 'https://example.com/health', sslCheckUrl: 'https://example.com' },
+      healthSnapshot: {
+        id: 'snap-1',
+        siteId: baseSite.id,
+        snapshotType: 'health',
+        status: 'failed',
+        rawData: null,
+        error: 'HTTP 500',
+        metaMismatches: null,
+        polledAt: '2026-01-01T00:00:00Z',
+      },
+      sslSnapshot: {
+        id: 'snap-3',
+        siteId: baseSite.id,
+        snapshotType: 'ssl',
+        status: 'expired',
+        rawData: null,
+        error: null,
+        metaMismatches: null,
+        polledAt: '2026-01-01T00:00:00Z',
+      },
+    })
+
+    expect(siteOverallStatus(status)).toBe('failed')
+  })
+
+  it('ignores expiring_soon ssl status — does not change overall', () => {
+    const status = makeStatus({
+      site: { ...baseSite, sslCheckUrl: 'https://example.com' },
+      systemSnapshot: {
+        ...systemSnapshotBase,
+        status: 'up_to_date',
+        rawData: null,
+      },
+      sslSnapshot: {
+        id: 'snap-3',
+        siteId: baseSite.id,
+        snapshotType: 'ssl',
+        status: 'expiring_soon',
+        rawData: null,
+        error: null,
+        metaMismatches: null,
+        polledAt: '2026-01-01T00:00:00Z',
+      },
+    })
+
+    expect(siteOverallStatus(status)).toBe('ok')
+  })
+
+  it('ignores ssl status when sslCheckUrl is not configured', () => {
+    const status = makeStatus({
+      sslSnapshot: {
+        id: 'snap-3',
+        siteId: baseSite.id,
+        snapshotType: 'ssl',
+        status: 'expired',
+        rawData: null,
+        error: null,
+        metaMismatches: null,
+        polledAt: '2026-01-01T00:00:00Z',
+      },
+    })
+
+    expect(siteOverallStatus(status)).toBe('unknown')
   })
 })

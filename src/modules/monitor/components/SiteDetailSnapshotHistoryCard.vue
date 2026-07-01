@@ -6,7 +6,7 @@ import Pagination from '@/components/data-table/Pagination.vue'
 import Button from '@/components/ui/button/Button.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { HealthRawData, Site, SiteSnapshot, SystemRawData } from '../types'
+import type { HealthRawData, Site, SiteSnapshot, SslRawData, SystemRawData } from '../types'
 import { metricLevel, metricValueClass } from '../composables/useMetricLevel'
 import { formatMonitorDate } from '../composables/useMonitorFormatters'
 import { monitorQueryKeys } from '../services/monitorQueries'
@@ -21,7 +21,15 @@ const { t } = useI18n()
 
 const hasHealth = computed(() => !!props.site.healthUrl)
 const hasSystem = computed(() => !!props.site.systemUrl)
-const defaultTab = computed(() => (hasHealth.value ? 'health' : 'system'))
+const hasSsl = computed(() => !!props.site.sslCheckUrl)
+const availableTabsCount = computed(() =>
+  [hasHealth.value, hasSystem.value, hasSsl.value].filter(Boolean).length,
+)
+const defaultTab = computed(() => {
+  if (hasHealth.value) return 'health'
+  if (hasSystem.value) return 'system'
+  return 'ssl'
+})
 const activeTab = ref(defaultTab.value)
 
 const showHistory = ref(false)
@@ -35,6 +43,10 @@ const healthOffset = computed(() => (healthPage.value - 1) * healthPageSize.valu
 const systemPage = ref(1)
 const systemPageSize = ref(10)
 const systemOffset = computed(() => (systemPage.value - 1) * systemPageSize.value)
+
+const sslPage = ref(1)
+const sslPageSize = ref(10)
+const sslOffset = computed(() => (sslPage.value - 1) * sslPageSize.value)
 
 function setHealthPage(p: number) {
   healthPage.value = p
@@ -52,6 +64,15 @@ function setSystemPage(p: number) {
 function setSystemPageSize(s: number) {
   systemPageSize.value = s
   systemPage.value = 1
+}
+
+function setSslPage(p: number) {
+  sslPage.value = p
+}
+
+function setSslPageSize(s: number) {
+  sslPageSize.value = s
+  sslPage.value = 1
 }
 
 // ── Health snapshots ────────────────────────────────────────────────────────
@@ -100,6 +121,26 @@ const { data: systemPageData, isLoading: systemLoading } = useQuery({
 
 const systemSnapshots = computed(() => (systemPageData.value?.items ?? []) as SiteSnapshot<SystemRawData>[])
 const systemTotal = computed(() => systemPageData.value?.total ?? 0)
+
+// ── SSL snapshots ───────────────────────────────────────────────────────────
+
+const { data: sslPageData, isLoading: sslLoading } = useQuery({
+  queryKey: computed(() => monitorQueryKeys.snapshotsPage(
+    props.site.id,
+    'ssl',
+    sslPageSize.value,
+    sslOffset.value,
+  )),
+  queryFn: () => monitorService.getSnapshotsPage(props.site.id, 'ssl', {
+    limit: sslPageSize.value,
+    offset: sslOffset.value,
+  }),
+  enabled: computed(() => showHistory.value && hasSsl.value),
+  placeholderData: previousData => previousData,
+})
+
+const sslSnapshots = computed(() => (sslPageData.value?.items ?? []) as SiteSnapshot<SslRawData>[])
+const sslTotal = computed(() => sslPageData.value?.total ?? 0)
 </script>
 
 <template>
@@ -118,12 +159,15 @@ const systemTotal = computed(() => systemPageData.value?.total ?? 0)
     </CardHeader>
     <CardContent v-if="showHistory">
       <Tabs v-model="activeTab">
-        <TabsList v-if="hasHealth && hasSystem" class="mb-4">
-          <TabsTrigger value="health">
+        <TabsList v-if="availableTabsCount > 1" class="mb-4">
+          <TabsTrigger v-if="hasHealth" value="health">
             {{ t('monitor.health', 'Health') }}
           </TabsTrigger>
-          <TabsTrigger value="system">
+          <TabsTrigger v-if="hasSystem" value="system">
             {{ t('monitor.system', 'System') }}
+          </TabsTrigger>
+          <TabsTrigger v-if="hasSsl" value="ssl">
+            {{ t('monitor.ssl', 'SSL') }}
           </TabsTrigger>
         </TabsList>
 
@@ -269,6 +313,68 @@ const systemTotal = computed(() => systemPageData.value?.total ?? 0)
               />
             </div>
           </template>
+        </TabsContent>
+
+        <!-- ── SSL history ────────────────────────────────────────────── -->
+        <TabsContent value="ssl">
+          <div v-if="sslLoading" class="py-6 text-center text-sm text-muted-foreground">
+            {{ t('common.loading', 'Loading...') }}
+          </div>
+          <div v-else-if="!sslSnapshots?.length" class="py-6 text-center text-sm text-muted-foreground">
+            {{ t('monitor.noData', 'No data yet') }}
+          </div>
+          <div v-else class="space-y-4">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b text-left text-xs text-muted-foreground">
+                    <th class="pb-2 pr-4 font-medium">
+                      {{ t('monitor.history.time', 'Time') }}
+                    </th>
+                    <th class="pb-2 pr-4 font-medium">
+                      {{ t('monitor.history.status', 'Status') }}
+                    </th>
+                    <th class="pb-2 pr-4 font-medium">
+                      {{ t('monitor.sslDaysRemaining', 'Days remaining') }}
+                    </th>
+                    <th class="pb-2 font-medium">
+                      {{ t('monitor.history.issues', 'Issues') }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="snap in sslSnapshots"
+                    :key="snap.id"
+                    class="border-b last:border-0"
+                  >
+                    <td class="py-2 pr-4 text-xs text-muted-foreground whitespace-nowrap">
+                      {{ formatMonitorDate(snap.polledAt) }}
+                    </td>
+                    <td class="py-2 pr-4">
+                      <SiteStatusBadge :status="snap.status" />
+                    </td>
+                    <td class="py-2 pr-4 text-xs">
+                      {{ snap.rawData?.days_remaining ?? '—' }}
+                    </td>
+                    <td class="py-2 text-xs">
+                      <span v-if="snap.error" class="text-destructive">{{ snap.error }}</span>
+                      <span v-else class="text-muted-foreground">—</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination
+              :page="sslPage"
+              :page-size="sslPageSize"
+              :total="sslTotal"
+              :page-size-options="PAGE_SIZE_OPTIONS"
+              @update:page="setSslPage"
+              @update:page-size="setSslPageSize"
+            />
+          </div>
         </TabsContent>
       </Tabs>
     </CardContent>

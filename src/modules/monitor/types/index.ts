@@ -15,6 +15,8 @@ export interface Site {
   pollingSystem: number
   pollingUpdates: number
   pollingReboot: number
+  sslCheckUrl: string | null
+  pollingSsl: number
   teamsWebhookUrl: string | null
   serverLabel: string | null
   environment: string | null
@@ -72,10 +74,24 @@ export interface SystemRawData {
   [key: string]: unknown
 }
 
+export type SnapshotType = 'health' | 'system' | 'ssl'
+
+export interface SslRawData {
+  not_after?: string
+  not_before?: string
+  issuer?: string
+  subject?: string
+  days_remaining?: number
+  hostname?: string
+  port?: number
+}
+
+export type SslStatus = 'ok' | 'expiring_soon' | 'expired' | 'failed'
+
 export interface SiteSnapshot<TRawData = Record<string, unknown>> {
   id: string
   siteId: string
-  snapshotType: 'health' | 'system'
+  snapshotType: SnapshotType
   status: string | null
   rawData: TRawData | null
   metaMismatches: string[] | null
@@ -87,6 +103,7 @@ export interface SiteStatus {
   site: Site
   healthSnapshot: SiteSnapshot<HealthRawData> | null
   systemSnapshot: SiteSnapshot<SystemRawData> | null
+  sslSnapshot: SiteSnapshot<SslRawData> | null
 }
 
 export interface MonitorRuntimeConfig {
@@ -110,6 +127,8 @@ export interface SiteCreate {
   pollingSystem?: number
   pollingUpdates?: number
   pollingReboot?: number
+  sslCheckUrl?: string | null
+  pollingSsl?: number
   teamsWebhookUrl?: string | null
   serverLabel?: string | null
   environment?: string | null
@@ -123,4 +142,10 @@ export type SiteUpdate = Partial<SiteCreate>
 export type AppStatus = 'ok' | 'degraded' | 'failed'
 export type RebootStatus = 'ok' | 'reboot_required'
 export type UpdateStatus = 'up_to_date' | 'outdated' | 'outdated_security'
-export type MonitorOverallStatus = AppStatus | RebootStatus | UpdateStatus | 'unknown'
+export type CertOverallStatus = 'cert_expired'
+export type MonitorOverallStatus =
+  | AppStatus
+  | RebootStatus
+  | UpdateStatus
+  | CertOverallStatus
+  | 'unknown'

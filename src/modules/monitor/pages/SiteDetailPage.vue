@@ -25,6 +25,7 @@ import EditSiteDialog from '../components/EditSiteDialog.vue'
 import SiteDetailConfigurationCard from '../components/SiteDetailConfigurationCard.vue'
 import SiteDetailHealthCard from '../components/SiteDetailHealthCard.vue'
 import SiteDetailSnapshotHistoryCard from '../components/SiteDetailSnapshotHistoryCard.vue'
+import SiteDetailSslCard from '../components/SiteDetailSslCard.vue'
 import SiteDetailSystemCard from '../components/SiteDetailSystemCard.vue'
 import SiteNotFoundState from '../components/SiteNotFoundState.vue'
 import { useHeartbeat } from '../composables/useHeartbeat'
@@ -70,6 +71,7 @@ const environmentDraft = ref('')
 const ipDraft = ref('')
 const healthResponseDialogOpen = ref(false)
 const systemResponseDialogOpen = ref(false)
+const sslResponseDialogOpen = ref(false)
 const showEditDialog = ref(false)
 const showDeleteDialog = ref(false)
 const togglingEnabled = ref(false)
@@ -83,6 +85,12 @@ const formattedHealthResponse = computed(() => {
 
 const formattedSystemResponse = computed(() => {
   const rawData = status.value?.systemSnapshot?.rawData
+  if (!rawData) return ''
+  return JSON.stringify(rawData, null, 2)
+})
+
+const formattedSslResponse = computed(() => {
+  const rawData = status.value?.sslSnapshot?.rawData
   if (!rawData) return ''
   return JSON.stringify(rawData, null, 2)
 })
@@ -277,6 +285,11 @@ function goBackFromNotFound() {
           @view-raw-response="systemResponseDialogOpen = true"
           @configure-url="showEditDialog = true"
         />
+        <SiteDetailSslCard
+          v-if="status.site.sslCheckUrl"
+          :snapshot="status.sslSnapshot"
+          @view-raw-response="sslResponseDialogOpen = true"
+        />
         <SiteDetailSnapshotHistoryCard :site="status.site" />
         <SiteDetailConfigurationCard
           v-model:server-label-draft="serverLabelDraft"
@@ -303,6 +316,15 @@ function goBackFromNotFound() {
             <DialogTitle>{{ t('monitor.systemEndpointResponse', 'System endpoint response') }}</DialogTitle>
           </DialogHeader>
           <CopyablePre :value="formattedSystemResponse" />
+        </DialogScrollContent>
+      </Dialog>
+
+      <Dialog v-model:open="sslResponseDialogOpen">
+        <DialogScrollContent class="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{{ t('monitor.sslEndpointResponse', 'SSL certificate details') }}</DialogTitle>
+          </DialogHeader>
+          <CopyablePre :value="formattedSslResponse" />
         </DialogScrollContent>
       </Dialog>
     </div>

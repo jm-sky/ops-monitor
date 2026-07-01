@@ -154,6 +154,18 @@ function updateMetaValue(key: string, value: string) {
     />
   </div>
   <div class="space-y-1.5">
+    <Label :for="`${props.idPrefix}-site-ssl`">{{ $t('monitor.fields.sslCheckUrl', 'SSL check URL') }}</Label>
+    <Input
+      :id="`${props.idPrefix}-site-ssl`"
+      v-model="form.sslCheckUrl"
+      placeholder="https://example.com"
+      type="url"
+    />
+    <p class="text-xs text-muted-foreground">
+      {{ $t('monitor.fields.sslCheckUrlHint', 'Only the host and port are used to check the certificate — the path is ignored.') }}
+    </p>
+  </div>
+  <div class="space-y-1.5">
     <Label :for="`${props.idPrefix}-site-token`">{{ $t('monitor.fields.token', 'Bearer token') }}</Label>
     <PasswordInput
       :id="`${props.idPrefix}-site-token`"

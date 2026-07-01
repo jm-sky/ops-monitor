@@ -29,6 +29,7 @@ class _FakeSite:
     name: str
     health_url: str | None = None
     system_url: str | None = None
+    ssl_check_url: str | None = None
 
     def to_response(self) -> dict[str, object]:
         now = datetime.now(UTC)
@@ -45,6 +46,8 @@ class _FakeSite:
             "pollingSystem": 300,
             "pollingUpdates": 43200,
             "pollingReboot": 1800,
+            "sslCheckUrl": self.ssl_check_url,
+            "pollingSsl": 43200,
             "teamsWebhookUrl": None,
             "serverLabel": None,
             "environment": None,
@@ -207,6 +210,49 @@ def test_list_site_statuses_omits_orphan_health_snapshot(
     assert payload[0]["systemSnapshot"]["status"] == "up_to_date"
 
 
+def test_list_site_statuses_includes_ssl_snapshot(
+    monitor_client: TestClient,
+) -> None:
+    """Site with sslCheckUrl returns sslSnapshot in /site-statuses."""
+    site = _FakeSite(
+        id=uuid.uuid4(),
+        name="site-with-cert",
+        ssl_check_url="https://example.com",
+    )
+
+    async def _mock_get_all(_: SiteRepository) -> list[_FakeSite]:
+        return [site]
+
+    async def _mock_get_latest_for_sites(
+        _: SnapshotRepository, __: list[uuid.UUID]
+    ) -> dict[uuid.UUID, dict[str, _FakeSnapshot]]:
+        return {
+            site.id: {
+                "ssl": _FakeSnapshot(
+                    site_id=site.id,
+                    snapshot_type="ssl",
+                    status="expiring_soon",
+                ),
+            },
+        }
+
+    original_get_all = SiteRepository.get_all
+    original_get_latest_for_sites = SnapshotRepository.get_latest_for_sites
+    SiteRepository.get_all = _mock_get_all  # type: ignore[method-assign, assignment]
+    SnapshotRepository.get_latest_for_sites = _mock_get_latest_for_sites  # type: ignore[method-assign, assignment]
+
+    try:
+        response = monitor_client.get("/api/monitor/site-statuses")
+    finally:
+        SiteRepository.get_all = original_get_all  # type: ignore[method-assign]
+        SnapshotRepository.get_latest_for_sites = original_get_latest_for_sites  # type: ignore[method-assign]
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload) == 1
+    assert payload[0]["sslSnapshot"]["status"] == "expiring_soon"
+
+
 def test_update_site_clearing_health_url_deletes_health_snapshots(
     monitor_client: TestClient,
 ) -> None:
@@ -220,9 +266,7 @@ def test_update_site_clearing_health_url_deletes_health_snapshots(
     )
     deleted_types: list[str] = []
 
-    async def _mock_get_by_id(
-        _: SiteRepository, sid: uuid.UUID
-    ) -> _FakeSite | None:
+    async def _mock_get_by_id(_: SiteRepository, sid: uuid.UUID) -> _FakeSite | None:
         return site if sid == site_id else None
 
     async def _mock_update(

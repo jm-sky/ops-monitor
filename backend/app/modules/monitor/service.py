@@ -7,8 +7,10 @@ from urllib.parse import urlparse, urlunparse
 
 import httpx
 
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 
+from . import ssl_check
 from .alerts.dispatcher import dispatch_if_changed
 from .db_models import SiteDB
 from .repositories import SnapshotRepository, SiteRepository
@@ -71,6 +73,9 @@ class MonitorService:
                 if live
                 else site.polling_system
             )
+            ssl_interval = (
+                min(site.polling_ssl, LIVE_POLL_INTERVAL) if live else site.polling_ssl
+            )
 
             if site.health_url:
                 last = site_times.get("health")
@@ -90,6 +95,15 @@ class MonitorService:
                         logger.error("System poll failed for %s: %s", site.name, e)
                     site_times["system"] = now
 
+            if site.ssl_check_url:
+                last = site_times.get("ssl")
+                if last is None or (now - last).total_seconds() >= ssl_interval:
+                    try:
+                        await self._poll_ssl(site)
+                    except Exception as e:
+                        logger.error("SSL poll failed for %s: %s", site.name, e)
+                    site_times["ssl"] = now
+
     async def poll_site_now(self, site: SiteDB) -> dict[str, Any]:
         """Immediately poll a site and return snapshot data (on-demand refresh)."""
         results: dict[str, Any] = {}
@@ -99,6 +113,9 @@ class MonitorService:
         if site.system_url:
             snap = await self._poll_system(site)
             results["system"] = snap.to_response()
+        if site.ssl_check_url:
+            snap = await self._poll_ssl(site)
+            results["ssl"] = snap.to_response()
         return results
 
     async def _poll_health(self, site: SiteDB) -> Any:
@@ -186,6 +203,30 @@ class MonitorService:
             repo = SnapshotRepository(db)
             snap = await repo.create(site.id, "system", raw_data, error, status)
             await repo.cleanup_old(site.id, "system")
+
+        await dispatch_if_changed(site, snap)
+        return snap
+
+    async def _poll_ssl(self, site: SiteDB) -> Any:
+        raw_data = None
+        error = None
+        status = None
+
+        try:
+            raw_data = await ssl_check.fetch_cert(site.ssl_check_url, site.ip)  # type: ignore[arg-type]
+            status = ssl_check.resolve_ssl_status(
+                raw_data["days_remaining"], settings.monitor.ssl_expiry_warning_days
+            )
+        except Exception as e:
+            error = str(e)
+            status = "failed"
+
+        logger.debug("SSL poll %s → status=%s error=%s", site.name, status, error)
+
+        async with AsyncSessionLocal() as db:
+            repo = SnapshotRepository(db)
+            snap = await repo.create(site.id, "ssl", raw_data, error, status)
+            await repo.cleanup_old(site.id, "ssl")
 
         await dispatch_if_changed(site, snap)
         return snap

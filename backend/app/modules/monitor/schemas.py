@@ -20,6 +20,8 @@ class SiteCreate(BaseModel):
     pollingSystem: int = Field(300, ge=30)
     pollingUpdates: int = Field(43200, ge=300)
     pollingReboot: int = Field(1800, ge=60)
+    sslCheckUrl: Optional[str] = None
+    pollingSsl: int = Field(43200, ge=300)
     teamsWebhookUrl: Optional[str] = None
     serverLabel: Optional[str] = Field(None, max_length=255)
     environment: Optional[str] = Field(None, max_length=100)
@@ -40,6 +42,8 @@ class SiteUpdate(BaseModel):
     pollingSystem: Optional[int] = Field(None, ge=30)
     pollingUpdates: Optional[int] = Field(None, ge=300)
     pollingReboot: Optional[int] = Field(None, ge=60)
+    sslCheckUrl: Optional[str] = None
+    pollingSsl: Optional[int] = Field(None, ge=300)
     teamsWebhookUrl: Optional[str] = None
     serverLabel: Optional[str] = Field(None, max_length=255)
     environment: Optional[str] = Field(None, max_length=100)
@@ -61,6 +65,8 @@ class SiteResponse(BaseModel):
     pollingSystem: int
     pollingUpdates: int
     pollingReboot: int
+    sslCheckUrl: Optional[str] = None
+    pollingSsl: int
     teamsWebhookUrl: Optional[str] = None
     serverLabel: Optional[str] = None
     environment: Optional[str] = None
@@ -97,6 +103,7 @@ class SiteStatusResponse(BaseModel):
     site: SiteResponse
     healthSnapshot: Optional[SiteSnapshotResponse] = None
     systemSnapshot: Optional[SiteSnapshotResponse] = None
+    sslSnapshot: Optional[SiteSnapshotResponse] = None
 
 
 class PollResponse(BaseModel):

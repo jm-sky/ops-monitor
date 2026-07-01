@@ -6,6 +6,7 @@ import type {
   SiteSnapshot,
   SiteStatus,
   SiteUpdate,
+  SnapshotType,
 } from '@/modules/monitor/types'
 
 interface PaginatedResponse<T> {
@@ -48,7 +49,7 @@ class MonitorService {
     await apiClient.delete(`/monitor/sites/${id}`)
   }
 
-  async getSnapshots(siteId: string, type: 'health' | 'system', limit = 100): Promise<SiteSnapshot[]> {
+  async getSnapshots(siteId: string, type: SnapshotType, limit = 100): Promise<SiteSnapshot[]> {
     const response = await apiClient.get<SiteSnapshot[]>(
       `/monitor/sites/${siteId}/snapshots/${type}`,
       { params: { limit } },
@@ -58,7 +59,7 @@ class MonitorService {
 
   async getSnapshotsPage(
     siteId: string,
-    type: 'health' | 'system',
+    type: SnapshotType,
     params: { limit: number, offset: number },
   ): Promise<PaginatedResponse<SiteSnapshot>> {
     const response = await apiClient.get<PaginatedResponse<SiteSnapshot>>(

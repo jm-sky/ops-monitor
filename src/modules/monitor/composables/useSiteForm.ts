@@ -8,6 +8,7 @@ export interface SiteFormData {
   tags: string[]
   healthUrl: string
   systemUrl: string
+  sslCheckUrl: string
   token: string
   enabled: boolean
   pollingHealth: number
@@ -24,6 +25,7 @@ const SITE_FORM_DEFAULTS: SiteFormData = {
   tags: [],
   healthUrl: '',
   systemUrl: '',
+  sslCheckUrl: '',
   token: '',
   enabled: true,
   pollingHealth: 300,
@@ -45,6 +47,7 @@ export function siteToForm(site: Site): SiteFormData {
     tags: site.tags ?? [],
     healthUrl: site.healthUrl ?? '',
     systemUrl: site.systemUrl ?? '',
+    sslCheckUrl: site.sslCheckUrl ?? '',
     token: '',
     enabled: site.enabled,
     pollingHealth: site.pollingHealth,

@@ -15,6 +15,8 @@ const baseSite: Site = {
   pollingSystem: 600,
   pollingUpdates: 3600,
   pollingReboot: 1800,
+  sslCheckUrl: null,
+  pollingSsl: 43200,
   teamsWebhookUrl: null,
   serverLabel: 'srv-1',
   environment: 'production',

@@ -4,7 +4,10 @@ export type DisplayStatus = MonitorOverallStatus | string | null
 
 const SEVERITY: Record<string, number> = {
   failed: 6,
+  cert_expired: 6,
+  expired: 6,
   degraded: 5,
+  expiring_soon: 5,
   reboot_required: 4,
   outdated_security: 3,
   outdated: 2,
@@ -15,7 +18,10 @@ const SEVERITY: Record<string, number> = {
 
 const COLOR_CLASS: Record<string, string> = {
   failed: 'border-destructive/40 bg-destructive/10 text-destructive',
+  cert_expired: 'border-destructive/40 bg-destructive/10 text-destructive',
+  expired: 'border-destructive/40 bg-destructive/10 text-destructive',
   degraded: 'border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300',
+  expiring_soon: 'border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300',
   reboot_required: 'border-orange-200 bg-orange-100 text-orange-800 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-300',
   outdated_security: 'border-orange-300 bg-orange-100 text-orange-900 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300',
   outdated: 'border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300',
@@ -26,6 +32,9 @@ const COLOR_CLASS: Record<string, string> = {
 const LABEL_KEY: Record<string, string> = {
   degraded: 'monitor.status.degraded',
   failed: 'monitor.status.failed',
+  cert_expired: 'monitor.status.certExpired',
+  expired: 'monitor.status.certExpired',
+  expiring_soon: 'monitor.status.expiringSoon',
   ok: 'monitor.status.ok',
   outdated: 'monitor.status.outdated',
   outdated_security: 'monitor.status.outdatedSecurity',
@@ -36,6 +45,9 @@ const LABEL_KEY: Record<string, string> = {
 const LABEL_FALLBACK: Record<string, string> = {
   degraded: 'Degraded',
   failed: 'Failed',
+  cert_expired: 'Certificate expired',
+  expired: 'Certificate expired',
+  expiring_soon: 'Expiring soon',
   ok: 'OK',
   outdated: 'Outdated',
   outdated_security: 'Security updates',
@@ -45,6 +57,7 @@ const LABEL_FALLBACK: Record<string, string> = {
 
 const GROUP_BORDER_CLASS: Record<string, string> = {
   failed: 'border-destructive/60',
+  cert_expired: 'border-destructive/60',
   degraded: 'border-amber-400/60',
   reboot_required: 'border-orange-400/60',
   outdated_security: 'border-orange-400/50',
@@ -53,6 +66,7 @@ const GROUP_BORDER_CLASS: Record<string, string> = {
 
 const GROUP_BG_CLASS: Record<string, string> = {
   failed: 'bg-destructive/5',
+  cert_expired: 'bg-destructive/5',
   degraded: 'bg-amber-500/5',
   reboot_required: 'bg-orange-500/5',
   outdated_security: 'bg-orange-500/5',
@@ -61,6 +75,7 @@ const GROUP_BG_CLASS: Record<string, string> = {
 
 const GROUP_ICON_CLASS: Record<string, string> = {
   failed: 'text-destructive',
+  cert_expired: 'text-destructive',
   degraded: 'text-amber-500',
   reboot_required: 'text-orange-500',
   outdated_security: 'text-orange-500',
@@ -110,5 +125,6 @@ export function groupHasIssue(status: DisplayStatus): boolean {
 }
 
 export function groupHasCriticalIssue(status: DisplayStatus): boolean {
-  return normalizeStatus(status) === 'failed'
+  const normalized = normalizeStatus(status)
+  return normalized === 'failed' || normalized === 'cert_expired'
 }

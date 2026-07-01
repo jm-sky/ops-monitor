@@ -717,6 +717,12 @@ class MonitorSettings(BaseSettings):
         description="Frontend heartbeat interval for live mode keepalive",
         ge=1,
     )
+    ssl_expiry_warning_days: int = Field(
+        default=30,
+        validation_alias="MONITOR_SSL_EXPIRY_WARNING_DAYS",
+        description="Days before certificate expiry to switch status to expiring_soon",
+        ge=1,
+    )
 
 
 class Settings(BaseSettings):

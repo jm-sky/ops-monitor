@@ -21,13 +21,17 @@ _ERR_COL_MAX = 72
 
 
 def _format_error_cell(
-    health_snap: SiteSnapshotDB | None, system_snap: SiteSnapshotDB | None
+    health_snap: SiteSnapshotDB | None,
+    system_snap: SiteSnapshotDB | None,
+    ssl_snap: SiteSnapshotDB | None = None,
 ) -> str:
     parts: list[str] = []
     if health_snap and health_snap.error and health_snap.error.strip():
         parts.append(f"health: {health_snap.error.strip()}")
     if system_snap and system_snap.error and system_snap.error.strip():
         parts.append(f"system: {system_snap.error.strip()}")
+    if ssl_snap and ssl_snap.error and ssl_snap.error.strip():
+        parts.append(f"cert: {ssl_snap.error.strip()}")
     text = "; ".join(parts) if parts else "—"
     if len(text) > _ERR_COL_MAX:
         return text[: _ERR_COL_MAX - 1] + "…"
@@ -37,12 +41,15 @@ def _format_error_cell(
 def _format_last_poll(
     health_snap: SiteSnapshotDB | None,
     system_snap: SiteSnapshotDB | None,
+    ssl_snap: SiteSnapshotDB | None = None,
 ) -> str:
     times: list[datetime] = []
     if health_snap:
         times.append(health_snap.polled_at)
     if system_snap:
         times.append(system_snap.polled_at)
+    if ssl_snap:
+        times.append(ssl_snap.polled_at)
     if not times:
         return "—"
     latest = max(times)
@@ -58,47 +65,74 @@ def _status_display(snap: SiteSnapshotDB | None) -> str:
     return snap.status
 
 
+def _cert_display(snap: SiteSnapshotDB | None) -> str:
+    if snap is None:
+        return "—"
+    if snap.status == "expired":
+        return "EXPIRED"
+    if snap.status == "failed":
+        return "ERROR"
+    days = (snap.raw_data or {}).get("days_remaining")
+    if isinstance(days, int):
+        return f"{days}d"
+    return snap.status or "—"
+
+
 def _row_style_and_kind(
     site: SiteDB,
     health_snap: SiteSnapshotDB | None,
     system_snap: SiteSnapshotDB | None,
+    ssl_snap: SiteSnapshotDB | None = None,
 ) -> tuple[RowStyle, RowKind]:
     """Classify row for Rich styling and --errors-only filtering.
 
-    - red: any snapshot error text, or status failed on health/system.
-    - yellow: health degraded; system reboot_required/outdated; missing snapshot
-      when the corresponding URL is configured (never polled yet).
-    - dim: no health_url and no system_url — nothing to evaluate (not "all OK").
-    - green: expected snapshots present with OK health + up_to_date system.
+    - red: any snapshot error text, or status failed on health/system, or cert
+      failed/expired.
+    - yellow: health degraded; system reboot_required/outdated; cert
+      expiring_soon; missing snapshot when the corresponding URL is
+      configured (never polled yet).
+    - dim: no health_url/system_url/ssl_check_url — nothing to evaluate (not
+      "all OK").
+    - green: expected snapshots present with OK health + up_to_date system +
+      ok cert.
     """
     has_h = bool(site.health_url)
     has_s = bool(site.system_url)
+    has_c = bool(site.ssl_check_url)
 
     h_err = (health_snap.error or "").strip() if has_h and health_snap else ""
     s_err = (system_snap.error or "").strip() if has_s and system_snap else ""
+    c_err = (ssl_snap.error or "").strip() if has_c and ssl_snap else ""
     h_stat = health_snap.status if has_h and health_snap else None
     s_stat = system_snap.status if has_s and system_snap else None
+    c_stat = ssl_snap.status if has_c and ssl_snap else None
 
-    if h_err or s_err:
+    if h_err or s_err or c_err:
         return "red", "error"
-    if h_stat == "failed" or s_stat == "failed":
+    if h_stat == "failed" or s_stat == "failed" or c_stat in ("failed", "expired"):
         return "red", "error"
 
     if h_stat == "degraded":
         return "yellow", "warn"
     if s_stat in ("reboot_required", "outdated"):
         return "yellow", "warn"
+    if c_stat == "expiring_soon":
+        return "yellow", "warn"
     if has_h and health_snap is None:
         return "yellow", "warn"
     if has_s and system_snap is None:
         return "yellow", "warn"
+    if has_c and ssl_snap is None:
+        return "yellow", "warn"
 
-    if not has_h and not has_s:
+    if not has_h and not has_s and not has_c:
         return "dim", "neutral"
 
     if has_h and health_snap is not None and h_stat != "ok":
         return "yellow", "warn"
     if has_s and system_snap is not None and s_stat != "up_to_date":
+        return "yellow", "warn"
+    if has_c and ssl_snap is not None and c_stat != "ok":
         return "yellow", "warn"
 
     return "green", "ok"
@@ -322,6 +356,7 @@ async def _status(errors_only: bool) -> None:
     table.add_column("Środowisko")
     table.add_column("Health")
     table.add_column("System")
+    table.add_column("Cert")
     table.add_column("Błąd", overflow="ellipsis", max_width=_ERR_COL_MAX + 8)
     table.add_column("Ostatni poll")
 
@@ -329,19 +364,21 @@ async def _status(errors_only: bool) -> None:
         snaps = by_site.get(site.id, {})
         health_snap = snaps.get("health") if site.health_url else None
         system_snap = snaps.get("system") if site.system_url else None
-        row_style, kind = _row_style_and_kind(site, health_snap, system_snap)
+        ssl_snap = snaps.get("ssl") if site.ssl_check_url else None
+        row_style, kind = _row_style_and_kind(site, health_snap, system_snap, ssl_snap)
         if errors_only and not _include_in_errors_only(kind):
             continue
 
         env = site.environment or "—"
-        err_cell = _format_error_cell(health_snap, system_snap)
-        poll_cell = _format_last_poll(health_snap, system_snap)
+        err_cell = _format_error_cell(health_snap, system_snap, ssl_snap)
+        poll_cell = _format_last_poll(health_snap, system_snap, ssl_snap)
 
         table.add_row(
             site.name,
             env,
             _status_display(health_snap),
             _status_display(system_snap),
+            _cert_display(ssl_snap),
             err_cell,
             poll_cell,
             style=row_style,

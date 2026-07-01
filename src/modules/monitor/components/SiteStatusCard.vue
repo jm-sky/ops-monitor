@@ -30,6 +30,13 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const hasHealthUrl = computed(() => Boolean(props.siteStatus.site.healthUrl))
+const hasSslUrl = computed(() => Boolean(props.siteStatus.site.sslCheckUrl))
+
+const showExpiringSoonBadge = computed(() =>
+  hasSslUrl.value
+  && props.siteStatus.sslSnapshot?.status === 'expiring_soon'
+  && props.overallStatus(props.siteStatus) === 'ok',
+)
 
 const healthComponents = computed<[string, HealthComponentUi][]>(() => {
   if (!hasHealthUrl.value) return []
@@ -145,6 +152,7 @@ const showDegradedComponentBadges = computed(() =>
           :title="t('monitor.metaMismatch', 'Expected meta mismatch')"
         />
         <SecurityUpdatesCountBadge :count="securityUpdatesCount" />
+        <SiteStatusBadge v-if="showExpiringSoonBadge" status="expiring_soon" size="sm" />
         <SiteStatusBadge :status="props.overallStatus(props.siteStatus)" />
       </div>
     </CardHeader>
@@ -160,6 +168,10 @@ const showDegradedComponentBadges = computed(() =>
         <span v-if="props.siteStatus.systemSnapshot" class="flex items-center gap-1">
           <span class="font-medium text-foreground">{{ t('monitor.system', 'System') }}:</span>
           <SiteStatusBadge :status="systemDisplayStatus ?? 'unknown'" size="sm" />
+        </span>
+        <span v-if="hasSslUrl && props.siteStatus.sslSnapshot" class="flex items-center gap-1">
+          <span class="font-medium text-foreground">{{ t('monitor.ssl', 'SSL') }}:</span>
+          <SiteStatusBadge :status="props.siteStatus.sslSnapshot.status ?? 'unknown'" size="sm" />
         </span>
       </div>
       <div v-if="!props.denseMode && hasHealthUrl && healthComponents.length" class="grid grid-cols-2 gap-x-6 gap-y-1 pt-1">

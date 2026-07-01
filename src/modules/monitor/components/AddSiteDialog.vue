@@ -44,6 +44,7 @@ async function submit() {
       tags: toNullableTags(form.value.tags),
       healthUrl: toNullableString(form.value.healthUrl),
       systemUrl: toNullableString(form.value.systemUrl),
+      sslCheckUrl: toNullableString(form.value.sslCheckUrl),
       token: toNullableString(form.value.token),
       expectedMeta: toNullableMeta(form.value.expectedMeta),
     }
