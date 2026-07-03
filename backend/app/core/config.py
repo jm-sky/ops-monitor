@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.core.helpers import parse_list_value
+from app.core.helpers import parse_bool_value, parse_list_value
 
 # Shared config for all nested settings
 _base_config = SettingsConfigDict(
@@ -181,6 +181,16 @@ class SecuritySettings(BaseSettings):
         validation_alias="JWT_ALGORITHM",
         description="JWT signing algorithm",
     )
+    jwt_issuer: str = Field(
+        default="ops-monitor",
+        validation_alias="JWT_ISSUER",
+        description="JWT 'iss' claim; verified on decode to bind tokens to this deployment",
+    )
+    jwt_audience: str = Field(
+        default="ops-monitor",
+        validation_alias="JWT_AUDIENCE",
+        description="JWT 'aud' claim; verified on decode to bind tokens to this deployment",
+    )
     access_token_expires_minutes: int = Field(
         default=30,
         validation_alias="ACCESS_TOKEN_EXPIRES_MINUTES",
@@ -333,12 +343,7 @@ class RecaptchaSettings(BaseSettings):
     @classmethod
     def parse_enabled(cls, v: str | bool) -> bool:
         """Parse enabled field from string or bool."""
-        if isinstance(v, bool):
-            return v
-        if isinstance(v, str):
-            # Handle common boolean string representations
-            return v.lower() in ("true", "1", "yes", "on")
-        return False
+        return parse_bool_value(v)
 
     @field_validator("min_score")
     @classmethod
@@ -612,11 +617,7 @@ class SentrySettings(BaseSettings):
     @classmethod
     def parse_enabled(cls, v: str | bool) -> bool:
         """Parse enabled field from string or bool."""
-        if isinstance(v, bool):
-            return v
-        if isinstance(v, str):
-            return v.lower() in ("true", "1", "yes", "on")
-        return False
+        return parse_bool_value(v)
 
     @field_validator("traces_sample_rate", "profiles_sample_rate")
     @classmethod
@@ -770,6 +771,49 @@ class Settings(BaseSettings):
     def is_test(self) -> bool:
         """Check if running in test mode."""
         return self.app.environment == Environment.TEST
+
+    def validate_production(self) -> None:
+        """Assert production-safe invariants; raise ``ValueError`` on violation.
+
+        Call once on startup (see app_factory) when ``is_production()``. This is a
+        defence-in-depth guardrail against deploying with insecure defaults:
+
+        - ``DEBUG`` must be off (leaks stack traces / error details).
+        - ``ALLOWED_HOSTS`` must be a non-empty explicit allow-list (TrustedHost).
+        - ``CORS_ORIGINS`` must be a non-empty explicit allow-list, never ``*``
+          (a wildcard origin with credentials is a real CSRF/exfiltration hole).
+
+        The secret-key strength is already enforced at field-validation time.
+        """
+        if not self.is_production():
+            return
+
+        errors: list[str] = []
+
+        if self.app.debug:
+            errors.append("DEBUG must be false in production (set DEBUG=false).")
+
+        # allowed_hosts / cors_origins are parsed to lists by their validators.
+        allowed_hosts = self.server.allowed_hosts
+        if not allowed_hosts or "*" in allowed_hosts:
+            errors.append(
+                "ALLOWED_HOSTS must be a non-empty explicit allow-list "
+                "(no '*') in production."
+            )
+
+        cors_origins = self.server.cors_origins
+        if not cors_origins:
+            errors.append("CORS_ORIGINS must be set to an explicit allow-list.")
+        elif "*" in cors_origins:
+            errors.append(
+                "CORS_ORIGINS must not contain '*' in production "
+                "(wildcard origins with credentials are unsafe)."
+            )
+
+        if errors:
+            raise ValueError(
+                "Insecure production configuration detected:\n- " + "\n- ".join(errors)
+            )
 
 
 @lru_cache

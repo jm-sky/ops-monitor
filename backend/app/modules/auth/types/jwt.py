@@ -37,6 +37,7 @@ class JWTPayload(TypedDict, total=False):
     iat: int
     exp: int
     aud: str | None
+    iss: str | None
     tfaPending: bool | None
     tfaVerified: bool | None
     tfaMethod: str | None  # 'totp' | 'webauthn'
