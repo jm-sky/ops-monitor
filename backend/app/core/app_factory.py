@@ -1,5 +1,6 @@
 """Application factory for creating FastAPI app instances."""
 
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -10,6 +11,51 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.middleware import setup_middleware
 
+logger = logging.getLogger(__name__)
+
+
+def is_expected_auth_error(exc: BaseException) -> bool:
+    """Return True for auth errors that are normal business outcomes, not bugs.
+
+    Expired/invalid tokens and bad credentials are expected during normal use;
+    they should not page anyone or clutter Sentry.
+    """
+    from app.modules.auth.exceptions import (
+        ExpiredTokenError,
+        InvalidCredentialsError,
+        InvalidTokenError,
+    )
+
+    return isinstance(
+        exc, (ExpiredTokenError, InvalidTokenError, InvalidCredentialsError)
+    )
+
+
+def is_expected_image_error(exc: BaseException) -> bool:
+    """Return True for image errors caused by bad user uploads, not bugs.
+
+    Covers our own ``CorruptedImageError`` plus the ``OSError`` PIL raises for
+    truncated / unidentifiable image files.
+    """
+    from app.core.storage.exceptions import CorruptedImageError
+
+    if isinstance(exc, CorruptedImageError):
+        return True
+    if isinstance(exc, OSError):
+        error_msg = str(exc).lower()
+        return "truncated" in error_msg or "cannot identify" in error_msg
+    return False
+
+
+def is_expected_error(exc: BaseException) -> bool:
+    """Return True for any error that is an expected business outcome, not a bug.
+
+    Single source of truth shared by the Sentry ``before_send`` filter and the
+    global exception handler so the "don't alert on this" policy can't drift
+    between the two.
+    """
+    return is_expected_auth_error(exc) or is_expected_image_error(exc)
+
 
 def init_sentry() -> None:
     """Initialize Sentry error monitoring if enabled."""
@@ -17,7 +63,6 @@ def init_sentry() -> None:
         return
 
     try:
-        import logging
         from typing import Any
 
         import sentry_sdk
@@ -30,36 +75,13 @@ def init_sentry() -> None:
             # Get the exception from hint
             exc_info = hint.get("exc_info")
             if exc_info:
-                exc_type, exc_value, _ = exc_info
+                _, exc_value, _ = exc_info
 
-                # Filter out expected authentication errors
-                from app.modules.auth.exceptions import (
-                    ExpiredTokenError,
-                    InvalidCredentialsError,
-                    InvalidTokenError,
-                )
-
-                # Filter out expected image processing errors
-                from app.core.storage.exceptions import CorruptedImageError
-
-                # Don't send expected auth errors to Sentry
-                # These are normal business logic errors (expired tokens, invalid credentials)
-                if isinstance(
-                    exc_value,
-                    (ExpiredTokenError, InvalidTokenError, InvalidCredentialsError),
-                ):
+                # Don't send expected business-logic errors (expired/invalid tokens,
+                # bad credentials, corrupted uploads) to Sentry. Shared policy with
+                # the global exception handler via is_expected_error().
+                if exc_value is not None and is_expected_error(exc_value):
                     return None
-
-                # Don't send corrupted image errors to Sentry
-                # These are expected when users upload corrupted/truncated files
-                if isinstance(exc_value, CorruptedImageError):
-                    return None
-
-                # Filter out OSError for truncated images (PIL raises this)
-                if isinstance(exc_value, OSError):
-                    error_msg = str(exc_value).lower()
-                    if "truncated" in error_msg or "cannot identify" in error_msg:
-                        return None
 
             # Check exception type from event data (fallback for cases where exc_info might not be available)
             if event.get("exception"):
@@ -103,16 +125,10 @@ def init_sentry() -> None:
             before_send=before_send,  # Filter out expected errors
         )
     except ImportError:
-        import logging
-
-        logger = logging.getLogger(__name__)
         logger.warning(
             "Sentry SDK not installed. Install with: pip install sentry-sdk[fastapi]"
         )
     except Exception as e:
-        import logging
-
-        logger = logging.getLogger(__name__)
         logger.error(f"Failed to initialize Sentry: {e}", exc_info=True)
 
 
@@ -124,19 +140,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     Handles startup and shutdown events.
     """
     # Startup
-    import logging
-
-    logger = logging.getLogger(__name__)
     logger.info("Starting application", extra={"environment": settings.app.environment})
 
-    # Initialize database (optional - uncomment if you want auto-init)
-    # In production, use Alembic migrations instead
-    # try:
-    #     from app.core.database import init_db
-    #     await init_db()
-    #     logger.info("Database initialized successfully")
-    # except Exception as e:
-    #     logger.error(f"Failed to initialize database: {e}")
+    # Fail fast on insecure production configuration (no-op outside production).
+    settings.validate_production()
 
     # Start monitor poller
     try:
@@ -233,39 +240,17 @@ def register_exception_handlers(app: FastAPI) -> None:
         request: Request, exc: Exception
     ) -> JSONResponse:
         """Handle unexpected errors."""
-        import logging
+        # These are expected business logic errors, not bugs. Same policy the
+        # Sentry before_send filter uses (see is_expected_error).
+        expected_auth_error = is_expected_auth_error(exc)
+        expected_image_error = is_expected_image_error(exc)
 
-        logger = logging.getLogger(__name__)
-
-        # Skip Sentry reporting for expected authentication errors
-        from app.modules.auth.exceptions import (
-            ExpiredTokenError,
-            InvalidCredentialsError,
-            InvalidTokenError,
-        )
-
-        # Skip Sentry reporting for expected image processing errors
-        from app.core.storage.exceptions import CorruptedImageError
-
-        # These are expected business logic errors, not bugs
-        is_expected_auth_error = isinstance(
-            exc, (ExpiredTokenError, InvalidTokenError, InvalidCredentialsError)
-        )
-
-        # Corrupted images are expected when users upload bad files
-        is_expected_image_error = isinstance(exc, CorruptedImageError) or (
-            isinstance(exc, OSError)
-            and (
-                "truncated" in str(exc).lower() or "cannot identify" in str(exc).lower()
-            )
-        )
-
-        if not is_expected_auth_error and not is_expected_image_error:
+        if not expected_auth_error and not expected_image_error:
             logger.exception("Unhandled exception occurred")
-        elif is_expected_auth_error:
+        elif expected_auth_error:
             # Log expected auth errors at debug level (not error)
             logger.debug(f"Expected authentication error: {type(exc).__name__}: {exc}")
-        elif is_expected_image_error:
+        elif expected_image_error:
             # Log expected image errors at warning level (user uploaded bad file)
             logger.warning(f"Corrupted image file: {type(exc).__name__}: {exc}")
 
@@ -273,8 +258,8 @@ def register_exception_handlers(app: FastAPI) -> None:
         # Skip Sentry for expected errors (they're filtered in before_send, but avoid unnecessary processing)
         if (
             settings.sentry.enabled
-            and not is_expected_auth_error
-            and not is_expected_image_error
+            and not expected_auth_error
+            and not expected_image_error
         ):
             try:
                 import sentry_sdk
@@ -326,9 +311,6 @@ def register_routers(app: FastAPI) -> None:
 
         app.include_router(api_router, prefix="/api", tags=["API"])
     except ImportError as e:
-        import logging
-
-        logger = logging.getLogger(__name__)
         logger.error(f"Failed to import API router: {e}", exc_info=True)
         raise
 

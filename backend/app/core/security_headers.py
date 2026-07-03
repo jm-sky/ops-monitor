@@ -54,7 +54,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Matches Caddyfile configuration for consistency
         csp_directives = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' blob: https://www.google.com https://www.gstatic.com",
+            # NOTE: 'unsafe-inline' intentionally omitted from script-src — it would
+            # largely defeat CSP's XSS protection. reCAPTCHA/Sentry only need the
+            # allow-listed hosts below, not inline scripts. 'unsafe-inline' remains
+            # on style-src because Vue/shadcn emit inline styles.
+            "script-src 'self' blob: https://www.google.com https://www.gstatic.com",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: https:",
             "font-src 'self' data:",
