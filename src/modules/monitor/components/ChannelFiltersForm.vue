@@ -67,8 +67,8 @@ function isAlertTypeChecked(type: AlertType): boolean {
   return filters.value.alert_types.includes(type)
 }
 
-function setMinSeverity(value: string) {
-  filters.value = { ...filters.value, min_health_severity: value as HealthSeverity }
+function setMinSeverity(value: string | number | bigint | Record<string, unknown> | null) {
+  if (typeof value === 'string') filters.value = { ...filters.value, min_health_severity: value as HealthSeverity }
 }
 
 function toggleSite(siteId: string) {

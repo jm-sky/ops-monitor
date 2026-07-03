@@ -18,7 +18,7 @@ const emit = defineEmits<{
   <RadioGroup
     class="flex flex-col gap-4"
     :model-value="props.modelValue"
-    @update:model-value="value => emit('update:modelValue', value)"
+    @update:model-value="value => { if (typeof value === 'string') emit('update:modelValue', value) }"
   >
     <div class="flex items-center gap-2">
       <RadioGroupItem id="high-quality" value="high_quality" />
