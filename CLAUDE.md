@@ -29,6 +29,10 @@ docker exec ops-monitor-app python -m black . && docker exec ops-monitor-app pyt
 
 **CRITICAL:** Never run `docker` commands if the project directory starts with `_` (underscore = production server dev copy).
 
+## Shared Core
+
+This repo shares a copied core with **gear-stack** (`backend/app/core` + `app/common` + `cli`, and frontend `src/shared` + `src/components/ui`). It has drifted — any change to a shared-core file should be mirrored to gear-stack, and brand/domain values belong in config/env, not code. Inventory, current drift, and sync rules: **[docs/SHARED_CORE.md](docs/SHARED_CORE.md)** (companion: gear-stack `docs/REVIEW_AND_REFACTOR_PLAN.md`).
+
 ## Structure
 
 ```
