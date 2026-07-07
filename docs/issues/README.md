@@ -37,6 +37,7 @@ Po zmianie statusu zaktualizuj zarówno plik zadania, jak i tabelę na tej stron
 | 002 | 2026-07-01 | `done` | Weryfikacja ważności certyfikatów SSL | [2026-07-01--002--ssl-cert-expiry-monitoring.md](./2026-07-01--002--ssl-cert-expiry-monitoring.md) |
 | 003 | 2026-07-01 | `planned` | Moduł akcji na monitorowanych serwerach | [2026-07-01--003--remote-server-actions.md](./2026-07-01--003--remote-server-actions.md) |
 | 004 | 2026-07-06 | `done` | CLI `users delete` — soft/hard jak family-recipes | [2026-07-06--004--cli-users-delete-soft-hard.md](./2026-07-06--004--cli-users-delete-soft-hard.md) |
+| 005 | 2026-07-07 | `done` | OAuth Facebook — przycisk widoczny tylko przy własnej konfiguracji | [2026-07-07--005--oauth-facebook-button-visibility.md](./2026-07-07--005--oauth-facebook-button-visibility.md) |
 
 ## Szablon nowego zadania
 
