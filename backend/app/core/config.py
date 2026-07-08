@@ -395,6 +395,23 @@ class OAuthSettings(BaseSettings):
         description="Facebook OAuth redirect URI",
     )
 
+    # GitHub OAuth (login callback: /auth/github)
+    github_client_id: str = Field(
+        default="",
+        validation_alias="GITHUB_OAUTH_CLIENT_ID",
+        description="GitHub OAuth client ID for login",
+    )
+    github_client_secret: str = Field(
+        default="",
+        validation_alias="GITHUB_OAUTH_CLIENT_SECRET",
+        description="GitHub OAuth client secret for login",
+    )
+    github_redirect_uri: str = Field(
+        default="",
+        validation_alias="GITHUB_OAUTH_REDIRECT_URI",
+        description="GitHub login callback URL (e.g. /auth/github)",
+    )
+
 
 class EmailSettings(BaseSettings):
     """Email service configuration."""
