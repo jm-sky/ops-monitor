@@ -56,6 +56,7 @@ export default {
     pagination: {
       totalRows: 'Łącznie {total} wierszy',
       rowsPerPage: 'Wierszy na stronę',
+      rowsPerPageValue: 'Wierszy na stronę: {count}',
       page: 'Strona',
       of: 'z',
       goToFirstPage: 'Przejdź do pierwszej strony',
