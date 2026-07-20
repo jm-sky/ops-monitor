@@ -110,23 +110,26 @@ To add the SSH key secret:
 
 ## Manual Deployment
 
-There are two deploy scripts, one per backend compose flavor:
+One deploy script auto-detects the active Docker Compose stack:
 
-- `scripts/deploy.sh` — **prod-flavored** backend: root `docker-compose.yml`, builds
-  `backend/Dockerfile` (no `--reload`), baked image. This is what GitHub Actions runs.
-- `scripts/deploy_dev.sh` — **dev-flavored** backend: `backend/docker-compose.dev.yml`,
-  builds `backend/Dockerfile.dev` (`--reload`), source bind-mounted.
+- `scripts/deploy.sh` — detects compose from the running `ops-monitor-app` container,
+  or defaults to prod (`docker-compose.yml` in repo root) when no container is running.
 
 ```bash
 cd /home/$USER/projects/ops-monitor
-bash scripts/deploy.sh       # or scripts/deploy_dev.sh
+bash scripts/deploy.sh              # auto-detect (or prod default)
+bash scripts/deploy.sh --prod       # force root docker-compose.yml
+bash scripts/deploy.sh --dev        # force backend/docker-compose.dev.yml
 ```
 
-Each script will:
+The former `scripts/deploy_dev.sh` has been removed; use `bash scripts/deploy.sh` instead
+(it will detect a dev stack automatically when that container is running).
+
+The script will:
 1. Pull latest changes from git
 2. Install frontend dependencies with pnpm
 3. Build the frontend
-4. Deploy to `/var/www/ops-monitor/`
+4. Deploy to `/var/www/ops-monitor/dist`
 5. Rebuild and force-recreate the backend app container, then run migrations
 
 **Important:** always rebuild and `--force-recreate` the `app` container after a `git
@@ -151,29 +154,37 @@ The GitHub Actions workflow (`.github/workflows/deploy.yml`) automatically deplo
 
 2. **Deploy** (runs on your server via SSH)
    - Connect to server as `deploy` user
-   - Run `scripts/deploy.sh` (prod-flavored backend)
+   - Run `scripts/deploy.sh` (auto-detects the active compose stack on the server)
 
 The workflow will fail if linting or type checking fails, preventing broken code from being deployed.
 
 ## Deployment Script Details
 
-`scripts/deploy.sh` (prod) and `scripts/deploy_dev.sh` (dev) both perform:
+`scripts/deploy.sh` performs:
 
-1. **Pull latest changes** - `git pull`
-2. **Install dependencies** - `pnpm install --frozen-lockfile`
-3. **Build frontend** - `pnpm build`
-4. **Deploy to /var/www/ops-monitor/**
-   - Remove old files: `sudo rm -rf /var/www/ops-monitor/*`
-   - Copy new build: `sudo cp -r dist/* /var/www/ops-monitor/`
-   - Fix ownership: `sudo chown -R caddy:deploy /var/www/ops-monitor`
-5. **Restart backend and migrate** (via `scripts/backend_restart_migrate_prod.sh` or
-   `scripts/backend_restart_migrate_dev.sh`)
+1. **Resolve compose context** — auto-detect from running container, or `--prod` / `--dev`
+2. **Pull latest changes** - `git pull`
+3. **Install dependencies** - `pnpm install --frozen-lockfile`
+4. **Build frontend** - `pnpm build`
+5. **Deploy to /var/www/ops-monitor/dist**
+   - Remove old files: `sudo rm -rf /var/www/ops-monitor/dist/*`
+   - Copy new build: `sudo cp -r dist/* /var/www/ops-monitor/dist/`
+   - Fix ownership: `sudo chown -R caddy:deploy /var/www/ops-monitor/dist`
+6. **Restart backend and migrate** (via `scripts/backend_restart_migrate.sh`)
    - Build the app image: `docker compose -f <compose-file> build app`
    - Force-recreate the container: `docker compose -f <compose-file> up -d --force-recreate app`
    - Run migrations: `docker compose -f <compose-file> exec app python -m cli db migrate`
 
-Where `<compose-file>` is `docker-compose.yml` (prod, run from repo root) or
-`backend/docker-compose.dev.yml` (dev, run from `backend/`).
+Compose selection:
+
+| Mode | Compose file | Working directory |
+|------|--------------|-------------------|
+| Auto-detect (container running) | From container labels | From container labels |
+| Default (no container) | `docker-compose.yml` | repo root |
+| `--prod` | `docker-compose.yml` | repo root |
+| `--dev` | `docker-compose.dev.yml` | `backend/` |
+
+Shared detection logic lives in `scripts/lib/detect_compose.sh` (also used by `exec.sh`).
 
 ## Permission Structure
 

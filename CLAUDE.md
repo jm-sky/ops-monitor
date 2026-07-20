@@ -12,6 +12,7 @@ pnpm dev / build / lint / type-check / test:run
 
 # Backend (Docker)
 docker compose -f backend/docker-compose.dev.yml up
+bash scripts/deploy.sh              # deploy (auto-detect compose stack)
 docker exec ops-monitor-app python -m cli db init
 docker exec ops-monitor-app python -m cli db migrate
 docker exec ops-monitor-app python -m cli users create
