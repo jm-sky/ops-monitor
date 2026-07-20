@@ -40,6 +40,12 @@ Po zmianie statusu zaktualizuj zarówno plik zadania, jak i tabelę na tej stron
 | 005 | 2026-07-07 | `done` | OAuth Facebook — przycisk widoczny tylko przy własnej konfiguracji | [2026-07-07--005--oauth-facebook-button-visibility.md](./2026-07-07--005--oauth-facebook-button-visibility.md) |
 | 006 | 2026-07-07 | `done` | OAuth GitHub — logowanie przez GitHub | [2026-07-07--006--oauth-github-login.md](./2026-07-07--006--oauth-github-login.md) |
 | 007 | 2026-07-07 | `todo` | GuestLayout — pasek locale/dark mode pod logo (z-index) | [2026-07-07--007--guest-layout-nav-z-index.md](./2026-07-07--007--guest-layout-nav-z-index.md) |
+| 008 | 2026-07-20 | `done` | Sekrety monitorowanych serwerów widoczne dla każdego zalogowanego użytkownika (SEC-1) | [2026-07-20--008--monitor-secrets-exposed-to-any-user.md](./2026-07-20--008--monitor-secrets-exposed-to-any-user.md) |
+| 009 | 2026-07-20 | `done` | Router `/users/*` omija ochronę Ownera/superadmina (SEC-2) | [2026-07-20--009--users-router-bypasses-owner-protection.md](./2026-07-20--009--users-router-bypasses-owner-protection.md) |
+| 010 | 2026-07-20 | `done` | WebAuthn: weryfikacja to zaślepka; logowanie z 2FA zepsute (SEC-3) | [2026-07-20--010--webauthn-stub-and-2fa-login-broken.md](./2026-07-20--010--webauthn-stub-and-2fa-login-broken.md) |
+| 011 | 2026-07-20 | `done` | Rate limiting niepodłączony i spoofowalny (SEC-4) | [2026-07-20--011--rate-limiting-not-wired.md](./2026-07-20--011--rate-limiting-not-wired.md) |
+| 012 | 2026-07-20 | `done` | Zepsuty endpoint create user + martwy stos wyjątków | [2026-07-20--012--broken-user-create-endpoint-and-dead-exception-stack.md](./2026-07-20--012--broken-user-create-endpoint-and-dead-exception-stack.md) |
+| 013 | 2026-07-20 | `done` | Podbić floory pip z aktywnymi CVE (Pillow, jinja2, python-dotenv) | [2026-07-20--013--pip-floor-cve-bump.md](./2026-07-20--013--pip-floor-cve-bump.md) |
 
 ## Szablon nowego zadania
 

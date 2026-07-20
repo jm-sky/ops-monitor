@@ -2,17 +2,16 @@
 
 import logging
 
-from app.core.config import get_settings
 from app.modules.auth.models import User
 from app.modules.auth.repositories import UserRepository as AuthUserRepository
 from app.modules.users.repositories import UserRepository
 from app.modules.users.schemas import UserUpdate
 
+from .authorization import enforce_user_mutation_permissions
 from .repository import AdminRepository
 from .schemas import AdminUserResponse
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
 
 
 class AdminService:
@@ -82,28 +81,19 @@ class AdminService:
     async def update_user(
         self, user_id: str, user_data: UserUpdate, current_user: "User"
     ) -> AdminUserResponse | None:
-        from fastapi import HTTPException, status
-
         target_user, _ = await self.repository.get_user_by_id(user_id)
         if not target_user:
             return None
 
-        if current_user.isAdmin and not current_user.isOwner:
-            if user_data.isOwner is True or (
-                user_data.role and user_data.role == "owner"
-            ):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Administrators cannot assign Owner role",
-                )
-            if target_user.is_owner and (
-                user_data.isOwner is False
-                or (user_data.role and user_data.role != "owner")
-            ):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Administrators cannot modify Owner users",
-                )
+        enforce_user_mutation_permissions(
+            actor_is_admin=current_user.isAdmin,
+            actor_is_owner=current_user.isOwner,
+            target_email=target_user.email,
+            target_is_owner=target_user.is_owner,
+            target_is_admin=target_user.is_admin,
+            new_role=user_data.role,
+            new_is_owner=user_data.isOwner,
+        )
 
         is_admin = user_data.isAdmin
         is_owner = user_data.isOwner
@@ -159,33 +149,17 @@ class AdminService:
         )
 
     async def delete_user(self, user_id: str, current_user: "User") -> bool:
-        from fastapi import HTTPException, status
-
         target_user, _ = await self.repository.get_user_by_id(user_id)
         if not target_user:
             return False
 
-        if settings.security.protected_user_email:
-            if (
-                target_user.email.lower()
-                == settings.security.protected_user_email.lower()
-            ):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Cannot delete protected user",
-                )
-
-        if current_user.isAdmin and not current_user.isOwner:
-            if target_user.is_owner:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Administrators cannot delete Owner users",
-                )
-
-        if target_user.is_admin and not current_user.isOwner:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only Owners can delete admin users",
-            )
+        enforce_user_mutation_permissions(
+            actor_is_admin=current_user.isAdmin,
+            actor_is_owner=current_user.isOwner,
+            target_email=target_user.email,
+            target_is_owner=target_user.is_owner,
+            target_is_admin=target_user.is_admin,
+            is_delete=True,
+        )
 
         return await self.auth_user_repository.delete_user(user_id, soft_delete=True)

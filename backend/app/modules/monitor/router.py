@@ -48,17 +48,34 @@ def _snapshot_for_site(
     return None
 
 
+def _site_response(site: SiteDB, *, redact_secrets: bool) -> SiteResponse:
+    """Build a SiteResponse, stripping polling-secret fields for non-admins.
+
+    `token` (bearer credential used to poll the site's /health + /system) and
+    `teamsWebhookUrl` let anyone holding them hit those endpoints directly or
+    post into the org's Teams channel — they must not be visible to a
+    non-admin just because they're logged in. See SEC-1 in
+    docs/reviews/2026-07-20-security-backend.md.
+    """
+    response = SiteResponse(**site.to_response())
+    if redact_secrets:
+        response = response.model_copy(update={"token": None, "teamsWebhookUrl": None})
+    return response
+
+
 def _site_status_response(
     site: SiteDB,
     health_snapshot: SiteSnapshotDB | None,
     system_snapshot: SiteSnapshotDB | None,
     ssl_snapshot: SiteSnapshotDB | None = None,
+    *,
+    redact_secrets: bool = False,
 ) -> SiteStatusResponse:
     health = _snapshot_for_site(site, health_snapshot, "health")
     system = _snapshot_for_site(site, system_snapshot, "system")
     ssl_snap = _snapshot_for_site(site, ssl_snapshot, "ssl")
     return SiteStatusResponse(
-        site=SiteResponse(**site.to_response()),
+        site=_site_response(site, redact_secrets=redact_secrets),
         healthSnapshot=(
             SiteSnapshotResponse(**health.to_response()) if health else None
         ),
@@ -117,12 +134,13 @@ async def health_schema() -> dict:
     summary="List sites",
 )
 async def list_sites(
-    _: CurrentUser,
+    current_user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> list[SiteResponse]:
     repo = SiteRepository(db)
     sites = await repo.get_all()
-    return [SiteResponse(**site.to_response()) for site in sites]
+    is_admin = current_user.isAdmin or current_user.isOwner
+    return [_site_response(site, redact_secrets=not is_admin) for site in sites]
 
 
 @router.get(
@@ -131,7 +149,7 @@ async def list_sites(
     summary="List sites with current status",
 )
 async def list_site_statuses(
-    _: CurrentUser,
+    current_user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> list[SiteStatusResponse]:
     site_repo = SiteRepository(db)
@@ -140,6 +158,7 @@ async def list_site_statuses(
     sites = await site_repo.get_all()
     site_ids = [site.id for site in sites]
     snapshots_by_site = await snap_repo.get_latest_for_sites(site_ids)
+    is_admin = current_user.isAdmin or current_user.isOwner
 
     return [
         _site_status_response(
@@ -147,6 +166,7 @@ async def list_site_statuses(
             snapshots_by_site.get(site.id, {}).get("health"),
             snapshots_by_site.get(site.id, {}).get("system"),
             snapshots_by_site.get(site.id, {}).get("ssl"),
+            redact_secrets=not is_admin,
         )
         for site in sites
     ]
@@ -196,7 +216,7 @@ async def create_site(
 )
 async def get_site(
     site_id: uuid.UUID,
-    _: CurrentUser,
+    current_user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> SiteStatusResponse:
     site_repo = SiteRepository(db)
@@ -211,8 +231,11 @@ async def get_site(
     health_snap = await snap_repo.get_latest(site_id, "health")
     system_snap = await snap_repo.get_latest(site_id, "system")
     ssl_snap = await snap_repo.get_latest(site_id, "ssl")
+    is_admin = current_user.isAdmin or current_user.isOwner
 
-    return _site_status_response(site, health_snap, system_snap, ssl_snap)
+    return _site_status_response(
+        site, health_snap, system_snap, ssl_snap, redact_secrets=not is_admin
+    )
 
 
 @router.put(

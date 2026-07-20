@@ -23,6 +23,14 @@ class _FakeUser:
     isEmailVerified = True
 
 
+class _FakeNonAdminUser:
+    isAdmin = False
+    isOwner = False
+    isPremium = False
+    isActive = True
+    isEmailVerified = True
+
+
 @dataclass
 class _FakeSite:
     id: uuid.UUID
@@ -30,6 +38,8 @@ class _FakeSite:
     health_url: str | None = None
     system_url: str | None = None
     ssl_check_url: str | None = None
+    token: str | None = None
+    teams_webhook_url: str | None = None
 
     def to_response(self) -> dict[str, object]:
         now = datetime.now(UTC)
@@ -39,7 +49,7 @@ class _FakeSite:
             "description": None,
             "healthUrl": self.health_url,
             "systemUrl": self.system_url,
-            "token": None,
+            "token": self.token,
             "tags": None,
             "enabled": True,
             "pollingHealth": 300,
@@ -48,7 +58,7 @@ class _FakeSite:
             "pollingReboot": 1800,
             "sslCheckUrl": self.ssl_check_url,
             "pollingSsl": 43200,
-            "teamsWebhookUrl": None,
+            "teamsWebhookUrl": self.teams_webhook_url,
             "serverLabel": None,
             "environment": None,
             "verifySSL": True,
@@ -93,6 +103,21 @@ def monitor_client() -> Generator[TestClient, None, None]:
         finally:
             app.dependency_overrides.pop(get_current_user, None)
             app.dependency_overrides.pop(require_admin, None)
+
+
+@pytest.fixture
+def non_admin_monitor_client() -> Generator[TestClient, None, None]:
+    """Test client authenticated as a non-admin user (no require_admin override)."""
+
+    async def _mock_current_user() -> _FakeNonAdminUser:
+        return _FakeNonAdminUser()
+
+    app.dependency_overrides[get_current_user] = _mock_current_user
+    with TestClient(app) as client:
+        try:
+            yield client
+        finally:
+            app.dependency_overrides.pop(get_current_user, None)
 
 
 def test_list_site_statuses_returns_latest_snapshots(
@@ -300,3 +325,83 @@ def test_update_site_clearing_health_url_deletes_health_snapshots(
 
     assert response.status_code == 200
     assert deleted_types == ["health"]
+
+
+def test_non_admin_does_not_see_site_secrets_in_site_statuses(
+    non_admin_monitor_client: TestClient,
+) -> None:
+    """Regression test for SEC-1 (2026-07-20): a non-admin, authenticated
+    user must not see the polling bearer token or Teams webhook URL for
+    monitored sites — those are credentials, not display data."""
+    site = _FakeSite(
+        id=uuid.uuid4(),
+        name="secret-site",
+        health_url="https://example.com/health",
+        token="super-secret-polling-token",
+        teams_webhook_url="https://outlook.office.com/webhook/secret",
+    )
+
+    async def _mock_get_all(_: SiteRepository) -> list[_FakeSite]:
+        return [site]
+
+    async def _mock_get_latest_for_sites(
+        _: SnapshotRepository, __: list[uuid.UUID]
+    ) -> dict[uuid.UUID, dict[str, _FakeSnapshot]]:
+        return {}
+
+    original_get_all = SiteRepository.get_all
+    original_get_latest_for_sites = SnapshotRepository.get_latest_for_sites
+    SiteRepository.get_all = _mock_get_all  # type: ignore[method-assign, assignment]
+    SnapshotRepository.get_latest_for_sites = _mock_get_latest_for_sites  # type: ignore[method-assign, assignment]
+
+    try:
+        response = non_admin_monitor_client.get("/api/monitor/site-statuses")
+    finally:
+        SiteRepository.get_all = original_get_all  # type: ignore[method-assign]
+        SnapshotRepository.get_latest_for_sites = original_get_latest_for_sites  # type: ignore[method-assign]
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload) == 1
+    assert payload[0]["site"]["token"] is None
+    assert payload[0]["site"]["teamsWebhookUrl"] is None
+
+
+def test_admin_still_sees_site_secrets_in_site_statuses(
+    monitor_client: TestClient,
+) -> None:
+    """Admins still need the real token/webhook to manage sites."""
+    site = _FakeSite(
+        id=uuid.uuid4(),
+        name="secret-site",
+        health_url="https://example.com/health",
+        token="super-secret-polling-token",
+        teams_webhook_url="https://outlook.office.com/webhook/secret",
+    )
+
+    async def _mock_get_all(_: SiteRepository) -> list[_FakeSite]:
+        return [site]
+
+    async def _mock_get_latest_for_sites(
+        _: SnapshotRepository, __: list[uuid.UUID]
+    ) -> dict[uuid.UUID, dict[str, _FakeSnapshot]]:
+        return {}
+
+    original_get_all = SiteRepository.get_all
+    original_get_latest_for_sites = SnapshotRepository.get_latest_for_sites
+    SiteRepository.get_all = _mock_get_all  # type: ignore[method-assign, assignment]
+    SnapshotRepository.get_latest_for_sites = _mock_get_latest_for_sites  # type: ignore[method-assign, assignment]
+
+    try:
+        response = monitor_client.get("/api/monitor/site-statuses")
+    finally:
+        SiteRepository.get_all = original_get_all  # type: ignore[method-assign]
+        SnapshotRepository.get_latest_for_sites = original_get_latest_for_sites  # type: ignore[method-assign]
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload[0]["site"]["token"] == "super-secret-polling-token"
+    assert (
+        payload[0]["site"]["teamsWebhookUrl"]
+        == "https://outlook.office.com/webhook/secret"
+    )

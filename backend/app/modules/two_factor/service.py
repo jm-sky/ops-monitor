@@ -137,12 +137,25 @@ class TwoFactorService:
         token_version = user_db.token_version if user_db else 0
         session_jti = str(uuid4())
 
-        # Create access and refresh tokens
+        # Create access and refresh tokens. tfaVerified=True is required here —
+        # without it, _verify_user_token rejects every subsequent request from
+        # this (2FA-enabled) user with 401 "2FA verification required",
+        # effectively locking them out right after a successful TOTP check.
         access_token = create_access_token(
-            data={"sub": user_id, "jti": session_jti, "tv": token_version}
+            data={
+                "sub": user_id,
+                "jti": session_jti,
+                "tv": token_version,
+                "tfaVerified": True,
+            }
         )
         refresh_token = create_refresh_token(
-            data={"sub": user_id, "jti": session_jti, "tv": token_version}
+            data={
+                "sub": user_id,
+                "jti": session_jti,
+                "tv": token_version,
+                "tfaVerified": True,
+            }
         )
 
         return {
@@ -197,11 +210,58 @@ class TwoFactorService:
         challenge_token: str,
         credential_json: dict,
         challenge_data: dict | None = None,
+        expected_user_id: str | None = None,
     ) -> dict[str, Any]:
-        """Complete passkey authentication. Delegates to WebAuthnService."""
-        return await self.webauthn.complete_authentication(
-            challenge_token, credential_json, challenge_data
+        """Complete passkey authentication during login and return JWT tokens.
+
+        Delegates credential verification to WebAuthnService, then mints
+        tokens the same way verify_totp_login does (including jti/tv session
+        hardening) — this endpoint is part of the login flow, so its response
+        must match TwoFactorVerifyResponse (verified/method/accessToken/...),
+        not WebAuthnService's internal {success, userId, passkeyId} shape.
+        """
+        from app.modules.auth.auth_utils import (
+            create_access_token,
+            create_refresh_token,
         )
+        from app.modules.auth.db_models import UserDB
+
+        result = await self.webauthn.complete_authentication(
+            challenge_token, credential_json, challenge_data, expected_user_id
+        )
+        user_id = result["userId"]
+
+        user_result = await self.repository.db.execute(
+            select(UserDB).where(UserDB.id == user_id)
+        )
+        user_db = user_result.scalar_one_or_none()
+        token_version = user_db.token_version if user_db else 0
+        session_jti = str(uuid4())
+
+        access_token = create_access_token(
+            data={
+                "sub": user_id,
+                "jti": session_jti,
+                "tv": token_version,
+                "tfaVerified": True,
+            }
+        )
+        refresh_token = create_refresh_token(
+            data={
+                "sub": user_id,
+                "jti": session_jti,
+                "tv": token_version,
+                "tfaVerified": True,
+            }
+        )
+
+        return {
+            "verified": True,
+            "method": "webauthn",
+            "accessToken": access_token,
+            "refreshToken": refresh_token,
+            "tokenType": "bearer",
+        }
 
     # ==================================================================
     # Combined 2FA Methods - use both services
