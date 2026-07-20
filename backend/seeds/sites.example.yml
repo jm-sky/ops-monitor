@@ -1,41 +1,82 @@
 # Example sites seed file.
-# Copy to seeds/sites.yml (which is gitignored) and fill in real values.
-# Run: docker exec ops-monitor-app python -m cli monitor seed-sites seeds/sites.yml
+# Copy to seeds/sites.yml (gitignored) and fill in real values.
+# Run: docker exec ops-monitor-app python -m cli monitor seed-sites seeds/sites.yml --no-dry-run --no-clear
+#
+# App health polls use GET /api/health/details (Ops Monitor contract).
+# Set token from HEALTH_DETAILS_TOKEN (same value as the site's bearer token).
 
 sites:
-  - name: ops-monitor
-    description: Ops Monitor (this server)
-    server_label: ops-monitor
-    health_url: http://app:8000/api/health
+  - name: ovh-v3
+    description: Host agent — health + system (not app /health/details)
+    server_label: ovh-v3
+    environment: production
+    health_url: http://agent:9100/health
     system_url: http://agent:9100/system
-    token: ""  # set to AGENT_TOKEN value
+    token: ""  # AGENT_TOKEN
     enabled: true
     polling_health: 60
     polling_system: 300
 
-  - name: gear-stack
-    description: Gear Stack (gear-stack.ovh)
+  - name: ops-monitor
+    description: Ops Monitor
+    server_label: ovh-v3
     environment: production
-    health_url: https://gear-stack.ovh/api/health
-    system_url: ""  # no agent installed
+    health_url: https://ops-monitor.dev-made.it/api/health/details
+    system_url: ""
     token: ""
-    enabled: true
+    enabled: false
+    polling_health: 300
+
+  - name: gear-stack
+    description: Gear Stack
+    environment: production
+    health_url: https://api.gear-stack.ovh/api/health/details
+    system_url: ""
+    token: ""
+    enabled: false
+    polling_health: 300
+
+  - name: ai-workspace
+    description: AI Workspace
+    environment: staging
+    health_url: https://api.ai-workspace.dev-made.it/api/health/details
+    system_url: ""
+    token: ""
+    enabled: false
+    polling_health: 300
+
+  - name: family-recipes
+    description: Family Recipes
+    environment: staging
+    health_url: https://api.family-recipes.dev-made.it/api/health/details
+    system_url: ""
+    token: ""
+    enabled: false
     polling_health: 300
 
   - name: company-hub
-    description: Company Hub (company-hub.dev-made.it)
+    description: Company Hub
     environment: staging
-    health_url: https://company-hub.dev-made.it/api/health
+    health_url: https://api.company-hub.dev-made.it/api/health/details
     system_url: ""
     token: ""
-    enabled: true
+    enabled: false
     polling_health: 300
 
   - name: zbory-chwz
-    description: Zbory CHWZ (zbory.chwz.waw.pl)
+    description: Zbory CHWZ
     environment: production
-    health_url: https://api.zbory.chwz.waw.pl/health
+    health_url: https://api.zbory.chwz.waw.pl/api/health/details
     system_url: ""
     token: ""
-    enabled: true
+    enabled: false
+    polling_health: 300
+
+  - name: saasbase
+    description: Saasbase
+    environment: production
+    health_url: https://api.saasbase.dev-made.it/api/health/details
+    system_url: ""
+    token: ""
+    enabled: false
     polling_health: 300

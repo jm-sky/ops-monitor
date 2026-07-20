@@ -1,9 +1,10 @@
 """Main API router aggregating all module routers."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from sqlalchemy import text
 
 from app.core.database import AsyncSessionLocal
+from app.core.health_details import build_health_details, verify_health_details_token
 from app.modules.admin.router import router as admin_router
 from app.modules.auth.router import router as auth_router
 from app.modules.logs.router import router as logs_router
@@ -36,6 +37,16 @@ async def health_check() -> dict:
         components["database"]["reason"] = db_reason
 
     return {"schema_version": 1, "status": overall, "components": components}
+
+
+@api_router.get(
+    "/health/details",
+    tags=["Health"],
+    dependencies=[Depends(verify_health_details_token)],
+)
+async def health_check_details() -> dict:
+    """Detailed health check for Ops Monitor self-monitoring."""
+    return await build_health_details()
 
 
 # Register module routers
