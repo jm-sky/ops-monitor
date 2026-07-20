@@ -88,6 +88,10 @@ export const pwaPlugin = VitePWA({
   workbox: {
     globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
     maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB (default is 2 MB)
+    // OAuth/login callbacks are full-page navigations that must always hit the
+    // network — a stale precached shell here can strand OAuth redirects on an
+    // outdated route table until the user accepts the SW update prompt.
+    navigateFallbackDenylist: [/^\/auth\//],
     runtimeCaching: [
       {
         urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

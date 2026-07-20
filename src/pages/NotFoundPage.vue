@@ -24,7 +24,7 @@ const { t } = useI18n()
           </p>
           <div class="flex flex-col gap-2">
             <Button as-child variant="default">
-              <RouterLink to="/gear">
+              <RouterLink to="/monitor">
                 {{ t('notFound.goToContainers') }}
               </RouterLink>
             </Button>
