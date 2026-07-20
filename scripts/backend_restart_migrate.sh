@@ -61,16 +61,16 @@ echo -e "${GREEN}Restarting backend (${COMPOSE_DISPLAY})...${NC}"
 
 cd "$COMPOSE_DIR"
 
-echo -e "${YELLOW}Step 1: Building app image...${NC}"
+echo -e "${YELLOW}Building app image...${NC}"
 docker compose -f "$COMPOSE_FILE" build app
 
-echo -e "${YELLOW}Step 2: Recreating app container...${NC}"
+echo -e "${YELLOW}Recreating app container...${NC}"
 docker compose -f "$COMPOSE_FILE" up -d --force-recreate app
 
-echo -e "${YELLOW}Step 3: Waiting for app to be healthy...${NC}"
+echo -e "${YELLOW}Waiting for app to be healthy...${NC}"
 sleep 5
 
-echo -e "${YELLOW}Step 4: Running migrations...${NC}"
+echo -e "${YELLOW}Running migrations...${NC}"
 docker compose -f "$COMPOSE_FILE" exec app python -m cli db migrate
 
 echo -e "${GREEN}Backend restarted and migrations applied (${COMPOSE_DISPLAY})${NC}"
