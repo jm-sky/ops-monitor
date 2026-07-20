@@ -7,6 +7,7 @@ import Input from '@/components/ui/input/Input.vue'
 import PasswordInput from '@/components/ui/input/PasswordInput.vue'
 import Label from '@/components/ui/label/Label.vue'
 import Switch from '@/components/ui/switch/Switch.vue'
+import { formatPollingInterval } from '../composables/useMonitorFormatters'
 import { normalizeTags, type SiteFormData } from '../composables/useSiteForm'
 
 const props = withDefaults(defineProps<{
@@ -227,6 +228,9 @@ function updateMetaValue(key: string, value: string) {
         type="number"
         min="30"
       />
+      <p v-if="formatPollingInterval(form.pollingHealth)" class="text-xs text-muted-foreground">
+        ≈ {{ formatPollingInterval(form.pollingHealth) }}
+      </p>
     </div>
     <div class="space-y-1.5">
       <Label :for="`${props.idPrefix}-poll-system`">{{ $t('monitor.fields.pollingSystem', 'System interval (s)') }}</Label>
@@ -236,6 +240,9 @@ function updateMetaValue(key: string, value: string) {
         type="number"
         min="30"
       />
+      <p v-if="formatPollingInterval(form.pollingSystem)" class="text-xs text-muted-foreground">
+        ≈ {{ formatPollingInterval(form.pollingSystem) }}
+      </p>
     </div>
   </div>
 </template>

@@ -14,6 +14,22 @@ export function formatUptime(seconds: number | null | undefined): string {
   return d > 0 ? `${d}d ${h}h ${m}m` : `${h}h ${m}m`
 }
 
+export function formatPollingInterval(seconds: number | null | undefined): string {
+  if (seconds == null || Number.isNaN(seconds) || seconds <= 0) return ''
+
+  const totalSeconds = Math.floor(seconds)
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  const s = totalSeconds % 60
+
+  const parts: string[] = []
+  if (h > 0) parts.push(`${h}h`)
+  if (m > 0) parts.push(`${m} min`)
+  if (s > 0 && h === 0) parts.push(`${s}s`)
+
+  return parts.join(' ')
+}
+
 export function formatTimeAgo(iso: string | null | undefined): string {
   if (!iso) return '—'
 
