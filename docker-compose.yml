@@ -12,27 +12,17 @@ services:
       redis:
         condition: service_healthy
     env_file:
+      # Secrets and app config live here. Do not re-list them under environment:
+      # with ${VAR} — empty host interpolation would override env_file values.
       - ./backend/.env
     environment:
+      # Docker-network overrides only
       - ENVIRONMENT=${ENVIRONMENT:-production}
       - PROJECT_NAME=${PROJECT_NAME:-ops-monitor}
       - APP_PORT=${APP_PORT:-8000}
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-backend}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-ops_monitor}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
-      - SECRET_KEY=${SECRET_KEY}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - CORS_ORIGINS=${CORS_ORIGINS:-["http://localhost:5176"]}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5176}
-      - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID}
-      - GOOGLE_OAUTH_CLIENT_SECRET=${GOOGLE_OAUTH_CLIENT_SECRET}
-      - GOOGLE_OAUTH_REDIRECT_URI=${GOOGLE_OAUTH_REDIRECT_URI}
-      - FACEBOOK_OAUTH_CLIENT_ID=${FACEBOOK_OAUTH_CLIENT_ID}
-      - FACEBOOK_OAUTH_CLIENT_SECRET=${FACEBOOK_OAUTH_CLIENT_SECRET}
-      - FACEBOOK_OAUTH_REDIRECT_URI=${FACEBOOK_OAUTH_REDIRECT_URI}
-      - RECAPTCHA_ENABLED=${RECAPTCHA_ENABLED:-false}
-      - RECAPTCHA_SITE_KEY=${RECAPTCHA_SITE_KEY}
-      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
-      - RECAPTCHA_MIN_SCORE=${RECAPTCHA_MIN_SCORE:-0.5}
     ports:
       - "127.0.0.1:${APP_PORT:-8000}:8000"
     volumes:
