@@ -14,9 +14,10 @@ FastAPI backend for the Ops Monitor central monitoring system. Handles polling, 
 ## Development
 
 ```bash
-cp .env.example .env
-# Edit .env — set SECRET_KEY, POSTGRES_PASSWORD, REDIS_PASSWORD
+cp backend/.env.example backend/.env
+# Edit backend/.env — set SECRET_KEY, POSTGRES_PASSWORD, REDIS_PASSWORD
 
+# From repo root:
 docker compose -f docker-compose.dev.yml up -d
 
 docker exec ops-monitor-app python -m cli db init

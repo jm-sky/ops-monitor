@@ -106,8 +106,8 @@ ops-monitor/
 │   │   └── modules/        # auth, users, admin, settings, logs, two_factor, monitor
 │   ├── migrations/
 │   ├── cli/                # Management CLI (db, users, test)
-│   └── docker-compose.dev.yml
 ├── agent/                  # Standalone psutil agent
+├── compose.yaml            # Canonical entrypoint (includes docker-compose.dev.yml)
 ├── docker-compose.dev.yml  # Dev full stack (backend + frontend, optional agent)
 └── docker-compose.prod.yml # Prod backend stack (optional agent)
 ```

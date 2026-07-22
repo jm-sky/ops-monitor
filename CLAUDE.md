@@ -11,7 +11,7 @@ Central ops monitoring system. Pull-only: backend polls `/health` + `/system` en
 pnpm dev / build / lint / type-check / test:run
 
 # Backend (Docker)
-docker compose -f backend/docker-compose.dev.yml up
+docker compose -f docker-compose.dev.yml up
 bash scripts/deploy.sh              # deploy (auto-detect compose stack)
 docker exec ops-monitor-app python -m cli db init
 docker exec ops-monitor-app python -m cli db migrate

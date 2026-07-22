@@ -5,7 +5,7 @@
 # Usage:
 #   bash scripts/deploy.sh           # auto-detect, or prod default if no container
 #   bash scripts/deploy.sh --prod    # force root docker-compose.yml
-#   bash scripts/deploy.sh --dev     # force backend/docker-compose.dev.yml
+#   bash scripts/deploy.sh --dev     # force docker-compose.dev.yml
 #   bash scripts/deploy.sh --help
 set -euo pipefail
 
@@ -34,7 +34,7 @@ Deploy ops-monitor: pull, build frontend, restart backend, run migrations.
 
 Options:
   --prod    Force prod stack (root docker-compose.yml)
-  --dev     Force dev stack (backend/docker-compose.dev.yml)
+  --dev     Force dev stack (docker-compose.dev.yml)
   --help    Show this help
 
 Default behaviour:

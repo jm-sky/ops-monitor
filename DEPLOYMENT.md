@@ -119,7 +119,7 @@ One deploy script auto-detects the active Docker Compose stack:
 cd /home/$USER/projects/ops-monitor
 bash scripts/deploy.sh              # auto-detect (or prod default)
 bash scripts/deploy.sh --prod       # force root docker-compose.yml
-bash scripts/deploy.sh --dev        # force backend/docker-compose.dev.yml
+bash scripts/deploy.sh --dev        # force docker-compose.dev.yml (repo root)
 ```
 
 The former `scripts/deploy_dev.sh` has been removed; use `bash scripts/deploy.sh` instead

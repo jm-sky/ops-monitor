@@ -25,6 +25,8 @@ export const config = {
     id: import.meta.env.VITE_APP_ID ?? 'ops-monitor',
     name: import.meta.env.VITE_APP_NAME ?? 'Ops Monitor',
     description: import.meta.env.VITE_APP_DESCRIPTION ?? 'Ops Monitor for tracking infrastructure health, service status, and incidents.',
+    // Public repo URL for the footer GitHub link; set to null to hide the link
+    githubUrl: 'https://github.com/jm-sky/ops-monitor' as string | null,
   },
   i18n: {
     defaultLocale: (import.meta.env.VITE_DEFAULT_LOCALE ?? 'en') as SupportedLocale,
