@@ -17,7 +17,9 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
-      - ops-monitor-network
+      ops-monitor-network:
+        aliases:
+          - agent
 
 networks:
   ops-monitor-network:

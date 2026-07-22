@@ -13,7 +13,9 @@ services:
       - /var/lib/update-notifier:/var/lib/update-notifier:ro
       - /var/run:/host/var/run:ro
     networks:
-      - ops-monitor-network
+      ops-monitor-network:
+        aliases:
+          - agent
 
 networks:
   ops-monitor-network:
