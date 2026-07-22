@@ -46,6 +46,7 @@ Po zmianie statusu zaktualizuj zarówno plik zadania, jak i tabelę na tej stron
 | 011 | 2026-07-20 | `done` | Rate limiting niepodłączony i spoofowalny (SEC-4) | [2026-07-20--011--rate-limiting-not-wired.md](./2026-07-20--011--rate-limiting-not-wired.md) |
 | 012 | 2026-07-20 | `done` | Zepsuty endpoint create user + martwy stos wyjątków | [2026-07-20--012--broken-user-create-endpoint-and-dead-exception-stack.md](./2026-07-20--012--broken-user-create-endpoint-and-dead-exception-stack.md) |
 | 013 | 2026-07-20 | `done` | Podbić floory pip z aktywnymi CVE (Pillow, jinja2, python-dotenv) | [2026-07-20--013--pip-floor-cve-bump.md](./2026-07-20--013--pip-floor-cve-bump.md) |
+| 014 | 2026-07-22 | `done` | OAuth session machinery + server-side state (backport 036+037) | [2026-07-22--014--oauth-session-and-state-backport.md](./2026-07-22--014--oauth-session-and-state-backport.md) |
 
 ## Szablon nowego zadania
 

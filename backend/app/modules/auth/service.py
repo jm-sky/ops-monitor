@@ -567,19 +567,20 @@ class AuthService:
 
         return True
 
-    async def login_with_oauth(self, provider: str, user_info: dict) -> LoginResponse:
+    async def _resolve_oauth_user(self, provider: str, user_info: dict) -> User:
         """
-        Login or register user via OAuth.
+        Look up, link, or create the user for an OAuth login, without issuing tokens.
 
         Args:
             provider: OAuth provider name (google, github, etc.)
             user_info: User information from OAuth provider (camelCase format from OAuthUserInfo)
 
         Returns:
-            LoginResponse with tokens and user info
+            The resolved user
 
         Raises:
             ValueError: If provider or user_info is invalid
+            InvalidCredentialsError: If the resolved user account is inactive
         """
         if not provider or not user_info:
             raise ValueError("Provider and user_info are required")
@@ -650,7 +651,28 @@ class AuthService:
             avatar_url=avatar_url,
         )
 
-        # Generate tokens
+        return user
+
+    async def login_with_oauth(self, provider: str, user_info: dict) -> LoginResponse:
+        """
+        Login or register user via OAuth.
+
+        Routes through ``_issue_login_tokens`` (same as password login) so OAuth
+        sessions get a tracked `jti`, `tv`, and `emailVerified` claim like every
+        other login path.
+
+        Args:
+            provider: OAuth provider name (google, github, etc.)
+            user_info: User information from OAuth provider (camelCase format from OAuthUserInfo)
+
+        Returns:
+            LoginResponse with tokens and user info
+
+        Raises:
+            ValueError: If provider or user_info is invalid
+            InvalidCredentialsError: If the resolved user account is inactive
+        """
+        user = await self._resolve_oauth_user(provider, user_info)
         access_token, refresh_token = await self._issue_login_tokens(user)
 
         return LoginResponse(
