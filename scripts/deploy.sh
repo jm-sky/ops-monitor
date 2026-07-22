@@ -78,7 +78,7 @@ resolve_compose_for_deploy() {
     COMPOSE_FILE="docker-compose.yml"
     COMPOSE_SOURCE="forced (--prod)"
   elif [ "$FORCE_MODE" = "dev" ]; then
-    COMPOSE_DIR="$BACKEND_DIR"
+    COMPOSE_DIR="$PROJECT_DIR"
     COMPOSE_FILE="docker-compose.dev.yml"
     COMPOSE_SOURCE="forced (--dev)"
   elif is_app_container_running; then
