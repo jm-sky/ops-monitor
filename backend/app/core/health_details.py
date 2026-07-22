@@ -1,10 +1,11 @@
 """Detailed health check for Ops Monitor.
 
-Implements the response contract documented in ``docs/health-schema.md``:
-``GET /api/health/details`` reports per-component status (database, cache,
-storage, frontend) plus a top-level status that is the worst of all components.
-Protected by a static bearer token (``HEALTH_DETAILS_TOKEN``) so it can be
-exposed to Ops Monitor without being fully public.
+Implements the response contract documented in ops-monitor's
+``docs/health-schema.md``: ``GET /api/health/details`` reports per-component
+status (database, cache, storage, frontend) plus a top-level status that is
+the worst of all components. Protected by a static bearer token
+(``HEALTH_DETAILS_TOKEN``) so it can be exposed to Ops Monitor without being
+fully public.
 """
 
 import asyncio
@@ -30,9 +31,7 @@ _health_details_security = HTTPBearer(auto_error=False)
 
 
 async def verify_health_details_token(
-    credentials: HTTPAuthorizationCredentials | None = Security(
-        _health_details_security
-    ),
+    credentials: HTTPAuthorizationCredentials | None = Security(_health_details_security),
 ) -> None:
     """Require a valid ``Authorization: Bearer <token>`` header.
 
@@ -40,11 +39,7 @@ async def verify_health_details_token(
     than allowing an empty bearer token to match it.
     """
     expected = settings.health.details_token
-    if (
-        not expected
-        or not credentials
-        or not secrets.compare_digest(credentials.credentials, expected)
-    ):
+    if not expected or not credentials or not secrets.compare_digest(credentials.credentials, expected):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing health details token",
@@ -54,9 +49,7 @@ async def verify_health_details_token(
 async def _check_database() -> dict:
     try:
         async with AsyncSessionLocal() as session:
-            await asyncio.wait_for(
-                session.execute(text("SELECT 1")), timeout=_CHECK_TIMEOUT_SECONDS
-            )
+            await asyncio.wait_for(session.execute(text("SELECT 1")), timeout=_CHECK_TIMEOUT_SECONDS)
         return {"status": "ok"}
     except Exception as exc:
         return {"status": "failed", "reason": str(exc)}
@@ -76,13 +69,11 @@ async def _check_storage() -> dict:
     try:
         if storage_type == "local":
             adapter = get_storage_adapter()
-            await asyncio.wait_for(
-                adapter.get_available_space(), timeout=_CHECK_TIMEOUT_SECONDS
-            )
+            await asyncio.wait_for(adapter.get_available_space(), timeout=_CHECK_TIMEOUT_SECONDS)
             return {"status": "ok"}
 
         if storage_type == "s3":
-            import aioboto3  # type: ignore[import-untyped]
+            import aioboto3
 
             session = aioboto3.Session()
             async with session.client(
@@ -127,12 +118,7 @@ def _worst_status(statuses: list[ComponentStatus]) -> ComponentStatus:
 
 async def build_health_details() -> dict:
     """Run all component checks concurrently and assemble the response."""
-    database, cache, storage, frontend = await asyncio.gather(
-        _check_database(),
-        _check_cache(),
-        _check_storage(),
-        _check_frontend(),
-    )
+    database, cache, storage, frontend = await asyncio.gather(_check_database(), _check_cache(), _check_storage(), _check_frontend())
 
     components = {
         "database": database,

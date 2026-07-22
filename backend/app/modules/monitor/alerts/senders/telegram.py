@@ -29,9 +29,7 @@ class TelegramSender(BaseSender):
             )
             data = resp.json()
             if not data.get("ok"):
-                raise RuntimeError(
-                    f"Telegram API error: {data.get('description', 'unknown')}"
-                )
+                raise RuntimeError(f"Telegram API error: {data.get('description', 'unknown')}")
 
     async def test(self, config: dict[str, Any]) -> str:
         test_payload = AlertPayload(

@@ -9,8 +9,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
-from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -20,9 +19,7 @@ from app.core.database import Base
 class SiteDB(Base):
     __tablename__ = "sites"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     health_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -42,9 +39,7 @@ class SiteDB(Base):
     verify_ssl: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     expected_meta: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
@@ -82,24 +77,18 @@ class SiteDB(Base):
 class SiteSnapshotDB(Base):
     __tablename__ = "site_snapshots"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     site_id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True),
         ForeignKey("sites.id", ondelete="CASCADE"),
         nullable=False,
     )
-    snapshot_type: Mapped[str] = mapped_column(
-        String(20), nullable=False
-    )  # 'health' | 'system'
+    snapshot_type: Mapped[str] = mapped_column(String(20), nullable=False)  # 'health' | 'system'
     status: Mapped[str | None] = mapped_column(String(50), nullable=True)
     raw_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     meta_mismatches: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
-    polled_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
-    )
+    polled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
 
     __table_args__ = (
         Index(

@@ -162,9 +162,7 @@ def seed_sites(
         "--dry-run/--no-dry-run",
         help="Show what would be imported without saving",
     ),
-    clear: bool | None = typer.Option(
-        None, "--clear/--no-clear", help="Delete all existing sites before seeding"
-    ),
+    clear: bool | None = typer.Option(None, "--clear/--no-clear", help="Delete all existing sites before seeding"),
 ) -> None:
     """Seed sites from a YAML file (upsert by name)."""
     if dry_run is None:
@@ -179,7 +177,7 @@ async def _seed_sites(yaml_file: Path, dry_run: bool, clear: bool) -> None:
         import yaml  # type: ignore[import-untyped]
     except ImportError:
         console.print("[red]PyYAML not installed. Run: pip install pyyaml[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     if not yaml_file.exists():
         console.print(f"[red]File not found: {yaml_file}[/red]")
@@ -215,9 +213,10 @@ async def _seed_sites(yaml_file: Path, dry_run: bool, clear: bool) -> None:
         console.print("[yellow]Dry run — no changes saved.[/yellow]")
         return
 
+    from sqlalchemy import select
+
     from app.core.database import AsyncSessionLocal
     from app.modules.monitor.db_models import SiteDB
-    from sqlalchemy import select
 
     async with AsyncSessionLocal() as db:
         created = updated = skipped = 0
@@ -270,17 +269,12 @@ async def _seed_sites(yaml_file: Path, dry_run: bool, clear: bool) -> None:
 
         await db.commit()
 
-    console.print(
-        f"\n[bold green]Done.[/bold green] "
-        f"Created: {created}, Updated: {updated}, Skipped: {skipped}"
-    )
+    console.print(f"\n[bold green]Done.[/bold green] " f"Created: {created}, Updated: {updated}, Skipped: {skipped}")
 
 
 @monitor_app.command("sites")
 def sites_list(
-    wide: bool | None = typer.Option(
-        None, "--wide/--no-wide", "-w", help="Show full URLs without truncation"
-    ),
+    wide: bool | None = typer.Option(None, "--wide/--no-wide", "-w", help="Show full URLs without truncation"),
 ) -> None:
     """List all configured sites with their URLs and settings."""
     if wide is None:

@@ -66,9 +66,7 @@ async def dispatch_if_changed(
             continue
         async with AsyncSessionLocal() as db:
             event_repo = AlertEventRepository(db)
-            last_event = await event_repo.get_last_for_channel(
-                channel.id, site.id, alert_type
-            )
+            last_event = await event_repo.get_last_for_channel(channel.id, site.id, alert_type)
         cooldown = _cooldown_minutes(channel)
         if not _should_fire(last_event, snapshot.status, cooldown):
             continue
@@ -77,15 +75,9 @@ async def dispatch_if_changed(
 
 def _alert_type_for_snapshot(snapshot: SiteSnapshotDB) -> str | None:
     """Map a snapshot to an alert_type, or None if no alert needed."""
-    if (
-        snapshot.snapshot_type == "health"
-        and snapshot.status in _ALERT_STATUSES["health"]
-    ):
+    if snapshot.snapshot_type == "health" and snapshot.status in _ALERT_STATUSES["health"]:
         return "health"
-    if (
-        snapshot.snapshot_type == "system"
-        and snapshot.status in _ALERT_STATUSES["reboot"]
-    ):
+    if snapshot.snapshot_type == "system" and snapshot.status in _ALERT_STATUSES["reboot"]:
         return "reboot"
 
     # security updates: separate alert type for routing
@@ -95,10 +87,7 @@ def _alert_type_for_snapshot(snapshot: SiteSnapshotDB) -> str | None:
         if isinstance(value, int) and value > 0:
             return "security_updates"
 
-    if (
-        snapshot.snapshot_type == "system"
-        and snapshot.status in _ALERT_STATUSES["updates"]
-    ):
+    if snapshot.snapshot_type == "system" and snapshot.status in _ALERT_STATUSES["updates"]:
         return "updates"
     return None
 
@@ -117,11 +106,7 @@ def _build_detail(snapshot: SiteSnapshotDB) -> str | None:
         return "; ".join(parts) or None
     if snapshot.snapshot_type == "health":
         components = raw.get("components", {})
-        failed = [
-            k
-            for k, v in components.items()
-            if isinstance(v, dict) and v.get("status") != "ok"
-        ]
+        failed = [k for k, v in components.items() if isinstance(v, dict) and v.get("status") != "ok"]
         if failed:
             return f"Affected components: {', '.join(failed)}"
     return None

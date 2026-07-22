@@ -34,9 +34,7 @@ class AdminService:
             return str(dt.isoformat())
         return str(dt)
 
-    async def get_all_users(
-        self, skip: int = 0, limit: int = 100
-    ) -> list[AdminUserResponse]:
+    async def get_all_users(self, skip: int = 0, limit: int = 100) -> list[AdminUserResponse]:
         users_with_auth = await self.repository.get_all_users(skip=skip, limit=limit)
         result = []
         for user, _ in users_with_auth:
@@ -51,8 +49,7 @@ class AdminService:
                     isOwner=user.is_owner,
                     isPremium=user.is_premium,
                     isEmailVerified=user.is_email_verified,
-                    emailVerifiedAt=self._serialize_datetime(user.email_verified_at)
-                    or "",
+                    emailVerifiedAt=self._serialize_datetime(user.email_verified_at) or "",
                     createdAt=self._serialize_datetime(user.created_at) or "",
                     updatedAt=self._serialize_datetime(user.created_at) or "",
                 )
@@ -78,9 +75,7 @@ class AdminService:
             updatedAt=self._serialize_datetime(user.created_at) or "",
         )
 
-    async def update_user(
-        self, user_id: str, user_data: UserUpdate, current_user: "User"
-    ) -> AdminUserResponse | None:
+    async def update_user(self, user_id: str, user_data: UserUpdate, current_user: "User") -> AdminUserResponse | None:
         target_user, _ = await self.repository.get_user_by_id(user_id)
         if not target_user:
             return None
@@ -142,8 +137,7 @@ class AdminService:
             isActive=updated_user.is_active,
             isAdmin=updated_user.is_admin,
             isEmailVerified=updated_user.is_email_verified,
-            emailVerifiedAt=self._serialize_datetime(updated_user.email_verified_at)
-            or "",
+            emailVerifiedAt=self._serialize_datetime(updated_user.email_verified_at) or "",
             createdAt=self._serialize_datetime(updated_user.created_at) or "",
             updatedAt=self._serialize_datetime(updated_user.created_at) or "",
         )

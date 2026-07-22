@@ -43,9 +43,7 @@ def test_health_details_rejects_wrong_token(client: TestClient) -> None:
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_health_details_rejects_when_token_unconfigured(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_health_details_rejects_when_token_unconfigured(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     """An unconfigured (empty) token must disable the endpoint, not open it."""
     monkeypatch.setattr(settings.health, "details_token", "")
     response = client.get(

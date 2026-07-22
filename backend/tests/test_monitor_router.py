@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Generator
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.modules.auth.dependencies import get_current_user, require_admin
-from app.modules.monitor.repositories import SnapshotRepository, SiteRepository
+from app.modules.monitor.repositories import SiteRepository, SnapshotRepository
 from main import app
 
 
@@ -139,9 +139,7 @@ def test_list_site_statuses_returns_latest_snapshots(
     async def _mock_get_all(_: SiteRepository) -> list[_FakeSite]:
         return [site_a, site_b]
 
-    async def _mock_get_latest_for_sites(
-        _: SnapshotRepository, __: list[uuid.UUID]
-    ) -> dict[uuid.UUID, dict[str, _FakeSnapshot]]:
+    async def _mock_get_latest_for_sites(_: SnapshotRepository, __: list[uuid.UUID]) -> dict[uuid.UUID, dict[str, _FakeSnapshot]]:
         return {
             site_a.id: {
                 "health": _FakeSnapshot(
@@ -199,9 +197,7 @@ def test_list_site_statuses_omits_orphan_health_snapshot(
     async def _mock_get_all(_: SiteRepository) -> list[_FakeSite]:
         return [site]
 
-    async def _mock_get_latest_for_sites(
-        _: SnapshotRepository, __: list[uuid.UUID]
-    ) -> dict[uuid.UUID, dict[str, _FakeSnapshot]]:
+    async def _mock_get_latest_for_sites(_: SnapshotRepository, __: list[uuid.UUID]) -> dict[uuid.UUID, dict[str, _FakeSnapshot]]:
         return {
             site.id: {
                 "health": _FakeSnapshot(
@@ -248,9 +244,7 @@ def test_list_site_statuses_includes_ssl_snapshot(
     async def _mock_get_all(_: SiteRepository) -> list[_FakeSite]:
         return [site]
 
-    async def _mock_get_latest_for_sites(
-        _: SnapshotRepository, __: list[uuid.UUID]
-    ) -> dict[uuid.UUID, dict[str, _FakeSnapshot]]:
+    async def _mock_get_latest_for_sites(_: SnapshotRepository, __: list[uuid.UUID]) -> dict[uuid.UUID, dict[str, _FakeSnapshot]]:
         return {
             site.id: {
                 "ssl": _FakeSnapshot(
@@ -294,16 +288,12 @@ def test_update_site_clearing_health_url_deletes_health_snapshots(
     async def _mock_get_by_id(_: SiteRepository, sid: uuid.UUID) -> _FakeSite | None:
         return site if sid == site_id else None
 
-    async def _mock_update(
-        _: SiteRepository, current_site: _FakeSite, data: dict[str, object]
-    ) -> _FakeSite:
+    async def _mock_update(_: SiteRepository, current_site: _FakeSite, data: dict[str, object]) -> _FakeSite:
         for key, value in data.items():
             setattr(current_site, key, value)
         return current_site
 
-    async def _mock_delete_all_for_type(
-        _: SnapshotRepository, sid: uuid.UUID, snapshot_type: str
-    ) -> None:
+    async def _mock_delete_all_for_type(_: SnapshotRepository, sid: uuid.UUID, snapshot_type: str) -> None:
         deleted_types.append(snapshot_type)
 
     original_get_by_id = SiteRepository.get_by_id
@@ -344,9 +334,7 @@ def test_non_admin_does_not_see_site_secrets_in_site_statuses(
     async def _mock_get_all(_: SiteRepository) -> list[_FakeSite]:
         return [site]
 
-    async def _mock_get_latest_for_sites(
-        _: SnapshotRepository, __: list[uuid.UUID]
-    ) -> dict[uuid.UUID, dict[str, _FakeSnapshot]]:
+    async def _mock_get_latest_for_sites(_: SnapshotRepository, __: list[uuid.UUID]) -> dict[uuid.UUID, dict[str, _FakeSnapshot]]:
         return {}
 
     original_get_all = SiteRepository.get_all
@@ -382,9 +370,7 @@ def test_admin_still_sees_site_secrets_in_site_statuses(
     async def _mock_get_all(_: SiteRepository) -> list[_FakeSite]:
         return [site]
 
-    async def _mock_get_latest_for_sites(
-        _: SnapshotRepository, __: list[uuid.UUID]
-    ) -> dict[uuid.UUID, dict[str, _FakeSnapshot]]:
+    async def _mock_get_latest_for_sites(_: SnapshotRepository, __: list[uuid.UUID]) -> dict[uuid.UUID, dict[str, _FakeSnapshot]]:
         return {}
 
     original_get_all = SiteRepository.get_all
@@ -401,7 +387,4 @@ def test_admin_still_sees_site_secrets_in_site_statuses(
     assert response.status_code == 200
     payload = response.json()
     assert payload[0]["site"]["token"] == "super-secret-polling-token"
-    assert (
-        payload[0]["site"]["teamsWebhookUrl"]
-        == "https://outlook.office.com/webhook/secret"
-    )
+    assert payload[0]["site"]["teamsWebhookUrl"] == "https://outlook.office.com/webhook/secret"

@@ -45,17 +45,13 @@ def test_sentry() -> None:
         python -m cli test sentry
     """
     console.print("[yellow]Throwing unhandled exception to test Sentry...[/yellow]")
-    console.print(
-        "[red]This exception should be caught by Sentry if configured correctly.[/red]\n"
-    )
+    console.print("[red]This exception should be caught by Sentry if configured correctly.[/red]\n")
 
     try:
         import sentry_sdk
 
         # Capture exception with Sentry
-        sentry_sdk.capture_exception(
-            RuntimeError("Test exception for Sentry integration - this is intentional!")
-        )
+        sentry_sdk.capture_exception(RuntimeError("Test exception for Sentry integration - this is intentional!"))
 
         # Flush events to ensure they are sent before CLI exits
         console.print("[blue]Flushing Sentry events...[/blue]")
@@ -72,9 +68,7 @@ def test_sentry() -> None:
 
 @test_app.command("storage")
 def test_storage(
-    skip_cleanup: bool = typer.Option(
-        False, "--skip-cleanup", help="Skip cleanup after test"
-    ),
+    skip_cleanup: bool = typer.Option(False, "--skip-cleanup", help="Skip cleanup after test"),
 ) -> None:
     """Test storage adapter connectivity and operations.
 
@@ -101,9 +95,7 @@ async def _test_storage_async(skip_cleanup: bool) -> None:
     if settings.storage.type == "s3":
         console.print(f"[dim]S3 Bucket:[/dim] {settings.storage.s3_bucket}")
         console.print(f"[dim]S3 Region:[/dim] {settings.storage.s3_region}")
-        console.print(
-            f"[dim]S3 Endpoint:[/dim] {settings.storage.s3_endpoint_url or 'Default (AWS)'}"
-        )
+        console.print(f"[dim]S3 Endpoint:[/dim] {settings.storage.s3_endpoint_url or 'Default (AWS)'}")
     console.print()
 
     try:
@@ -150,9 +142,7 @@ async def _test_storage_async(skip_cleanup: bool) -> None:
             url = await adapter.get_url(test_path)
             console.print(f"    [dim]File URL: {url[:80]}...[/dim]")
         except NotImplementedError:
-            console.print(
-                "    [dim]URL generation not supported for this adapter[/dim]"
-            )
+            console.print("    [dim]URL generation not supported for this adapter[/dim]")
 
         # Cleanup
         if not skip_cleanup:
@@ -163,15 +153,11 @@ async def _test_storage_async(skip_cleanup: bool) -> None:
             else:
                 console.print("    [yellow]⚠ Failed to delete test file[/yellow]")
         else:
-            console.print(
-                f"[5/5] [yellow]Skipping cleanup (file kept): {test_path}[/yellow]"
-            )
+            console.print(f"[5/5] [yellow]Skipping cleanup (file kept): {test_path}[/yellow]")
 
         # Success summary
         console.print()
-        console.print(
-            "[bold green]✓ All storage tests passed successfully![/bold green]"
-        )
+        console.print("[bold green]✓ All storage tests passed successfully![/bold green]")
         console.print()
 
     except ImportError as e:
@@ -180,12 +166,10 @@ async def _test_storage_async(skip_cleanup: bool) -> None:
         console.print(f"[dim]Error: {e}[/dim]")
         if settings.storage.type == "s3":
             console.print()
-            console.print(
-                "[yellow]To use S3 storage, install required dependencies:[/yellow]"
-            )
+            console.print("[yellow]To use S3 storage, install required dependencies:[/yellow]")
             console.print("[cyan]  pip install aioboto3[/cyan]")
         console.print()
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     except Exception as e:
         console.print()
@@ -202,7 +186,7 @@ async def _test_storage_async(skip_cleanup: bool) -> None:
             console.print("  • Check IAM permissions for the access key")
 
         console.print()
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @test_app.command("email")
@@ -252,9 +236,7 @@ async def _test_email_async(to: str, template: str) -> None:
         console.print("    [green]✓ Email service initialized[/green]")
 
         # Prepare test data based on template
-        console.print(
-            f"[2/3] [cyan]Sending test email (template: {template})...[/cyan]"
-        )
+        console.print(f"[2/3] [cyan]Sending test email (template: {template})...[/cyan]")
 
         success = False
         if template == "welcome":
@@ -287,9 +269,7 @@ async def _test_email_async(to: str, template: str) -> None:
             )
         else:
             console.print(f"    [red]✗ Unknown template: {template}[/red]")
-            console.print(
-                "    [dim]Available templates: welcome, password_reset, email_verification, password_changed, account_deleted[/dim]"
-            )
+            console.print("    [dim]Available templates: welcome, password_reset, email_verification, password_changed, account_deleted[/dim]")
             raise typer.Exit(1)
 
         # Check result
@@ -311,7 +291,7 @@ async def _test_email_async(to: str, template: str) -> None:
         console.print("[bold red]✗ Email service dependencies missing![/bold red]")
         console.print(f"[dim]Error: {e}[/dim]")
         console.print()
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     except Exception as e:
         console.print()
@@ -331,4 +311,4 @@ async def _test_email_async(to: str, template: str) -> None:
             console.print("  • Check firewall settings")
 
         console.print()
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None

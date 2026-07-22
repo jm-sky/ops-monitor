@@ -50,9 +50,7 @@ class PollerScheduler:
     async def _run(self) -> None:
         while True:
             try:
-                await self._service.poll_due_sites(
-                    self._last_polled, live=is_live_mode_active()
-                )
+                await self._service.poll_due_sites(self._last_polled, live=is_live_mode_active())
             except Exception as e:
                 logger.error("Poller iteration error: %s", e, exc_info=True)
             await asyncio.sleep(CHECK_INTERVAL)

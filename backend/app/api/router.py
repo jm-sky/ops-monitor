@@ -56,9 +56,7 @@ api_router.include_router(logs_router, prefix="/logs", tags=["Logs"])
 api_router.include_router(users_router, prefix="/users", tags=["Users"])
 api_router.include_router(settings_router, prefix="/me/settings", tags=["Settings"])
 api_router.include_router(monitor_router, prefix="/monitor", tags=["Monitor"])
-api_router.include_router(
-    alert_channels_router, prefix="/monitor", tags=["Alert Channels"]
-)
+api_router.include_router(alert_channels_router, prefix="/monitor", tags=["Alert Channels"])
 
 # Register Two-Factor module (optional, added during development)
 try:

@@ -24,9 +24,7 @@ def _fetch_cert_der(connect_host: str, port: int, sni_host: str) -> bytes:
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
 
-    with socket.create_connection(
-        (connect_host, port), timeout=CONNECT_TIMEOUT
-    ) as sock:
+    with socket.create_connection((connect_host, port), timeout=CONNECT_TIMEOUT) as sock:
         with ctx.wrap_socket(sock, server_hostname=sni_host) as tls_sock:
             der = tls_sock.getpeercert(binary_form=True)
 
@@ -51,9 +49,7 @@ def parse_cert(der: bytes) -> dict[str, Any]:
     }
 
 
-async def fetch_cert(
-    ssl_check_url: str, connect_ip: str | None = None
-) -> dict[str, Any]:
+async def fetch_cert(ssl_check_url: str, connect_ip: str | None = None) -> dict[str, Any]:
     """Perform a TLS handshake and read the peer certificate.
 
     Blocking socket/ssl work runs in a thread. SNI/hostname is taken from

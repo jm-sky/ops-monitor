@@ -16,17 +16,9 @@ class AdminRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_all_users(
-        self, skip: int = 0, limit: int = 100
-    ) -> list[tuple[UserDB, UserDB | None]]:
+    async def get_all_users(self, skip: int = 0, limit: int = 100) -> list[tuple[UserDB, UserDB | None]]:
         """Get all users."""
-        stmt = (
-            select(UserDB)
-            .where(UserDB.deleted_at.is_(None))
-            .offset(skip)
-            .limit(limit)
-            .order_by(UserDB.created_at.desc())
-        )
+        stmt = select(UserDB).where(UserDB.deleted_at.is_(None)).offset(skip).limit(limit).order_by(UserDB.created_at.desc())
         result = await self.db.execute(stmt)
         users = result.scalars().all()
         return [(user, user) for user in users]

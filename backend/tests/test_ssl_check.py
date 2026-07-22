@@ -14,9 +14,7 @@ from app.modules.monitor.ssl_check import parse_cert, resolve_ssl_status
 
 def _make_cert_der(not_valid_after: datetime) -> bytes:
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    subject = issuer = x509.Name(
-        [x509.NameAttribute(NameOID.COMMON_NAME, "example.com")]
-    )
+    subject = issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "example.com")])
     cert = (
         x509.CertificateBuilder()
         .subject_name(subject)

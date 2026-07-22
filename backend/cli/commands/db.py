@@ -49,20 +49,15 @@ def _import_model_modules() -> None:
 
 
 @db_app.command("init")
-def init_database(
-    force: bool = typer.Option(
-        False, "--force", "-f", help="Recreate database file if it already exists"
-    )
-) -> None:
+def init_database(force: bool = typer.Option(False, "--force", "-f", help="Recreate database file if it already exists")) -> None:
     """Initialize application database (run SQLAlchemy metadata create_all)."""
 
     async def _init() -> None:
         _import_model_modules()
 
         # Import SchemaMigration model to ensure it's included in metadata
-        from app.core.migrations import SchemaMigration  # noqa: F401
-
         from app.core.database import Base, engine, init_db
+        from app.core.migrations import SchemaMigration  # noqa: F401
 
         if force:
             async with engine.begin() as conn:
@@ -98,9 +93,7 @@ def init_database(
 
 @db_app.command("init-test")
 def init_test_database(
-    force: bool = typer.Option(
-        False, "--force", "-f", help="Recreate test database if it already exists"
-    ),
+    force: bool = typer.Option(False, "--force", "-f", help="Recreate test database if it already exists"),
 ) -> None:
     """Initialize test database (backend_test) for integration tests.
 
@@ -113,17 +106,16 @@ def init_test_database(
         _import_model_modules()
 
         # Import SchemaMigration model to ensure it's included in metadata
-        from app.core.migrations import SchemaMigration  # noqa: F401
-        from app.core.database import Base
         from sqlalchemy.ext.asyncio import create_async_engine
+
+        from app.core.database import Base
+        from app.core.migrations import SchemaMigration  # noqa: F401
 
         # Get database password from environment
         db_password = os.getenv("POSTGRES_PASSWORD", "changeme")
         test_db_url = f"postgresql+asyncpg://backend:{db_password}@db:5432/backend_test"
 
-        console.print(
-            f"[dim]Test database URL: {test_db_url.replace(db_password, '***')}[/dim]"
-        )
+        console.print(f"[dim]Test database URL: {test_db_url.replace(db_password, '***')}[/dim]")
 
         # Create engine for test database
         engine = create_async_engine(
@@ -136,9 +128,7 @@ def init_test_database(
                 if force:
                     from sqlalchemy import text
 
-                    console.print(
-                        "[yellow]Dropping existing test database tables...[/yellow]"
-                    )
+                    console.print("[yellow]Dropping existing test database tables...[/yellow]")
                     # Drop all tables with CASCADE to handle foreign keys
                     await conn.execute(text("DROP SCHEMA public CASCADE"))
                     await conn.execute(text("CREATE SCHEMA public"))
@@ -146,14 +136,10 @@ def init_test_database(
                     await conn.execute(text("GRANT ALL ON SCHEMA public TO backend"))
                     await conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
 
-                console.print(
-                    "[bold green]Creating test database schema...[/bold green]"
-                )
+                console.print("[bold green]Creating test database schema...[/bold green]")
                 await conn.run_sync(Base.metadata.create_all)
 
-            console.print(
-                "[bold green]✓ Test database initialized successfully[/bold green]"
-            )
+            console.print("[bold green]✓ Test database initialized successfully[/bold green]")
 
         finally:
             await engine.dispose()
@@ -164,9 +150,7 @@ def init_test_database(
 
 @db_app.command("migrate")
 def migrate_database(
-    fake: bool = typer.Option(
-        False, "--fake", help="Mark migrations as applied without running them"
-    ),
+    fake: bool = typer.Option(False, "--fake", help="Mark migrations as applied without running them"),
     skip_init_check: bool = typer.Option(
         False,
         "--skip-init-check",
@@ -191,13 +175,11 @@ def migrate_database(
         # Check if database is initialized, if not run init first
         if not skip_init_check:
             if not await is_database_initialized():
-                console.print(
-                    "[yellow]Database is not initialized. Running 'db init' first...[/yellow]"
-                )
+                console.print("[yellow]Database is not initialized. Running 'db init' first...[/yellow]")
                 # Run init logic
                 _import_model_modules()
-                from app.core.migrations import SchemaMigration  # noqa: F401
                 from app.core.database import init_db
+                from app.core.migrations import SchemaMigration  # noqa: F401
 
                 await init_db()
 
@@ -215,9 +197,7 @@ def migrate_database(
         # Get migrations directory
         migrations_dir = Path(__file__).resolve().parents[2] / "migrations"
         if not migrations_dir.exists():
-            console.print(
-                f"[red]Migrations directory not found:[/red] {migrations_dir}"
-            )
+            console.print(f"[red]Migrations directory not found:[/red] {migrations_dir}")
             raise typer.Exit(1)
 
         # Discover all migrations
@@ -230,27 +210,17 @@ def migrate_database(
         applied_versions = set(await get_applied_migrations())
 
         # Find pending migrations
-        pending_migrations = [
-            (version, name, filepath)
-            for version, name, filepath in all_migrations
-            if version not in applied_versions
-        ]
+        pending_migrations = [(version, name, filepath) for version, name, filepath in all_migrations if version not in applied_versions]
 
         if not pending_migrations:
-            console.print(
-                "[bold green]✓ All migrations are already applied[/bold green]"
-            )
+            console.print("[bold green]✓ All migrations are already applied[/bold green]")
             return
 
-        console.print(
-            f"[bold]Found {len(pending_migrations)} pending migration(s)[/bold]"
-        )
+        console.print(f"[bold]Found {len(pending_migrations)} pending migration(s)[/bold]")
 
         # Run pending migrations in order
         for version, name, filepath in pending_migrations:
-            console.print(
-                f"\n[bold cyan]Running migration {version}: {name}[/bold cyan]"
-            )
+            console.print(f"\n[bold cyan]Running migration {version}: {name}[/bold cyan]")
 
             if fake:
                 # Just mark as applied without running
@@ -260,9 +230,7 @@ def migrate_database(
 
             try:
                 # Import and run migration
-                spec = importlib.util.spec_from_file_location(
-                    f"migration_{version}", filepath
-                )
+                spec = importlib.util.spec_from_file_location(f"migration_{version}", filepath)
                 if spec is None or spec.loader is None:
                     console.print(f"[red]Failed to load migration:[/red] {filepath}")
                     raise typer.Exit(1)
@@ -273,22 +241,18 @@ def migrate_database(
 
                 # Run upgrade function
                 if not hasattr(migration_module, "upgrade"):
-                    console.print(
-                        f"[red]Migration {version} does not have upgrade() function[/red]"
-                    )
+                    console.print(f"[red]Migration {version} does not have upgrade() function[/red]")
                     raise typer.Exit(1)
 
                 await migration_module.upgrade()
 
                 # Mark as applied
                 await mark_migration_as_applied(version, name)
-                console.print(
-                    f"[bold green]✓ Migration {version} applied successfully[/bold green]"
-                )
+                console.print(f"[bold green]✓ Migration {version} applied successfully[/bold green]")
 
             except Exception as e:
                 console.print(f"[red]✗ Migration {version} failed:[/red] {e}")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
 
         console.print("\n[bold green]✓ All pending migrations completed[/bold green]")
 
@@ -312,9 +276,7 @@ def migrate_status() -> None:
         # Get migrations directory
         migrations_dir = Path(__file__).resolve().parents[2] / "migrations"
         if not migrations_dir.exists():
-            console.print(
-                f"[red]Migrations directory not found:[/red] {migrations_dir}"
-            )
+            console.print(f"[red]Migrations directory not found:[/red] {migrations_dir}")
             raise typer.Exit(1)
 
         # Discover all migrations
@@ -346,18 +308,14 @@ def migrate_status() -> None:
             table.add_row(version, name, status)
 
         console.print(table)
-        console.print(
-            f"\n[bold]Total: {len(all_migrations)}[/bold] | [green]Applied: {applied_count}[/green] | [yellow]Pending: {pending_count}[/yellow]"
-        )
+        console.print(f"\n[bold]Total: {len(all_migrations)}[/bold] | [green]Applied: {applied_count}[/green] | [yellow]Pending: {pending_count}[/yellow]")
 
     asyncio.run(_status())
 
 
 @db_app.command("migrate-graceful")
 def migrate_graceful(
-    from_version: str | None = typer.Option(
-        None, "--from", help="Start from specific migration version (e.g., '020')"
-    ),
+    from_version: str | None = typer.Option(None, "--from", help="Start from specific migration version (e.g., '020')"),
     skip_init_check: bool = typer.Option(
         False,
         "--skip-init-check",
@@ -393,13 +351,11 @@ def migrate_graceful(
         # Check if database is initialized, if not run init first
         if not skip_init_check:
             if not await is_database_initialized():
-                console.print(
-                    "[yellow]Database is not initialized. Running 'db init' first...[/yellow]"
-                )
+                console.print("[yellow]Database is not initialized. Running 'db init' first...[/yellow]")
                 # Run init logic
                 _import_model_modules()
-                from app.core.migrations import SchemaMigration  # noqa: F401
                 from app.core.database import init_db
+                from app.core.migrations import SchemaMigration  # noqa: F401
 
                 await init_db()
 
@@ -417,9 +373,7 @@ def migrate_graceful(
         # Get migrations directory
         migrations_dir = Path(__file__).resolve().parents[2] / "migrations"
         if not migrations_dir.exists():
-            console.print(
-                f"[red]Migrations directory not found:[/red] {migrations_dir}"
-            )
+            console.print(f"[red]Migrations directory not found:[/red] {migrations_dir}")
             raise typer.Exit(1)
 
         # Discover all migrations
@@ -433,9 +387,7 @@ def migrate_graceful(
 
         # If --from is provided, unmark that migration and all subsequent ones
         if from_version:
-            console.print(
-                f"[bold yellow]Unmarking migrations from {from_version} onwards...[/bold yellow]"
-            )
+            console.print(f"[bold yellow]Unmarking migrations from {from_version} onwards...[/bold yellow]")
             unmarked_count = 0
             for version, _, _ in all_migrations:
                 try:
@@ -445,9 +397,7 @@ def migrate_graceful(
                     if version_float >= from_float:
                         if await is_migration_applied(version):
                             await unmark_migration(version)
-                            console.print(
-                                f"[yellow]Unmarked migration {version}[/yellow]"
-                            )
+                            console.print(f"[yellow]Unmarked migration {version}[/yellow]")
                             unmarked_count += 1
                             applied_versions.discard(version)
                 except ValueError:
@@ -455,20 +405,14 @@ def migrate_graceful(
                     if version >= from_version:
                         if await is_migration_applied(version):
                             await unmark_migration(version)
-                            console.print(
-                                f"[yellow]Unmarked migration {version}[/yellow]"
-                            )
+                            console.print(f"[yellow]Unmarked migration {version}[/yellow]")
                             unmarked_count += 1
                             applied_versions.discard(version)
 
             if unmarked_count > 0:
-                console.print(
-                    f"[bold yellow]✓ Unmarked {unmarked_count} migration(s)[/bold yellow]\n"
-                )
+                console.print(f"[bold yellow]✓ Unmarked {unmarked_count} migration(s)[/bold yellow]\n")
             else:
-                console.print(
-                    f"[yellow]No migrations found to unmark from version {from_version}[/yellow]\n"
-                )
+                console.print(f"[yellow]No migrations found to unmark from version {from_version}[/yellow]\n")
 
         # Find migrations to run
         # If --from was provided, we want to run from that version onwards
@@ -494,9 +438,7 @@ def migrate_graceful(
             console.print("[bold green]✓ No migrations to run[/bold green]")
             return
 
-        console.print(
-            f"[bold]Found {len(migrations_to_run)} migration(s) to run gracefully[/bold]"
-        )
+        console.print(f"[bold]Found {len(migrations_to_run)} migration(s) to run gracefully[/bold]")
 
         # Run migrations gracefully (ignore errors)
         success_count = 0
@@ -504,15 +446,11 @@ def migrate_graceful(
         skipped_count = 0
 
         for version, name, filepath in migrations_to_run:
-            console.print(
-                f"\n[bold cyan]Running migration {version}: {name}[/bold cyan]"
-            )
+            console.print(f"\n[bold cyan]Running migration {version}: {name}[/bold cyan]")
 
             try:
                 # Import and run migration
-                spec = importlib.util.spec_from_file_location(
-                    f"migration_{version}", filepath
-                )
+                spec = importlib.util.spec_from_file_location(f"migration_{version}", filepath)
                 if spec is None or spec.loader is None:
                     console.print(f"[red]Failed to load migration:[/red] {filepath}")
                     error_count += 1
@@ -524,9 +462,7 @@ def migrate_graceful(
 
                 # Run upgrade function
                 if not hasattr(migration_module, "upgrade"):
-                    console.print(
-                        f"[red]Migration {version} does not have upgrade() function[/red]"
-                    )
+                    console.print(f"[red]Migration {version} does not have upgrade() function[/red]")
                     error_count += 1
                     continue
 
@@ -534,22 +470,16 @@ def migrate_graceful(
 
                 # Mark as applied (even if it was already applied, this is safe)
                 await mark_migration_as_applied(version, name)
-                console.print(
-                    f"[bold green]✓ Migration {version} applied successfully[/bold green]"
-                )
+                console.print(f"[bold green]✓ Migration {version} applied successfully[/bold green]")
                 success_count += 1
 
             except Exception as e:
-                console.print(
-                    f"[yellow]⚠ Migration {version} failed (continuing):[/yellow] {e}"
-                )
+                console.print(f"[yellow]⚠ Migration {version} failed (continuing):[/yellow] {e}")
                 error_count += 1
                 # Don't mark as applied if it failed
                 # But check if it was already applied before
                 if await is_migration_applied(version):
-                    console.print(
-                        f"[yellow]  Note: Migration {version} was already marked as applied in database[/yellow]"
-                    )
+                    console.print(f"[yellow]  Note: Migration {version} was already marked as applied in database[/yellow]")
                     skipped_count += 1
 
         console.print("\n[bold]Migration summary:[/bold]")
@@ -557,9 +487,7 @@ def migrate_graceful(
         if error_count > 0:
             console.print(f"  [yellow]⚠ Errors (ignored): {error_count}[/yellow]")
         if skipped_count > 0:
-            console.print(
-                f"  [yellow]○ Skipped (already applied): {skipped_count}[/yellow]"
-            )
+            console.print(f"  [yellow]○ Skipped (already applied): {skipped_count}[/yellow]")
         console.print("\n[bold green]✓ Graceful migration completed[/bold green]")
 
     asyncio.run(_migrate_graceful())
@@ -567,9 +495,7 @@ def migrate_graceful(
 
 @db_app.command("migrate-unmark")
 def migrate_unmark(
-    version: str = typer.Argument(
-        ..., help="Migration version to unmark (e.g., '020')"
-    ),
+    version: str = typer.Argument(..., help="Migration version to unmark (e.g., '020')"),
 ) -> None:
     """Remove a migration from schema_migrations table.
 
@@ -592,19 +518,13 @@ def migrate_unmark(
 
         # Check if migration is applied
         if not await is_migration_applied(version):
-            console.print(
-                f"[yellow]Migration {version} is not marked as applied[/yellow]"
-            )
+            console.print(f"[yellow]Migration {version} is not marked as applied[/yellow]")
             return
 
         # Unmark migration
         await unmark_migration(version)
-        console.print(
-            f"[bold green]✓ Migration {version} unmarked successfully[/bold green]"
-        )
-        console.print(
-            f"[yellow]You can now re-run it with:[/yellow] cli db migrate-graceful --from {version}"
-        )
+        console.print(f"[bold green]✓ Migration {version} unmarked successfully[/bold green]")
+        console.print(f"[yellow]You can now re-run it with:[/yellow] cli db migrate-graceful --from {version}")
 
     asyncio.run(_unmark())
 
@@ -612,20 +532,17 @@ def migrate_unmark(
 @db_app.command("seed")
 def seed_database(
     seeder: str = typer.Argument(..., help="Seeder name (e.g. 'sites')"),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be imported without saving"
-    ),
-    clear: bool = typer.Option(
-        False, "--clear", help="Delete all existing records before seeding"
-    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be imported without saving"),
+    clear: bool = typer.Option(False, "--clear", help="Delete all existing records before seeding"),
 ) -> None:
     """Seed database with initial data."""
 
     async def _seed_sites() -> None:
         import json
 
-        from app.core.database import engine
         from sqlalchemy import text
+
+        from app.core.database import engine
 
         seeds_dir = Path(__file__).resolve().parents[2] / "seeds"
         yml_file = seeds_dir / "sites.yml"
@@ -635,10 +552,8 @@ def seed_database(
             try:
                 import yaml  # type: ignore[import-untyped]
             except ImportError:
-                console.print(
-                    "[red]PyYAML not installed. Run: pip install pyyaml[/red]"
-                )
-                raise typer.Exit(1)
+                console.print("[red]PyYAML not installed. Run: pip install pyyaml[/red]")
+                raise typer.Exit(1) from None
             data = yaml.safe_load(yml_file.read_text())
             console.print(f"[dim]Loading from {yml_file.name}[/dim]")
         elif json_file.exists():
@@ -667,9 +582,7 @@ def seed_database(
         async with engine.begin() as conn:
             if clear:
                 result = await conn.execute(text("DELETE FROM sites"))
-                console.print(
-                    f"[yellow]Cleared {result.rowcount} existing site(s) (snapshots cascade-deleted).[/yellow]"
-                )
+                console.print(f"[yellow]Cleared {result.rowcount} existing site(s) (snapshots cascade-deleted).[/yellow]")
 
             inserted = 0
             skipped = 0
@@ -716,12 +629,8 @@ def seed_database(
                         "polling_system": int(site.get("polling_system", 300)),
                         "polling_updates": int(site.get("polling_updates", 43200)),
                         "polling_reboot": int(site.get("polling_reboot", 1800)),
-                        "server_label": site.get("server")
-                        or site.get("server_label")
-                        or None,
-                        "environment": site.get("environment")
-                        or site.get("env")
-                        or None,
+                        "server_label": site.get("server") or site.get("server_label") or None,
+                        "environment": site.get("environment") or site.get("env") or None,
                         "verify_ssl": bool(site.get("verify_ssl", True)),
                         "ip": site.get("ip") or None,
                     },
@@ -733,9 +642,7 @@ def seed_database(
                     console.print(f"  [yellow]skipped[/yellow] {name} (no changes)")
                     skipped += 1
 
-        console.print(
-            f"\n[bold green]Done.[/bold green] Created: {inserted}, Skipped: {skipped}"
-        )
+        console.print(f"\n[bold green]Done.[/bold green] Created: {inserted}, Skipped: {skipped}")
 
     if seeder == "sites":
         asyncio.run(_seed_sites())

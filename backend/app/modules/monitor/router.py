@@ -13,7 +13,7 @@ from app.modules.auth.dependencies import AdminUser, CurrentUser
 
 from .db_models import SiteDB, SiteSnapshotDB
 from .health_schema import get_health_json_schema
-from .repositories import SnapshotRepository, SiteRepository
+from .repositories import SiteRepository, SnapshotRepository
 from .scheduler import activate_live_mode
 from .schemas import (
     MonitorConfigResponse,
@@ -76,15 +76,9 @@ def _site_status_response(
     ssl_snap = _snapshot_for_site(site, ssl_snapshot, "ssl")
     return SiteStatusResponse(
         site=_site_response(site, redact_secrets=redact_secrets),
-        healthSnapshot=(
-            SiteSnapshotResponse(**health.to_response()) if health else None
-        ),
-        systemSnapshot=(
-            SiteSnapshotResponse(**system.to_response()) if system else None
-        ),
-        sslSnapshot=(
-            SiteSnapshotResponse(**ssl_snap.to_response()) if ssl_snap else None
-        ),
+        healthSnapshot=(SiteSnapshotResponse(**health.to_response()) if health else None),
+        systemSnapshot=(SiteSnapshotResponse(**system.to_response()) if system else None),
+        sslSnapshot=(SiteSnapshotResponse(**ssl_snap.to_response()) if ssl_snap else None),
     )
 
 
@@ -224,18 +218,14 @@ async def get_site(
 
     site = await site_repo.get_by_id(site_id)
     if not site:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Site not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Site not found")
 
     health_snap = await snap_repo.get_latest(site_id, "health")
     system_snap = await snap_repo.get_latest(site_id, "system")
     ssl_snap = await snap_repo.get_latest(site_id, "ssl")
     is_admin = current_user.isAdmin or current_user.isOwner
 
-    return _site_status_response(
-        site, health_snap, system_snap, ssl_snap, redact_secrets=not is_admin
-    )
+    return _site_status_response(site, health_snap, system_snap, ssl_snap, redact_secrets=not is_admin)
 
 
 @router.put(
@@ -253,9 +243,7 @@ async def update_site(
     snap_repo = SnapshotRepository(db)
     site = await site_repo.get_by_id(site_id)
     if not site:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Site not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Site not found")
 
     field_map = {
         "name": "name",
@@ -278,11 +266,7 @@ async def update_site(
         "ip": "ip",
         "expected_meta": "expectedMeta",
     }
-    update_data = {
-        db_field: getattr(data, schema_field)
-        for db_field, schema_field in field_map.items()
-        if schema_field in data.model_fields_set
-    }
+    update_data = {db_field: getattr(data, schema_field) for db_field, schema_field in field_map.items() if schema_field in data.model_fields_set}
     if "healthUrl" in data.model_fields_set and not data.healthUrl:
         await snap_repo.delete_all_for_type(site_id, "health")
     if "systemUrl" in data.model_fields_set and not data.systemUrl:
@@ -306,9 +290,7 @@ async def delete_site(
     repo = SiteRepository(db)
     site = await repo.get_by_id(site_id)
     if not site:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Site not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Site not found")
     await repo.delete(site)
 
 
@@ -337,9 +319,7 @@ async def get_snapshots(
     site_repo = SiteRepository(db)
     site = await site_repo.get_by_id(site_id)
     if not site:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Site not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Site not found")
 
     snap_repo = SnapshotRepository(db)
     snaps = await snap_repo.get_history(site_id, snapshot_type, limit=limit)
@@ -367,15 +347,11 @@ async def get_snapshots_page(
     site_repo = SiteRepository(db)
     site = await site_repo.get_by_id(site_id)
     if not site:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Site not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Site not found")
 
     snap_repo = SnapshotRepository(db)
     total = await snap_repo.count_history(site_id, snapshot_type)
-    snaps = await snap_repo.get_history_page(
-        site_id, snapshot_type, limit=limit, offset=offset
-    )
+    snaps = await snap_repo.get_history_page(site_id, snapshot_type, limit=limit, offset=offset)
     return PaginatedSiteSnapshotResponse(
         items=[SiteSnapshotResponse(**s.to_response()) for s in snaps],
         total=total,
@@ -400,9 +376,7 @@ async def poll_now(
     repo = SiteRepository(db)
     site = await repo.get_by_id(site_id)
     if not site:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Site not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Site not found")
 
     service = MonitorService()
     await service.poll_site_now(site)

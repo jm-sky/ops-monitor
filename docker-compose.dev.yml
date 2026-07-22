@@ -45,6 +45,7 @@ services:
       - ./backend/main.py:/app/main.py:rw,delegated
       - ./backend/cli:/app/cli:rw,delegated
       - ./backend/cli.py:/app/cli.py:rw,delegated
+      - ./backend/pyproject.toml:/app/pyproject.toml:ro,delegated
       - ./backend/seeds:/app/seeds:rw,delegated
     logging:
       driver: 'json-file'

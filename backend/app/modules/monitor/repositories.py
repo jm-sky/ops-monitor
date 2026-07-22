@@ -22,9 +22,7 @@ class SiteRepository:
         return list(result.scalars().all())
 
     async def get_enabled(self) -> list[SiteDB]:
-        result = await self.db.execute(
-            select(SiteDB).where(SiteDB.enabled.is_(True)).order_by(SiteDB.name)
-        )
+        result = await self.db.execute(select(SiteDB).where(SiteDB.enabled.is_(True)).order_by(SiteDB.name))
         return list(result.scalars().all())
 
     async def get_by_id(self, site_id: uuid.UUID) -> SiteDB | None:
@@ -78,9 +76,7 @@ class SnapshotRepository:
         await self.db.refresh(snap)
         return snap
 
-    async def get_latest(
-        self, site_id: uuid.UUID, snapshot_type: str
-    ) -> SiteSnapshotDB | None:
+    async def get_latest(self, site_id: uuid.UUID, snapshot_type: str) -> SiteSnapshotDB | None:
         result = await self.db.execute(
             select(SiteSnapshotDB)
             .where(
@@ -92,9 +88,7 @@ class SnapshotRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_latest_for_sites(
-        self, site_ids: list[uuid.UUID]
-    ) -> dict[uuid.UUID, dict[str, SiteSnapshotDB]]:
+    async def get_latest_for_sites(self, site_ids: list[uuid.UUID]) -> dict[uuid.UUID, dict[str, SiteSnapshotDB]]:
         """Return latest snapshots grouped by site id and snapshot type."""
         if not site_ids:
             return {}
@@ -118,22 +112,14 @@ class SnapshotRepository:
             .subquery()
         )
 
-        result = await self.db.execute(
-            select(SiteSnapshotDB)
-            .join(ranked, ranked.c.id == SiteSnapshotDB.id)
-            .where(ranked.c.rn == 1)
-        )
+        result = await self.db.execute(select(SiteSnapshotDB).join(ranked, ranked.c.id == SiteSnapshotDB.id).where(ranked.c.rn == 1))
 
         snapshots_by_site: dict[uuid.UUID, dict[str, SiteSnapshotDB]] = {}
         for snapshot in result.scalars().all():
-            snapshots_by_site.setdefault(snapshot.site_id, {})[
-                snapshot.snapshot_type
-            ] = snapshot
+            snapshots_by_site.setdefault(snapshot.site_id, {})[snapshot.snapshot_type] = snapshot
         return snapshots_by_site
 
-    async def get_history(
-        self, site_id: uuid.UUID, snapshot_type: str, limit: int = 100
-    ) -> list[SiteSnapshotDB]:
+    async def get_history(self, site_id: uuid.UUID, snapshot_type: str, limit: int = 100) -> list[SiteSnapshotDB]:
         result = await self.db.execute(
             select(SiteSnapshotDB)
             .where(
@@ -175,9 +161,7 @@ class SnapshotRepository:
         )
         return list(result.scalars().all())
 
-    async def delete_all_for_type(
-        self, site_id: uuid.UUID, snapshot_type: str
-    ) -> None:
+    async def delete_all_for_type(self, site_id: uuid.UUID, snapshot_type: str) -> None:
         """Delete all snapshots for a site and snapshot type."""
         await self.db.execute(
             delete(SiteSnapshotDB).where(
@@ -187,9 +171,7 @@ class SnapshotRepository:
         )
         await self.db.commit()
 
-    async def cleanup_old(
-        self, site_id: uuid.UUID, snapshot_type: str, keep: int = 1000
-    ) -> None:
+    async def cleanup_old(self, site_id: uuid.UUID, snapshot_type: str, keep: int = 1000) -> None:
         """Delete all but the most recent `keep` snapshots for a site+type."""
         subq = (
             select(SiteSnapshotDB.id)

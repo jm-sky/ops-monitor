@@ -115,12 +115,8 @@ class AuthService:
             user = await self.user_repository.create_user(email, password, name)
 
             # Generate verification token and send verification email
-            verification_token = create_email_verification_token(
-                {"sub": user.id, "email": email}
-            )
-            stored_user = await self.user_repository.store_email_verification_token(
-                user.id, verification_token, datetime.now(UTC)
-            )
+            verification_token = create_email_verification_token({"sub": user.id, "email": email})
+            stored_user = await self.user_repository.store_email_verification_token(user.id, verification_token, datetime.now(UTC))
             if stored_user:
                 user = stored_user
 
@@ -204,9 +200,7 @@ class AuthService:
                 if await self.token_blacklist_service.is_blacklisted(refresh_token):
                     raise InvalidTokenError("Token has been revoked")
                 token_jti = payload.get("jti")
-                if token_jti and await self.token_blacklist_service.is_jti_blacklisted(
-                    token_jti
-                ):
+                if token_jti and await self.token_blacklist_service.is_jti_blacklisted(token_jti):
                     raise InvalidTokenError("Session has been revoked")
 
             # Get user ID
@@ -227,9 +221,7 @@ class AuthService:
 
             # Generate new tokens with preserved 2FA state
             # Ensure tfaVerified is bool (not None)
-            tfa_verified_bool = (
-                old_tfa_verified if old_tfa_verified is not None else False
-            )
+            tfa_verified_bool = old_tfa_verified if old_tfa_verified is not None else False
             new_access_token, new_refresh_token = await self._issue_login_tokens(
                 user,
                 tfa_verified=tfa_verified_bool,
@@ -265,7 +257,7 @@ class AuthService:
         except Exception as e:
             # Log unexpected errors for debugging
             logger.error(f"Unexpected error during token refresh: {e}", exc_info=True)
-            raise InvalidTokenError("Invalid or expired refresh token")
+            raise InvalidTokenError("Invalid or expired refresh token") from e
 
     async def request_password_reset(
         self,
@@ -310,10 +302,7 @@ class AuthService:
             # In development mode only, also log the token (NEVER in production!)
             environment = os.getenv("ENVIRONMENT", "production").lower()
             if environment == "development":
-                logger.warning(
-                    f"DEV MODE: Password reset token for {email}: {token}\n"
-                    f"Reset link: /reset-password?token={token}"
-                )
+                logger.warning(f"DEV MODE: Password reset token for {email}: {token}\n" f"Reset link: /reset-password?token={token}")
             else:
                 # In production, just log that email was sent without exposing token
                 logger.info(f"Password reset email sent to {email}")
@@ -334,9 +323,7 @@ class AuthService:
         Raises:
             InvalidTokenError: If token is invalid
         """
-        success = await self.user_repository.reset_password_with_token(
-            token, new_password
-        )
+        success = await self.user_repository.reset_password_with_token(token, new_password)
         if not success:
             raise InvalidTokenError("Invalid or expired reset token")
         try:
@@ -350,9 +337,7 @@ class AuthService:
                         reason="password_reset",
                     )
         except Exception:
-            logger.warning(
-                "Failed to revoke sessions after password reset", exc_info=True
-            )
+            logger.warning("Failed to revoke sessions after password reset", exc_info=True)
         return True
 
     async def resend_email_verification(
@@ -370,9 +355,7 @@ class AuthService:
             return True
 
         token = create_email_verification_token({"sub": user.id, "email": user.email})
-        await self.user_repository.store_email_verification_token(
-            user.id, token, datetime.now(UTC)
-        )
+        await self.user_repository.store_email_verification_token(user.id, token, datetime.now(UTC))
 
         try:
             email_service = get_email_service()
@@ -440,9 +423,7 @@ class AuthService:
             InvalidCredentialsError: If current password is incorrect
             UserNotFoundError: If user not found
         """
-        success = await self.user_repository.change_password(
-            user_id, current_password, new_password
-        )
+        success = await self.user_repository.change_password(user_id, current_password, new_password)
         if not success:
             user = await self.user_repository.get_user_by_id(user_id)
             if not user:
@@ -512,10 +493,7 @@ class AuthService:
                 raise InvalidCredentialsError("Password is incorrect")
 
         # Verify confirmation phrase (should be 'DELETE' or user email)
-        if (
-            confirmation.upper() != "DELETE"
-            and confirmation.lower() != user.email.lower()
-        ):
+        if confirmation.upper() != "DELETE" and confirmation.lower() != user.email.lower():
             raise InvalidCredentialsError("Confirmation phrase is incorrect")
 
         # Store user email and name before deletion for email notification
@@ -524,9 +502,7 @@ class AuthService:
 
         # Delete user account
         if self.two_factor_repository:
-            two_factor_repository = cast(
-                "TwoFactorRepositoryInterface", self.two_factor_repository
-            )
+            two_factor_repository = cast("TwoFactorRepositoryInterface", self.two_factor_repository)
             try:
                 await two_factor_repository.disable_totp(user_id)
                 await two_factor_repository.delete_all_passkeys(user_id)
@@ -536,9 +512,7 @@ class AuthService:
                     exc_info=True,
                 )
         await self.user_repository.delete_all_oauth_connections(user_id)
-        success = await self.user_repository.delete_user(
-            user_id, soft_delete=soft_delete
-        )
+        success = await self.user_repository.delete_user(user_id, soft_delete=soft_delete)
         if not success:
             raise UserNotFoundError("Failed to delete user account")
 
@@ -590,28 +564,16 @@ class AuthService:
             raise ValueError("Email is required from OAuth provider")
 
         # Extract provider_id - support both camelCase (providerId) and snake_case (provider_id, id, sub)
-        provider_id = (
-            user_info.get("providerId")
-            or user_info.get("provider_id")
-            or user_info.get("id")
-            or user_info.get("sub")
-            or ""
-        )
+        provider_id = user_info.get("providerId") or user_info.get("provider_id") or user_info.get("id") or user_info.get("sub") or ""
 
         # Extract avatar URL - support both camelCase (avatarUrl) and snake_case (avatar_url, picture)
-        avatar_url = (
-            user_info.get("avatarUrl")
-            or user_info.get("avatar_url")
-            or user_info.get("picture")
-        )
+        avatar_url = user_info.get("avatarUrl") or user_info.get("avatar_url") or user_info.get("picture")
 
         # Extract name
         name = user_info.get("name", email.split("@")[0])
 
         # Check if user already exists by OAuth provider
-        existing_user_by_provider = (
-            await self.user_repository.get_user_by_oauth_provider(provider, provider_id)
-        )
+        existing_user_by_provider = await self.user_repository.get_user_by_oauth_provider(provider, provider_id)
 
         if existing_user_by_provider:
             # User exists with this OAuth provider - use existing user

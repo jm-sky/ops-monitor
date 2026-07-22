@@ -130,10 +130,7 @@ def prompt_for_arguments(command_path: str) -> list[str]:
             choices: list[str] = arg_config.get("choices", [])
             if not choices or not isinstance(choices, list):
                 return []
-            choice_objects = [
-                questionary.Choice(title=str(choice), value=str(choice))
-                for choice in choices
-            ]
+            choice_objects = [questionary.Choice(title=str(choice), value=str(choice)) for choice in choices]
             value: str | None = questionary.select(
                 arg_prompt,
                 choices=choice_objects,
@@ -194,10 +191,7 @@ def show_group_interactive_menu(group_key: str, group_info: dict) -> None:
     commands_list = list(group_info["commands"].items())
     choices: list[questionary.Choice] = [
         questionary.Choice(title="← Back", value="__back__"),
-        *[
-            questionary.Choice(title=f"{cmd_key:20s} - {cmd_desc}", value=cmd_key)
-            for cmd_key, cmd_desc in commands_list
-        ],
+        *[questionary.Choice(title=f"{cmd_key:20s} - {cmd_desc}", value=cmd_key) for cmd_key, cmd_desc in commands_list],
     ]
 
     # Use questionary.select for arrow key navigation
@@ -252,13 +246,9 @@ def show_group_interactive_menu(group_key: str, group_info: dict) -> None:
     # Build command and execute
     console.print()
     if required_args:
-        console.print(
-            f"[dim]Executing: [cyan]{group_key} {selected_command} {' '.join(required_args)}[/cyan][/dim]"
-        )
+        console.print(f"[dim]Executing: [cyan]{group_key} {selected_command} {' '.join(required_args)}[/cyan][/dim]")
     else:
-        console.print(
-            f"[dim]Executing: [cyan]{group_key} {selected_command}[/cyan][/dim]"
-        )
+        console.print(f"[dim]Executing: [cyan]{group_key} {selected_command}[/cyan][/dim]")
     console.print()
 
     # Reconstruct sys.argv to pass to Typer
@@ -281,12 +271,7 @@ def _show_interactive_menu() -> None:
     console.print()
 
     # Prepare choices for questionary
-    choices = [
-        questionary.Choice(
-            title=f"{group_key:8s} - {group_info['name']}", value=group_key
-        )
-        for group_key, group_info in COMMAND_GROUPS.items()
-    ]
+    choices = [questionary.Choice(title=f"{group_key:8s} - {group_info['name']}", value=group_key) for group_key, group_info in COMMAND_GROUPS.items()]
 
     # Use questionary.select for arrow key navigation
     selected_group = questionary.select(

@@ -13,7 +13,7 @@ from app.core.database import AsyncSessionLocal
 from . import ssl_check
 from .alerts.dispatcher import dispatch_if_changed
 from .db_models import SiteDB
-from .repositories import SnapshotRepository, SiteRepository
+from .repositories import SiteRepository, SnapshotRepository
 
 logger = logging.getLogger(__name__)
 
@@ -63,19 +63,9 @@ class MonitorService:
             site_key = str(site.id)
             site_times = last_polled.setdefault(site_key, {})
 
-            health_interval = (
-                min(site.polling_health, LIVE_POLL_INTERVAL)
-                if live
-                else site.polling_health
-            )
-            system_interval = (
-                min(site.polling_system, LIVE_POLL_INTERVAL)
-                if live
-                else site.polling_system
-            )
-            ssl_interval = (
-                min(site.polling_ssl, LIVE_POLL_INTERVAL) if live else site.polling_ssl
-            )
+            health_interval = min(site.polling_health, LIVE_POLL_INTERVAL) if live else site.polling_health
+            system_interval = min(site.polling_system, LIVE_POLL_INTERVAL) if live else site.polling_system
+            ssl_interval = min(site.polling_ssl, LIVE_POLL_INTERVAL) if live else site.polling_ssl
 
             if site.health_url:
                 last = site_times.get("health")
@@ -127,9 +117,7 @@ class MonitorService:
         status = None
 
         try:
-            async with httpx.AsyncClient(
-                timeout=TIMEOUT, verify=site.verify_ssl
-            ) as client:
+            async with httpx.AsyncClient(timeout=TIMEOUT, verify=site.verify_ssl) as client:
                 resp = await client.get(url, headers=headers)
                 resp.raise_for_status()
                 try:
@@ -161,9 +149,7 @@ class MonitorService:
 
         async with AsyncSessionLocal() as db:
             repo = SnapshotRepository(db)
-            snap = await repo.create(
-                site.id, "health", raw_data, error, status, meta_mismatches
-            )
+            snap = await repo.create(site.id, "health", raw_data, error, status, meta_mismatches)
             await repo.cleanup_old(site.id, "health")
 
         await dispatch_if_changed(site, snap)
@@ -178,9 +164,7 @@ class MonitorService:
         status = None
 
         try:
-            async with httpx.AsyncClient(
-                timeout=TIMEOUT, verify=site.verify_ssl
-            ) as client:
+            async with httpx.AsyncClient(timeout=TIMEOUT, verify=site.verify_ssl) as client:
                 resp = await client.get(url, headers=headers)
                 resp.raise_for_status()
                 raw_data = resp.json()
@@ -214,9 +198,7 @@ class MonitorService:
 
         try:
             raw_data = await ssl_check.fetch_cert(site.ssl_check_url, site.ip)  # type: ignore[arg-type]
-            status = ssl_check.resolve_ssl_status(
-                raw_data["days_remaining"], settings.monitor.ssl_expiry_warning_days
-            )
+            status = ssl_check.resolve_ssl_status(raw_data["days_remaining"], settings.monitor.ssl_expiry_warning_days)
         except Exception as e:
             error = str(e)
             status = "failed"
