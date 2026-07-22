@@ -19,6 +19,7 @@ NC='\033[0m' # No Color
 # Configuration
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$PROJECT_DIR/backend"
+APP_CONTAINER_NAME="ops-monitor-app"
 
 # shellcheck source=scripts/lib/detect_compose.sh
 source "$PROJECT_DIR/scripts/lib/detect_compose.sh"
@@ -52,7 +53,7 @@ cd "$COMPOSE_DIR"
 if ! docker compose -f "$COMPOSE_FILE" ps --services --filter status=running | grep -q '^app$'; then
   echo -e "${YELLOW}Warning: Service 'app' is not running. Starting it...${NC}"
   docker compose -f "$COMPOSE_FILE" up -d app
-  
+
   # Wait a bit for container to be ready
   echo -e "${YELLOW}Waiting for container to be ready...${NC}"
   sleep 3
@@ -68,4 +69,3 @@ fi
 # Execute command in container
 echo -e "${GREEN}Executing in container (${COMPOSE_FILE}):${NC} ${CMD_ARGS[*]}"
 docker compose -f "$COMPOSE_FILE" exec app "${CMD_ARGS[@]}"
-

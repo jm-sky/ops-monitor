@@ -17,6 +17,7 @@ NC='\033[0m'
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_DIR="$PROJECT_DIR/backend"
 SCRIPTS_DIR="$PROJECT_DIR/scripts"
+APP_CONTAINER_NAME="ops-monitor-app"
 
 # shellcheck source=scripts/lib/detect_compose.sh
 source "$SCRIPTS_DIR/lib/detect_compose.sh"
