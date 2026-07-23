@@ -33,8 +33,8 @@ def test_parse_cert_computes_days_remaining() -> None:
     data = parse_cert(der)
 
     assert data["days_remaining"] in (44, 45)
-    assert "example.com" in data["subject"]
-    assert "example.com" in data["issuer"]
+    assert data["subject"] == "CN=example.com"
+    assert data["issuer"] == "CN=example.com"
     assert data["not_after"]
     assert data["not_before"]
 

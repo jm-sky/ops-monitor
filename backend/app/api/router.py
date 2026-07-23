@@ -1,5 +1,7 @@
 """Main API router aggregating all module routers."""
 
+import logging
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 
@@ -12,6 +14,8 @@ from app.modules.monitor.alerts.router import router as alert_channels_router
 from app.modules.monitor.router import router as monitor_router
 from app.modules.settings.router import router as settings_router
 from app.modules.users.router import router as users_router
+
+logger = logging.getLogger(__name__)
 
 # Main API router
 api_router = APIRouter()
@@ -26,9 +30,11 @@ async def health_check() -> dict:
     try:
         async with AsyncSessionLocal() as session:
             await session.execute(text("SELECT 1"))
-    except Exception as exc:
+    except Exception:
+        logger.exception("Health check database probe failed")
         db_status = "failed"
-        db_reason = str(exc)
+        # Do not leak exception details to clients
+        db_reason = "unavailable"
 
     overall = db_status
 

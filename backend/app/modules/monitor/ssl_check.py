@@ -21,6 +21,7 @@ DEFAULT_PORT = 443
 
 def _fetch_cert_der(connect_host: str, port: int, sni_host: str) -> bytes:
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
 
