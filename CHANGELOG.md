@@ -7,8 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-23
+
 ### Added
-- CLI `users change-password` command to set a user's password by email or ID (admin override; invalidates existing sessions via token version bump).
+- **Health**: bearer-protected `GET /api/health/details` for Ops Monitor self/peer checks
+- **CLI**: `users change-password`; `users create` with `--role`, name guessing, and TTY guard; soft/hard delete on `users delete`
+- **Monitor**: SSL certificate expiry monitoring, SSL check URL + polling interval on sites, degraded health component badges, visual status differentiation, ComponentHealthBadge
+- **Monitor**: remote server actions (reboot / upgrade), heartbeat enhancements, route-synced dashboard filters, snapshot/status response improvements
+- **Deploy**: unified `deploy.sh` with Compose auto-detection (`compose.yaml` preference)
+- **Auth**: token versioning and session tracking (shared-core backport)
+
+### Changed
+- Compose cleanup: secrets from `backend/.env` only; footer GitHub URL from app config; root compose DX; agent DNS alias `http://agent:9100`
+- Build: vendor manual chunks; silence `@vueuse/core` INVALID_ANNOTATION warnings
+
+### Fixed
+- PWA service worker no longer intercepts `/auth/*` navigations
+- Agent cleanup of leftover `reboot-required.pkgs` directory
+- Deploy sub-script nested step numbering; CSP allows Google reCAPTCHA origins
+- OAuth buttons shown only when provider is configured
+
+### Security
+- CodeQL hardening (TLS, health, storage, OAuth)
+- Unified OAuth callback `/auth/callback/:provider`; OAuth session tracking, 2FA challenge, CSRF state store
+- 2FA: `tv`/`jti` on login/refresh; TOTP `verified`/`method`; SEC-5 backup code hashing
+- Rate limiting, admin auth, and WebAuthn login hardening; WebAuthn contract backport from gear-stack
+- Frontend and backend vulnerability cleanup; pnpm overrides for Dependabot alerts
 
 ## [0.4.1] - 2026-05-08
 
