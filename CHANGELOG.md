@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.0.0] - 2026-07-23
+
+First stable production release of **Ops Monitor** — multi-site health, SSL, system metrics, and alert routing for the VPS fleet.
+
+### Added
+- Site monitoring dashboard with filters, dense/live mode, status badges, and route-synced filter state
+- Health polling with component-level status (`/api/health/details` bearer-protected for peer checks)
+- SSL certificate expiry monitoring, SSL check URL, and configurable polling intervals
+- System metrics, reboot/upgrade remote actions, heartbeat, and snapshot history
+- Alert channels with type/severity/site/tag filters, quiet hours, and re-alert cooldown
+- Security-updates alerts and expected-meta drift detection
+- Auth stack: OAuth (Google/GitHub), 2FA (TOTP/WebAuthn), session tracking, CLI user admin
+- Deploy via unified `deploy.sh` + Compose auto-detection; agent service on the monitor network
+
+### Security
+- Shared-core hardening: OAuth CSRF state store, path-safe storage, rate limiting, admin guards
+- CodeQL fixes (TLS, health, storage, OAuth); Dependabot pnpm overrides
+
+---
+
 ## [0.5.0] - 2026-07-23
 
 ### Added
