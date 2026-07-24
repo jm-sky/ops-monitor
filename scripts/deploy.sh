@@ -129,9 +129,28 @@ resolve_compose_for_deploy
 echo -e "${GREEN}Starting ops-monitor deployment...${NC}"
 echo -e "${GREEN}Using compose: $(compose_display_path) (${COMPOSE_SOURCE})${NC}"
 
-echo -e "${YELLOW}Requesting sudo access...${NC}"
-sudo -v
-while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+setup_toolchain() {
+  if command -v pnpm >/dev/null 2>&1; then
+    return 0
+  fi
+  export NVM_DIR="/home/madeyskij/.nvm"
+  export PNPM_HOME="/home/madeyskij/.local/share/pnpm"
+  # shellcheck source=/dev/null
+  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+  export PATH="$PNPM_HOME:$PATH"
+}
+setup_toolchain
+
+if [ "${CI:-}" = "true" ]; then
+  export GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=accept-new'
+fi
+
+# CI uses passwordless sudoers; manual deploy prompts once
+if [ "${CI:-}" != "true" ]; then
+  echo -e "${YELLOW}Requesting sudo access...${NC}"
+  sudo -v
+  while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+fi
 
 echo -e "${YELLOW}Step 1: Pulling latest changes...${NC}"
 cd "$PROJECT_DIR"
