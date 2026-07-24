@@ -8,11 +8,20 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 import pytest
+from fastapi import status
 from fastapi.testclient import TestClient
 
+from app.core.csrf import CSRF_COOKIE_NAME, CSRF_HEADER_NAME
 from app.modules.auth.dependencies import get_current_user, require_admin
 from app.modules.monitor.repositories import SiteRepository, SnapshotRepository
 from main import app
+
+
+def _csrf_headers(client: TestClient) -> dict[str, str]:
+    response = client.get("/api/auth/csrf-token")
+    assert response.status_code == status.HTTP_200_OK
+    token = response.cookies.get(CSRF_COOKIE_NAME) or response.json()["csrf_token"]
+    return {CSRF_HEADER_NAME: token}
 
 
 class _FakeUser:
@@ -307,6 +316,7 @@ def test_update_site_clearing_health_url_deletes_health_snapshots(
         response = monitor_client.put(
             f"/api/monitor/sites/{site_id}",
             json={"healthUrl": None},
+            headers=_csrf_headers(monitor_client),
         )
     finally:
         SiteRepository.get_by_id = original_get_by_id  # type: ignore[method-assign]
