@@ -19,8 +19,11 @@ pnpm install --frozen-lockfile
 
 echo -e "${YELLOW}Building...${NC}"
 rm -rf dist
-export NODE_OPTIONS="--max-old-space-size=4096"
-pnpm build
+# Cap Node heap below typical free RAM on this VPS (no swap).
+# Run type-check and vite sequentially — `pnpm build` uses run-p and doubles peak RSS (OOM / exit 137).
+export NODE_OPTIONS="--max-old-space-size=2048"
+pnpm type-check
+pnpm build-only
 
 echo -e "${YELLOW}Deploying to $DEPLOY_DIR...${NC}"
 sudo mkdir -p "$DEPLOY_DIR"
