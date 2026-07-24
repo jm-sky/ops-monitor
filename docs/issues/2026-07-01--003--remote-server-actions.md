@@ -29,8 +29,10 @@ isProject: false
 |---|---|
 | **ID** | `003` |
 | **Data** | 2026-07-01 |
-| **Status** | `planned` |
+| **Status** | `cancelled` |
 | **Moduł** | `monitor`, `agent` (backend, frontend) |
+
+> **Anulowane (2026-07-24):** rezygnujemy z tego modułu — zbyt duże ryzyko (agent z uprawnieniami root/sudo do reboot/apt na monitorowanych serwerach, zdalne wykonywanie akcji uprzywilejowanych z centralnego dashboardu). Treść niżej zachowana jako historyczna analiza wykonalności, nie do implementacji.
 
 ## Odpowiedź krótka
 
