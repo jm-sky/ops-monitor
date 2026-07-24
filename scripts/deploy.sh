@@ -154,7 +154,9 @@ fi
 
 echo -e "${YELLOW}Step 1: Pulling latest changes...${NC}"
 cd "$PROJECT_DIR"
-git pull
+git fetch origin main
+git checkout main
+git pull --ff-only origin main
 
 echo -e "${YELLOW}Step 2: Building and deploying frontend...${NC}"
 "$SCRIPTS_DIR/frontend_build_deploy.sh"
