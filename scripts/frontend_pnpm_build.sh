@@ -25,6 +25,19 @@ setup_toolchain
 
 cd "$PROJECT_DIR"
 
+# Drop node_modules / project store if any file is not owned by this user.
+# pnpm hardlinks from the store and chmod fails (EPERM) on another user's objects.
+ensure_clean_tree() {
+  local path="$1"
+  if [ -e "$path" ] && find "$path" -xdev ! -user "$(id -u)" -print -quit 2>/dev/null | grep -q .; then
+    echo "Removing $path (not fully owned by $(whoami); prevents pnpm EPERM on chmod)"
+    rm -rf "$path"
+  fi
+}
+ensure_clean_tree node_modules
+ensure_clean_tree .pnpm-store
+
+
 rm -rf dist
 
 # Cap Node heap below typical free RAM on this VPS (no swap).
