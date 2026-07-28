@@ -193,7 +193,7 @@ async def verify_totp_login(
             # Service always returns dict, convert to response model
             verify_response = TwoFactorVerifyResponse(**result_dict)
             if verify_response.refreshToken:
-                set_refresh_cookie(response, verify_response.refreshToken)
+                set_refresh_cookie(request, response, verify_response.refreshToken)
             return verify_response
         except Exception as exc:
             raise HTTPException(
@@ -385,7 +385,7 @@ async def complete_passkey_authentication(
         )
         verify_response = TwoFactorVerifyResponse(**result)
         if verify_response.refreshToken:
-            set_refresh_cookie(response, verify_response.refreshToken)
+            set_refresh_cookie(request, response, verify_response.refreshToken)
         return verify_response
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

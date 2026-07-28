@@ -160,7 +160,7 @@ async def login(credentials: UserLogin, auth_service: AuthServiceDep, request: R
             logger.info("Login response: TwoFactorRequiredResponse (2FA required)")
         elif hasattr(result, "accessToken"):
             logger.info("Login response: LoginResponse (normal login, no 2FA)")
-            set_refresh_cookie(response, result.refreshToken)
+            set_refresh_cookie(request, response, result.refreshToken)
         else:
             logger.warning(f"Login response: Unknown type: {type(result)}")
 
@@ -201,7 +201,7 @@ async def refresh_token(auth_service: AuthServiceDep, request: Request, response
         )
     try:
         result = await auth_service.refresh_access_token(refresh_token_value)
-        set_refresh_cookie(response, str(result.pop("refreshToken")))
+        set_refresh_cookie(request, response, str(result.pop("refreshToken")))
         return result
     except InvalidTokenError as e:
         raise HTTPException(
@@ -222,6 +222,7 @@ async def logout(
     current_user: CurrentUser,
     token: Annotated[str, Depends(get_current_token)],
     blacklist: Annotated[TokenBlacklistService, Depends(get_token_blacklist_service)],
+    request: Request,
     response: Response,
 ) -> MessageResponse:
     """
@@ -266,7 +267,7 @@ async def logout(
             reason="logout",
         )
 
-    clear_refresh_cookie(response)
+    clear_refresh_cookie(request, response)
 
     return MessageResponse(message="Logged out successfully")
 
@@ -630,7 +631,7 @@ async def oauth_callback(
         result = await auth_service.login_with_oauth(provider, user_info_dict)
         logger.info("OAuth callback: login_with_oauth completed successfully")
         if hasattr(result, "accessToken"):
-            set_refresh_cookie(response, result.refreshToken)
+            set_refresh_cookie(request, response, result.refreshToken)
         return result
 
     except Exception as e:

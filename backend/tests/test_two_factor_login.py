@@ -64,9 +64,7 @@ def two_factor_service(mock_repository: AsyncMock, mock_user_repository: AsyncMo
 
 class TestVerifyTotpLogin:
     @pytest.mark.asyncio
-    async def test_successful_totp_login_mints_tfa_verified_tokens(
-        self, two_factor_service: TwoFactorService, sample_user: User
-    ) -> None:
+    async def test_successful_totp_login_mints_tfa_verified_tokens(self, two_factor_service: TwoFactorService, sample_user: User) -> None:
         two_factor_service.totp.verify_code = AsyncMock(return_value=(True, False))  # type: ignore[method-assign]
         two_factor_token = create_two_factor_token({"sub": "user-123"})
 
@@ -90,9 +88,7 @@ class TestVerifyTotpLogin:
 
 class TestCompletePasskeyAuthentication:
     @pytest.mark.asyncio
-    async def test_successful_passkey_login_mints_tfa_verified_tokens(
-        self, mock_repository: AsyncMock, mock_user_repository: AsyncMock, sample_user: User, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_successful_passkey_login_mints_tfa_verified_tokens(self, mock_repository: AsyncMock, mock_user_repository: AsyncMock, sample_user: User, monkeypatch: pytest.MonkeyPatch) -> None:
         from webauthn.helpers import bytes_to_base64url
 
         passkey = MagicMock()

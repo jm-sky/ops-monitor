@@ -97,6 +97,34 @@ class TestLoginSetsRefreshCookie:
         assert "SameSite=strict" in set_cookie
         assert "Path=/api/auth" in set_cookie
 
+    def test_login_uses_cross_origin_cookie_attributes_when_origin_differs(
+        self,
+        client: TestClient,
+        sample_login_response: LoginResponse,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from app.core.config import settings
+
+        monkeypatch.setattr(settings.recaptcha, "enabled", False)
+
+        fake_service = AsyncMock(spec=AuthService)
+        fake_service.login_user.return_value = sample_login_response
+        app.dependency_overrides[get_auth_service] = lambda: fake_service
+
+        response = client.post(
+            "/api/auth/login",
+            json={"email": "test@example.com", "password": "password123"},
+            headers={
+                **_csrf_headers(client),
+                "Origin": "https://app.example.com",
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        set_cookie = response.headers.get("set-cookie", "")
+        assert "SameSite=none" in set_cookie
+        assert "Secure" in set_cookie
+
 
 class TestRefreshEndpointUsesCookie:
     def test_refresh_without_cookie_is_rejected(self, client: TestClient) -> None:

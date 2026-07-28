@@ -47,6 +47,17 @@ class TestCSRFMiddleware:
         assert response.status_code == status.HTTP_200_OK
         assert response.cookies.get(CSRF_COOKIE_NAME)
 
+    def test_cross_origin_get_uses_cookie_attributes_accepted_by_browsers(self, client: TestClient) -> None:
+        response = client.get(
+            "/api/ping",
+            headers={"Origin": "https://app.example.com"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        set_cookie = response.headers.get("set-cookie", "")
+        assert "SameSite=none" in set_cookie
+        assert "Secure" in set_cookie
+
     def test_post_without_csrf_is_rejected(self, client: TestClient) -> None:
         response = client.post("/api/mutate", json={})
         assert response.status_code == status.HTTP_403_FORBIDDEN

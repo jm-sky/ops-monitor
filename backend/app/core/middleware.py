@@ -59,4 +59,3 @@ def setup_middleware(app: FastAPI) -> None:
     # CSRF double-submit (cookie + X-CSRF-Token). Added last → outermost on request.
     # Stripe webhooks are exempt (see WEBHOOK_PATHS). Safe methods skip validation.
     app.add_middleware(CSRFMiddleware)
-
