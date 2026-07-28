@@ -55,7 +55,8 @@ If you use `[docker-compose.yml](docker-compose.yml)` in this directory, the con
 |---|---|---|
 | `AGENT_TOKEN` | _(empty)_ | Static Bearer token. Empty = no auth (dev only) |
 | `AGENT_HOST` | `0.0.0.0` | Listen address |
-| `AGENT_PORT` | `9100` | Listen port |
+| `AGENT_PORT` | `9100` | Agent listen port inside the container/process |
+| `AGENT_BIND_PORT` | `19100` | Host loopback port published by Docker for local reverse proxying |
 
 ## `/system` Response
 

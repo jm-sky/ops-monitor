@@ -5,8 +5,8 @@ services:
     container_name: ops-monitor-agent
     restart: unless-stopped
     ports:
-      # Host loopback only — Docker publishes past UFW when bound to 0.0.0.0
-      - "127.0.0.1:${AGENT_PORT:-9100}:${AGENT_PORT:-9100}"
+      # Keep the container private; nginx can listen publicly on 9100 and proxy here.
+      - "127.0.0.1:${AGENT_BIND_PORT:-19100}:${AGENT_PORT:-9100}"
     env_file:
       - .env
     volumes:
