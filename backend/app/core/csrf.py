@@ -14,6 +14,7 @@ from __future__ import annotations
 import hmac
 from collections.abc import Awaitable, Callable
 from secrets import token_urlsafe
+from urllib.parse import urlparse
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -33,14 +34,31 @@ CSRF_COOKIE_PATH = "/"
 _SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
 
 
-def set_csrf_cookie(response: Response, token: str) -> None:
+def get_cookie_security_settings(request: Request) -> tuple[bool, str]:
+    """Choose cookie attributes that work for same-origin and cross-origin SPAs.
+
+    For the default same-origin deployment we keep ``SameSite=Strict``.
+    If the request comes from another origin, browsers require
+    ``SameSite=None; Secure`` for the cookie to be sent back on XHR/fetch.
+    """
+    origin = request.headers.get("origin")
+    if origin:
+        parsed_origin = urlparse(origin)
+        if parsed_origin.hostname and parsed_origin.hostname != request.url.hostname:
+            return True, "none"
+
+    return settings.is_production(), "strict"
+
+
+def set_csrf_cookie(request: Request, response: Response, token: str) -> None:
     """Attach the CSRF cookie (readable by JS for the double-submit header)."""
+    secure, same_site = get_cookie_security_settings(request)
     response.set_cookie(
         key=CSRF_COOKIE_NAME,
         value=token,
         httponly=False,
-        secure=settings.is_production(),
-        samesite="strict",
+        secure=secure,
+        samesite=same_site,
         path=CSRF_COOKIE_PATH,
         max_age=60 * 60 * 24 * 7,
     )
@@ -77,6 +95,6 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
 
         if issued_token is not None:
-            set_csrf_cookie(response, issued_token)
+            set_csrf_cookie(request, response, issued_token)
 
         return response
