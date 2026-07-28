@@ -1,6 +1,6 @@
 import { adminRoutes } from '@/modules/admin/routes'
 import { AuthRouteNames, AuthRoutePaths, authRoutes } from '@/modules/auth/config/routes'
-import { monitorRoutes } from '@/modules/monitor/routes'
+import { MonitorRoutePaths, monitorRoutes } from '@/modules/monitor/routes'
 import { settingsRoutes } from '@/modules/settings/routes'
 import { userRoutes } from '@/modules/user/routes'
 import { publicRoutes } from '@/router/publicRoutes'
@@ -13,7 +13,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: AuthRoutePaths.dashboard,
     name: AuthRouteNames.dashboard,
-    component: () => import('@/pages/DashboardPage.vue'),
+    redirect: MonitorRoutePaths.monitor,
     meta: { layout: 'authenticated', title: 'navigation.dashboard' },
   },
   // Other public pages (about, cookies, privacy, terms, contact)
