@@ -3,7 +3,7 @@
 import logging
 from datetime import UTC, datetime
 from typing import Any
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import httpx
 
@@ -101,7 +101,7 @@ class MonitorService:
             snap = await self._poll_health(site)
             results["health"] = snap.to_response()
         if site.system_url:
-            snap = await self._poll_system(site)
+            snap = await self._poll_system(site, no_cache=True)
             results["system"] = snap.to_response()
         if site.ssl_check_url:
             snap = await self._poll_ssl(site)
@@ -155,9 +155,11 @@ class MonitorService:
         await dispatch_if_changed(site, snap)
         return snap
 
-    async def _poll_system(self, site: SiteDB) -> Any:
+    async def _poll_system(self, site: SiteDB, *, no_cache: bool = False) -> Any:
         headers = _auth_headers(site.token)
         url, extra_headers = _resolve_url(site.system_url, site.ip)  # type: ignore[arg-type]
+        if no_cache:
+            url = _append_query_param(url, "no_cache", "1")
         headers = {**headers, **extra_headers}
         raw_data = None
         error = None
@@ -246,3 +248,10 @@ def _resolve_url(url: str, ip: str | None) -> tuple[str, dict[str, str]]:
     new_netloc = f"{ip}:{port}" if port else ip
     new_url = urlunparse(parsed._replace(netloc=new_netloc))
     return new_url, {"Host": original_host}
+
+
+def _append_query_param(url: str, key: str, value: str) -> str:
+    parsed = urlparse(url)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    query[key] = value
+    return urlunparse(parsed._replace(query=urlencode(query)))

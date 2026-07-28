@@ -17,7 +17,7 @@ from pathlib import Path
 import psutil
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.responses import JSONResponse
 
 load_dotenv()
@@ -25,7 +25,7 @@ load_dotenv()
 AGENT_TOKEN: str = os.getenv("AGENT_TOKEN", "")
 AGENT_HOST: str = os.getenv("AGENT_HOST", "0.0.0.0")
 AGENT_PORT: int = int(os.getenv("AGENT_PORT", "9100"))
-AGENT_VERSION: str = "1.0.0"
+AGENT_VERSION: str = "1.1.0"
 
 # Cache update-check results for 5 minutes
 _updates_cache: dict = {}
@@ -103,12 +103,22 @@ def _get_reboot_info() -> dict:
     }
 
 
-def _get_update_info() -> dict:
+def _parse_no_cache(value: str | None) -> bool:
+    if value is None:
+        return False
+    return value.strip().lower() in ("1", "true", "yes")
+
+
+def _get_update_info(no_cache: bool = False) -> dict:
     """Detect available package updates (Debian/Ubuntu APT). Cached 5 min."""
     global _updates_cache
 
     now = time.monotonic()
-    if _updates_cache and now - _updates_cache.get("_ts", 0) < _UPDATES_CACHE_TTL:
+    if (
+        not no_cache
+        and _updates_cache
+        and now - _updates_cache.get("_ts", 0) < _UPDATES_CACHE_TTL
+    ):
         return {k: v for k, v in _updates_cache.items() if not k.startswith("_")}
 
     updates_available = 0
@@ -117,8 +127,11 @@ def _get_update_info() -> dict:
     notifier_has_data = False
 
     try:
-        notifier = Path("/var/lib/update-notifier/updates-available")
-        if notifier.exists():
+        if not no_cache:
+            notifier = Path("/var/lib/update-notifier/updates-available")
+        else:
+            notifier = None
+        if notifier is not None and notifier.exists():
             for line in notifier.read_text().splitlines():
                 line = line.strip()
                 if line and line[0].isdigit():
@@ -134,7 +147,7 @@ def _get_update_info() -> dict:
     except Exception:
         pass
 
-    if not notifier_has_data:
+    if no_cache or not notifier_has_data:
         try:
             proc = subprocess.run(
                 ["apt", "list", "--upgradable"],
@@ -168,7 +181,7 @@ def _get_update_info() -> dict:
     return result
 
 
-def _collect_system_metrics() -> dict:
+def _collect_system_metrics(no_cache: bool = False) -> dict:
     mem = psutil.virtual_memory()
     disk = psutil.disk_usage("/")
 
@@ -198,7 +211,7 @@ def _collect_system_metrics() -> dict:
     }
 
     data.update(_get_reboot_info())
-    data.update(_get_update_info())
+    data.update(_get_update_info(no_cache=no_cache))
     return data
 
 
@@ -213,9 +226,12 @@ async def health() -> JSONResponse:
 
 
 @app.get("/system")
-async def system(authorization: str | None = Header(default=None)) -> JSONResponse:
+async def system(
+    authorization: str | None = Header(default=None),
+    no_cache: str | None = Query(default=None),
+) -> JSONResponse:
     verify_token(authorization)
-    return JSONResponse(_collect_system_metrics())
+    return JSONResponse(_collect_system_metrics(no_cache=_parse_no_cache(no_cache)))
 
 
 # ---------------------------------------------------------------------------

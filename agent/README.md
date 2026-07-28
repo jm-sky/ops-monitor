@@ -8,6 +8,7 @@ Lightweight psutil agent. Runs on each monitored server, exposes `/health` and `
 |---|---|---|
 | `GET /health` | none | Liveness probe |
 | `GET /system` | Bearer token | Full system metrics |
+| `GET /system?no_cache=1` | Bearer token | Same as `/system`, but skips the 5-minute update cache and reads package state via `apt list --upgradable` (used by manual Poll from ops-monitor) |
 
 Default port: **9100**
 
@@ -60,7 +61,7 @@ If you use `[docker-compose.yml](docker-compose.yml)` in this directory, the con
 
 ```json
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "cpu_percent": 42.5,
   "memory": { "total_mb": 16384, "used_mb": 8192, "percent": 50.0 },
   "disk": { "total_gb": 500.0, "used_gb": 200.0, "percent": 40.0 },
