@@ -11,9 +11,7 @@ from app.modules.monitor.service import MonitorService, _append_query_param
 
 
 def test_append_query_param_adds_to_bare_url() -> None:
-    assert _append_query_param("http://host/system", "no_cache", "1") == (
-        "http://host/system?no_cache=1"
-    )
+    assert _append_query_param("http://host/system", "no_cache", "1") == ("http://host/system?no_cache=1")
 
 
 def test_append_query_param_merges_existing_query() -> None:

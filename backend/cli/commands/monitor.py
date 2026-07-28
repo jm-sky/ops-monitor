@@ -174,7 +174,7 @@ def seed_sites(
 
 async def _seed_sites(yaml_file: Path, dry_run: bool, clear: bool) -> None:
     try:
-        import yaml  # type: ignore[import-untyped]
+        import yaml
     except ImportError:
         console.print("[red]PyYAML not installed. Run: pip install pyyaml[/red]")
         raise typer.Exit(1) from None

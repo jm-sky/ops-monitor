@@ -14,6 +14,7 @@ from __future__ import annotations
 import hmac
 from collections.abc import Awaitable, Callable
 from secrets import token_urlsafe
+from typing import Literal
 from urllib.parse import urlparse
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -32,9 +33,10 @@ CSRF_HEADER_NAME = "X-CSRF-Token"
 CSRF_COOKIE_PATH = "/"
 
 _SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
+type CookieSameSite = Literal["lax", "strict", "none"]
 
 
-def get_cookie_security_settings(request: Request) -> tuple[bool, str]:
+def get_cookie_security_settings(request: Request) -> tuple[bool, CookieSameSite]:
     """Choose cookie attributes that work for same-origin and cross-origin SPAs.
 
     For the default same-origin deployment we keep ``SameSite=Strict``.

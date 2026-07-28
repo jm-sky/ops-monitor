@@ -550,7 +550,7 @@ def seed_database(
 
         if yml_file.exists():
             try:
-                import yaml  # type: ignore[import-untyped]
+                import yaml
             except ImportError:
                 console.print("[red]PyYAML not installed. Run: pip install pyyaml[/red]")
                 raise typer.Exit(1) from None
