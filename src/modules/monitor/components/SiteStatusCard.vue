@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, AppWindow, Globe, Server } from 'lucide-vue-next'
+import { AlertTriangle, AppWindow, Server } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -7,6 +7,7 @@ import type { MonitorOverallStatus, SiteStatus } from '../types'
 import { metricLevel, type MetricLevel } from '../composables/useMetricLevel'
 import { resolveSystemSnapshotStatus } from '../utils/resolveUpdateStatus'
 import SecurityUpdatesCountBadge from './SecurityUpdatesCountBadge.vue'
+import SiteInternetFacingBadge from './SiteInternetFacingBadge.vue'
 import SiteStatusBadge from './SiteStatusBadge.vue'
 
 interface HealthComponentUi {
@@ -135,6 +136,7 @@ const showDegradedComponentBadges = computed(() =>
       isPrimary && 'ring-2 ring-primary/40',
       worstMetricLevel === 'crit' && 'ring-2 ring-destructive/50',
       worstMetricLevel === 'warn' && !isPrimary && 'ring-2 ring-amber-400/50',
+      props.siteStatus.site.internetFacing && 'ring-3 ring-sky-500/20 ring-offset-3 ring-offset-sky-500/20',
     ]"
     @click="emit('select', props.siteStatus.site.id)"
   >
@@ -151,14 +153,11 @@ const showDegradedComponentBadges = computed(() =>
           class="size-3.5 text-amber-500"
           :title="t('monitor.metaMismatch', 'Expected meta mismatch')"
         />
-        <span
+        <SiteInternetFacingBadge
           v-if="props.siteStatus.site.internetFacing"
-          class="inline-flex shrink-0 items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700 dark:bg-sky-950 dark:text-sky-300"
-          :title="t('monitor.internetFacingTitle', 'Exposed to the Internet')"
-        >
-          <Globe class="size-3" />
-          <template v-if="!props.denseMode">{{ t('monitor.internetFacingBadge', 'Internet') }}</template>
-        </span>
+          :dense-mode="props.denseMode"
+          size="sm"
+        />
         <SecurityUpdatesCountBadge :count="securityUpdatesCount" />
         <SiteStatusBadge v-if="showExpiringSoonBadge" status="expiring_soon" size="sm" />
         <SiteStatusBadge :status="props.overallStatus(props.siteStatus)" />
