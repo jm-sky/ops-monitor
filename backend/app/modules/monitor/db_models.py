@@ -37,6 +37,7 @@ class SiteDB(Base):
     environment: Mapped[str | None] = mapped_column(String(100), nullable=True)
     tags: Mapped[list[str] | None] = mapped_column(ARRAY(Text()), nullable=True)
     verify_ssl: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    internet_facing: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     expected_meta: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
@@ -67,6 +68,7 @@ class SiteDB(Base):
             "environment": self.environment,
             "tags": self.tags,
             "verifySSL": self.verify_ssl,
+            "internetFacing": self.internet_facing,
             "ip": self.ip,
             "expectedMeta": self.expected_meta,
             "createdAt": self.created_at,

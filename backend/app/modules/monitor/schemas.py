@@ -26,6 +26,7 @@ class SiteCreate(BaseModel):
     serverLabel: str | None = Field(None, max_length=255)
     environment: str | None = Field(None, max_length=100)
     verifySSL: bool = True
+    internetFacing: bool = False
     ip: str | None = Field(None, max_length=45)
     expectedMeta: dict[str, MetaValue] | None = None
 
@@ -48,6 +49,7 @@ class SiteUpdate(BaseModel):
     serverLabel: str | None = Field(None, max_length=255)
     environment: str | None = Field(None, max_length=100)
     verifySSL: bool | None = None
+    internetFacing: bool | None = None
     ip: str | None = Field(None, max_length=45)
     expectedMeta: dict[str, MetaValue] | None = None
 
@@ -71,6 +73,7 @@ class SiteResponse(BaseModel):
     serverLabel: str | None = None
     environment: str | None = None
     verifySSL: bool = True
+    internetFacing: bool = False
     ip: str | None = None
     expectedMeta: dict[str, MetaValue] | None = None
     createdAt: datetime

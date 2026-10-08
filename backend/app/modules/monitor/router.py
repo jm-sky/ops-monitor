@@ -196,6 +196,7 @@ async def create_site(
         "server_label": data.serverLabel,
         "environment": data.environment,
         "verify_ssl": data.verifySSL,
+        "internet_facing": data.internetFacing,
         "ip": data.ip,
         "expected_meta": data.expectedMeta,
     }
@@ -263,6 +264,7 @@ async def update_site(
         "server_label": "serverLabel",
         "environment": "environment",
         "verify_ssl": "verifySSL",
+        "internet_facing": "internetFacing",
         "ip": "ip",
         "expected_meta": "expectedMeta",
     }

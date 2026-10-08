@@ -22,6 +22,7 @@ export interface Site {
   environment: string | null
   ip: string | null
   verifySSL: boolean
+  internetFacing: boolean
   expectedMeta: Record<string, MetaValue> | null
   createdAt: TDateTime
   updatedAt: TDateTime
@@ -134,6 +135,7 @@ export interface SiteCreate {
   environment?: string | null
   ip?: string | null
   verifySSL?: boolean
+  internetFacing?: boolean
   expectedMeta?: Record<string, MetaValue> | null
 }
 

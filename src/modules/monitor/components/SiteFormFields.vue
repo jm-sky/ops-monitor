@@ -178,6 +178,10 @@ function updateMetaValue(key: string, value: string) {
     <Label :for="`${props.idPrefix}-verify-ssl`">{{ $t('monitor.fields.verifySSL', 'Verify SSL certificate') }}</Label>
     <Switch :id="`${props.idPrefix}-verify-ssl`" v-model="form.verifySSL" />
   </div>
+  <div class="flex items-center gap-3">
+    <Label :for="`${props.idPrefix}-internet-facing`">{{ $t('monitor.fields.internetFacing', 'Exposed to the Internet') }}</Label>
+    <Switch :id="`${props.idPrefix}-internet-facing`" v-model="form.internetFacing" />
+  </div>
   <div class="space-y-1.5">
     <Label>{{ $t('monitor.fields.expectedMeta', 'Expected meta (optional)') }}</Label>
     <div class="flex flex-col gap-2">

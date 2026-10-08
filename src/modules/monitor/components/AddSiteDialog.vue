@@ -38,6 +38,7 @@ async function submit() {
       pollingHealth: form.value.pollingHealth,
       pollingSystem: form.value.pollingSystem,
       verifySSL: form.value.verifySSL,
+      internetFacing: form.value.internetFacing,
       serverLabel: toNullableString(form.value.serverLabel),
       environment: toNullableString(form.value.environment),
       ip: toNullableString(form.value.ip),
@@ -61,7 +62,7 @@ async function submit() {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent class="sm:max-w-lg">
+    <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
       <DialogHeader>
         <DialogTitle>{{ t('monitor.addSite', 'Add site') }}</DialogTitle>
       </DialogHeader>

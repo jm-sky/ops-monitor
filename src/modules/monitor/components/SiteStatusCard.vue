@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, Globe, Server } from 'lucide-vue-next'
+import { AlertTriangle, AppWindow, Globe, Server } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -140,7 +140,7 @@ const showDegradedComponentBadges = computed(() =>
   >
     <CardHeader :class="props.denseMode ? 'flex flex-col items-stretch gap-2 p-0 overflow-hidden' : 'flex flex-row items-start justify-between gap-2 pb-2'">
       <div :class="props.denseMode ? 'flex items-center gap-2 min-w-0 justify-center' : 'flex items-center gap-2 min-w-0'">
-        <component :is="isPrimary ? Server : Globe" class="size-4 shrink-0 text-muted-foreground hidden md:block" />
+        <component :is="isPrimary ? Server : AppWindow" class="size-4 shrink-0 text-muted-foreground hidden md:block" />
         <CardTitle :class="props.denseMode ? 'truncate text-sm' : 'truncate text-base'">
           {{ props.siteStatus.site.name }}
         </CardTitle>
@@ -151,6 +151,14 @@ const showDegradedComponentBadges = computed(() =>
           class="size-3.5 text-amber-500"
           :title="t('monitor.metaMismatch', 'Expected meta mismatch')"
         />
+        <span
+          v-if="props.siteStatus.site.internetFacing"
+          class="inline-flex shrink-0 items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+          :title="t('monitor.internetFacingTitle', 'Exposed to the Internet')"
+        >
+          <Globe class="size-3" />
+          <template v-if="!props.denseMode">{{ t('monitor.internetFacingBadge', 'Internet') }}</template>
+        </span>
         <SecurityUpdatesCountBadge :count="securityUpdatesCount" />
         <SiteStatusBadge v-if="showExpiringSoonBadge" status="expiring_soon" size="sm" />
         <SiteStatusBadge :status="props.overallStatus(props.siteStatus)" />

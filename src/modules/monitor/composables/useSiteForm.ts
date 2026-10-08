@@ -14,6 +14,7 @@ export interface SiteFormData {
   pollingHealth: number
   pollingSystem: number
   verifySSL: boolean
+  internetFacing: boolean
   expectedMeta: Record<string, string>
 }
 
@@ -31,6 +32,7 @@ const SITE_FORM_DEFAULTS: SiteFormData = {
   pollingHealth: 300,
   pollingSystem: 300,
   verifySSL: true,
+  internetFacing: false,
   expectedMeta: {},
 }
 
@@ -53,6 +55,7 @@ export function siteToForm(site: Site): SiteFormData {
     pollingHealth: site.pollingHealth,
     pollingSystem: site.pollingSystem,
     verifySSL: site.verifySSL,
+    internetFacing: site.internetFacing,
     expectedMeta: site.expectedMeta
       ? Object.fromEntries(Object.entries(site.expectedMeta).map(([k, v]) => [k, String(v)]))
       : {},

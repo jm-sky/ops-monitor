@@ -219,9 +219,12 @@ export default {
       sslCheckUrlHint: 'Do sprawdzenia certyfikatu używane są tylko host i port — ścieżka jest ignorowana.',
       token: 'Token Bearer',
       verifySSL: 'Weryfikuj certyfikat SSL',
+      internetFacing: 'Wystawione do Internetu',
       pollingHealth: 'Interwał health (s)',
       pollingSystem: 'Interwał system (s)',
     },
+    internetFacingBadge: 'Internet',
+    internetFacingTitle: 'Wystawione do Internetu',
     tagsPlaceholder: 'Wpisz tag i naciśnij Enter',
     removeTag: 'Usuń tag',
     alerts: {

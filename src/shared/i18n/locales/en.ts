@@ -219,9 +219,12 @@ export default {
       sslCheckUrlHint: 'Only the host and port are used to check the certificate — the path is ignored.',
       token: 'Bearer token',
       verifySSL: 'Verify SSL certificate',
+      internetFacing: 'Exposed to the Internet',
       pollingHealth: 'Health interval (s)',
       pollingSystem: 'System interval (s)',
     },
+    internetFacingBadge: 'Internet',
+    internetFacingTitle: 'Exposed to the Internet',
     tagsPlaceholder: 'Type a tag and press Enter',
     removeTag: 'Remove tag',
     alerts: {
