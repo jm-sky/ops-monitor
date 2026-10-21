@@ -1,7 +1,24 @@
 import { describe, expect, it } from 'vitest'
-import { formatMonitorDate, formatPollingInterval, formatUptime } from './useMonitorFormatters'
+import { formatDuration, formatMonitorDate, formatPollingInterval, formatUptime } from './useMonitorFormatters'
 
 describe('useMonitorFormatters', () => {
+  describe('formatDuration', () => {
+    it('returns em dash for missing or invalid values', () => {
+      expect(formatDuration(null)).toBe('—')
+      expect(formatDuration(undefined)).toBe('—')
+      expect(formatDuration(-1)).toBe('—')
+    })
+
+    it('formats seconds, minutes and hours', () => {
+      expect(formatDuration(0)).toBe('0s')
+      expect(formatDuration(45)).toBe('45s')
+      expect(formatDuration(90)).toBe('1 min 30s')
+      expect(formatDuration(120)).toBe('2 min')
+      expect(formatDuration(3600)).toBe('1h')
+      expect(formatDuration(5400)).toBe('1h 30 min')
+    })
+  })
+
   describe('formatMonitorDate', () => {
     it('returns em dash for empty values', () => {
       expect(formatMonitorDate(null)).toBe('—')

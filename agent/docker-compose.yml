@@ -13,6 +13,7 @@ services:
       - /var/lib/apt/lists:/var/lib/apt/lists:ro
       - /var/lib/update-notifier:/var/lib/update-notifier:ro
       - /var/run:/host/var/run:ro
+      - /var/log/apt:/host/var/log/apt:ro
     networks:
       ops-monitor-network:
         aliases:

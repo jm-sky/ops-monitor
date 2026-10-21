@@ -24,6 +24,7 @@ import CopyablePre from '../components/CopyablePre.vue'
 import EditSiteDialog from '../components/EditSiteDialog.vue'
 import SiteDetailConfigurationCard from '../components/SiteDetailConfigurationCard.vue'
 import SiteDetailHealthCard from '../components/SiteDetailHealthCard.vue'
+import SiteDetailPackageUpdatesCard from '../components/SiteDetailPackageUpdatesCard.vue'
 import SiteDetailSnapshotHistoryCard from '../components/SiteDetailSnapshotHistoryCard.vue'
 import SiteDetailSslCard from '../components/SiteDetailSslCard.vue'
 import SiteDetailSystemCard from '../components/SiteDetailSystemCard.vue'
@@ -110,6 +111,7 @@ async function pollNow() {
     await monitorService.pollNow(siteId.value)
     toast.success(t('monitor.pollComplete', 'Poll complete'))
     await load()
+    await queryClient.invalidateQueries({ queryKey: monitorQueryKeys.packageUpdatesAll(siteId.value) })
     await queryClient.invalidateQueries({ queryKey: monitorQueryKeys.siteStatuses() })
   } catch (error) {
     handleError(error, { fallbackMessage: t('monitor.pollError', 'Poll failed') })
@@ -289,6 +291,10 @@ function goBackFromNotFound() {
           v-if="status.site.sslCheckUrl"
           :snapshot="status.sslSnapshot"
           @view-raw-response="sslResponseDialogOpen = true"
+        />
+        <SiteDetailPackageUpdatesCard
+          v-if="status.site.systemUrl"
+          :site-id="status.site.id"
         />
         <SiteDetailSnapshotHistoryCard :site="status.site" />
         <SiteDetailConfigurationCard

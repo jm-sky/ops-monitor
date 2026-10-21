@@ -151,3 +151,35 @@ export type MonitorOverallStatus =
   | UpdateStatus
   | CertOverallStatus
   | 'unknown'
+
+export type PackageAction = 'install' | 'upgrade' | 'remove' | 'purge'
+
+export interface PackageChange {
+  name: string
+  arch: string | null
+  from_version: string | null
+  to_version: string | null
+  auto_installed: boolean
+}
+
+export type PackageChanges = Partial<Record<PackageAction, PackageChange[]>>
+
+export interface PackageUpdateEvent {
+  id: string
+  siteId: string
+  siteName: string
+  serverLabel: string | null
+  host: string | null
+  startedAt: TDateTime
+  finishedAt: TDateTime | null
+  durationSeconds: number | null
+  commandline: string | null
+  requestedBy: string | null
+  automatic: boolean
+  packages: PackageChanges
+}
+
+export interface PackageUpdatesPage {
+  items: PackageUpdateEvent[]
+  total: number
+}

@@ -155,9 +155,43 @@ Quick reference:
 }
 ```
 
+### Agent `/package-history`
+
+apt transactions parsed from `/var/log/apt/history.log*` (incl. rotated `.gz`), same Bearer auth as `/system`. Query: `?since=<ISO>`. Details and response shape: [agent/README.md](agent/README.md#package-history-response).
+
+## Package update history
+
+The backend pulls `/package-history` from each site's agent (URL derived from `systemUrl`: `…/system` → `…/package-history`) every `pollingUpdates` seconds (default 43200) and on manual **Poll now**. Only events newer than the last stored `started_at` are requested; rows are deduplicated on `(site_id, started_at)` in table `package_update_events`. Older agents without the endpoint (HTTP 404) are skipped silently. The site detail page shows them under **Update history**.
+
+### Read-only API for external tools (e.g. worklog-automation)
+
+Users authenticate with JWT + 2FA, so machine access uses **API keys**: random `opsm_…` tokens, stored only as a SHA-256 hash, with a scope (`read:package-updates`), optional expiry, and revocation. The plaintext key is shown once at creation.
+
+```bash
+docker exec ops-monitor-app python -m cli monitor api-keys create worklog-automation --expires-in-days 365
+docker exec ops-monitor-app python -m cli monitor api-keys list
+docker exec ops-monitor-app python -m cli monitor api-keys revoke <id>
+```
+
+Admins can do the same over HTTP: `POST/GET /api/monitor/api-keys`, `DELETE /api/monitor/api-keys/{id}`.
+
+```bash
+curl -H "Authorization: Bearer opsm_…" \
+  "https://<host>/api/monitor/package-updates?from=2026-07-01T00:00:00Z&to=2026-07-31T23:59:59Z&include_automatic=false"
+```
+
+| Param | Default | Description |
+|---|---|---|
+| `from`, `to` | — | Filter on `started_at` (inclusive, ISO 8601; no zone = UTC) |
+| `site_id` | — | Limit to one site |
+| `include_automatic` | `false` | Include `automatic=true` runs (unattended-upgrade / no `Requested-By`) |
+| `limit`, `offset` | `200`, `0` | Pagination (`limit` ≤ 1000); results are newest first |
+
+Response: `{ "items": [...], "total": n }`; each item has `siteId`, `siteName`, `serverLabel`, `host` (hostname from the site's `systemUrl`), `startedAt`, `finishedAt`, `durationSeconds` (`null` without end time), `commandline`, `requestedBy`, `automatic`, `packages`. A missing, unknown, revoked, expired or wrong-scope key returns `401`.
+
 ## Polling
 
-Intervals are configurable per site in Postgres. Recommended default is background mode at **300s (5 min)**. Four types: `health`, `system`, `updates`, `reboot`.
+Intervals are configurable per site in Postgres. Recommended default is background mode at **300s (5 min)**. Four types: `health`, `system`, `updates`, `reboot`. `updates` currently drives the package history sync (see below); update counts themselves come with `/system`.
 
 UI data refresh runs in two modes:
 - **Normal mode**: monitor queries refetch every **300s (5 min)**.
@@ -193,6 +227,10 @@ docker exec ops-monitor-app python -m cli db migrate-status
 docker exec ops-monitor-app python -m cli users create
 docker exec ops-monitor-app python -m cli users list
 docker exec ops-monitor-app python -m cli users set-role
+
+docker exec ops-monitor-app python -m cli monitor api-keys create <name>
+docker exec ops-monitor-app python -m cli monitor api-keys list
+docker exec ops-monitor-app python -m cli monitor api-keys revoke <id>
 
 docker exec ops-monitor-app python -m cli test sentry
 docker exec ops-monitor-app python -m cli test email

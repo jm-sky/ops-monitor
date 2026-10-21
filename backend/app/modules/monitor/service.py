@@ -13,6 +13,7 @@ from app.core.database import AsyncSessionLocal
 from . import ssl_check
 from .alerts.dispatcher import dispatch_if_changed
 from .db_models import SiteDB
+from .package_updates.service import PackageHistorySyncService
 from .repositories import SiteRepository, SnapshotRepository
 
 logger = logging.getLogger(__name__)
@@ -85,6 +86,12 @@ class MonitorService:
                         logger.error("System poll failed for %s: %s", site.name, e)
                     site_times["system"] = now
 
+            if site.system_url:
+                last = site_times.get("updates")
+                if last is None or (now - last).total_seconds() >= site.polling_updates:
+                    await self._sync_package_history(site)
+                    site_times["updates"] = now
+
             if site.ssl_check_url:
                 last = site_times.get("ssl")
                 if last is None or (now - last).total_seconds() >= ssl_interval:
@@ -103,10 +110,21 @@ class MonitorService:
         if site.system_url:
             snap = await self._poll_system(site, no_cache=True)
             results["system"] = snap.to_response()
+            await self._sync_package_history(site)
         if site.ssl_check_url:
             snap = await self._poll_ssl(site)
             results["ssl"] = snap.to_response()
         return results
+
+    async def _sync_package_history(self, site: SiteDB) -> None:
+        """Pull new apt history events; never lets a failure (or an older agent without the endpoint) break polling."""
+        try:
+            await PackageHistorySyncService().sync_site(site)
+        except httpx.HTTPStatusError as e:
+            level = logging.DEBUG if e.response.status_code == 404 else logging.WARNING
+            logger.log(level, "Package history sync for %s → HTTP %s", site.name, e.response.status_code)
+        except Exception as e:
+            logger.warning("Package history sync failed for %s: %s", site.name, e)
 
     async def _poll_health(self, site: SiteDB) -> Any:
         headers = _auth_headers(site.token)

@@ -8,6 +8,7 @@ Lightweight psutil agent. Runs on each monitored server, exposes `/health` and `
 |---|---|---|
 | `GET /health` | none | Liveness probe |
 | `GET /system` | Bearer token | Full system metrics |
+| `GET /package-history?since=<ISO>` | Bearer token | apt install/upgrade/remove/purge history parsed from `history.log` + rotated `history.log.N.gz`. `since` is inclusive (`started_at >= since`); `no_cache=1` skips the 5-minute parse cache |
 | `GET /system?no_cache=1` | Bearer token | Same as `/system`, but skips the 5-minute update cache and reads package state via `apt list --upgradable` (used by manual Poll from ops-monitor) |
 
 Default port: **9100**
@@ -38,6 +39,7 @@ docker run -d \
   --mount type=bind,src=/var/lib/apt/lists,dst=/var/lib/apt/lists,readonly \
   --mount type=bind,src=/var/lib/update-notifier,dst=/var/lib/update-notifier,readonly \
   --mount type=bind,src=/var/run,dst=/host/var/run,readonly \
+  --mount type=bind,src=/var/log/apt,dst=/host/var/log/apt,readonly \
   --name ops-monitor-agent \
   ops-monitor-agent
 ```
@@ -56,13 +58,15 @@ If you use `[docker-compose.yml](docker-compose.yml)` in this directory, the con
 | `AGENT_TOKEN` | _(empty)_ | Static Bearer token. Empty = no auth (dev only) |
 | `AGENT_HOST` | `0.0.0.0` | Listen address |
 | `AGENT_PORT` | `9100` | Agent listen port inside the container/process |
+| `AGENT_APT_LOG_TZ` | _(empty)_ | IANA timezone of the server clock, used to interpret apt's zone-less timestamps. Empty = agent process zone — set it in Docker if the container runs in UTC |
+| `AGENT_APT_LOG_DIR` | _(empty)_ | Directory with `history.log*`. Empty = `/host/var/log/apt`, then `/var/log/apt` |
 | `AGENT_BIND_PORT` | `19100` | Host loopback port published by Docker for local reverse proxying |
 
 ## `/system` Response
 
 ```json
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "cpu_percent": 42.5,
   "memory": { "total_mb": 16384, "used_mb": 8192, "percent": 50.0 },
   "disk": { "total_gb": 500.0, "used_gb": 200.0, "percent": 40.0 },
@@ -88,3 +92,39 @@ Reboot detection and update counts are Debian/Ubuntu specific (`/var/run/reboot-
 ## Registration
 
 Add the server to ops-monitor via the dashboard (Sites → Add) or directly in the DB. Set the same `AGENT_TOKEN` value in both places.
+
+## `/package-history` Response
+
+```json
+{
+  "events": [
+    {
+      "started_at": "2026-07-02T06:15:01+02:00",
+      "finished_at": "2026-07-02T06:15:40+02:00",
+      "commandline": "/usr/bin/unattended-upgrade",
+      "requested_by": null,
+      "automatic": true,
+      "packages": {
+        "upgrade": [
+          { "name": "openssl", "arch": "amd64", "from_version": "3.0.13-1", "to_version": "3.0.13-2", "auto_installed": false }
+        ]
+      }
+    }
+  ],
+  "sources": ["/host/var/log/apt/history.log"],
+  "generated_at": "2026-07-02T08:00:00+00:00"
+}
+```
+
+- Events are sorted oldest first. `packages` has only the keys present in the block (`install`, `upgrade`, `remove`, `purge`); `auto_installed` is apt's `automatic` flag (installed as a dependency).
+- `finished_at` is `null` when the block has no `End-Date` (interrupted run).
+- `automatic` is `true` when `Commandline` contains `unattended-upgrade` **or** there is no `Requested-By`. Caveat: apt omits `Requested-By` when run from a root login shell without sudo, so such manual runs are classified as automatic.
+- Timestamps in `history.log` carry no zone — see `AGENT_APT_LOG_TZ`.
+- Docker needs `/var/log/apt` mounted at `/host/var/log/apt` (already in the compose files here).
+
+## Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```

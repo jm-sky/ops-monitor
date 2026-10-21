@@ -1,6 +1,7 @@
 import { apiClient } from '@/shared/services/apiClient'
 import type {
   MonitorRuntimeConfig,
+  PackageUpdatesPage,
   Site,
   SiteCreate,
   SiteSnapshot,
@@ -65,6 +66,23 @@ class MonitorService {
     const response = await apiClient.get<PaginatedResponse<SiteSnapshot>>(
       `/monitor/sites/${siteId}/snapshots/${type}/page`,
       { params },
+    )
+    return response.data
+  }
+
+  async getPackageUpdates(
+    siteId: string,
+    params: { includeAutomatic: boolean, limit: number, offset: number },
+  ): Promise<PackageUpdatesPage> {
+    const response = await apiClient.get<PackageUpdatesPage>(
+      `/monitor/sites/${siteId}/package-updates`,
+      {
+        params: {
+          include_automatic: params.includeAutomatic,
+          limit: params.limit,
+          offset: params.offset,
+        },
+      },
     )
     return response.data
   }

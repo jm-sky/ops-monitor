@@ -381,3 +381,100 @@ async def _status(errors_only: bool) -> None:
         )
 
     console.print(table)
+
+
+api_keys_app = typer.Typer(
+    name="api-keys",
+    help="Read-only service API keys (e.g. for worklog-automation)",
+    no_args_is_help=True,
+)
+monitor_app.add_typer(api_keys_app, name="api-keys")
+
+
+@api_keys_app.command("create")
+def api_keys_create(
+    name: str = typer.Argument(..., help="Label, e.g. worklog-automation"),
+    scope: list[str] = typer.Option(["read:package-updates"], "--scope", "-s", help="Scope to grant (repeatable)"),
+    expires_in_days: int | None = typer.Option(None, "--expires-in-days", min=1, help="Optional expiry"),
+) -> None:
+    """Create an API key. The plaintext key is printed once and cannot be recovered."""
+    asyncio.run(_api_keys_create(name, scope, expires_in_days))
+
+
+async def _api_keys_create(name: str, scopes: list[str], expires_in_days: int | None) -> None:
+    from datetime import timedelta
+
+    from app.core.database import AsyncSessionLocal
+    from app.modules.monitor.api_keys.repositories import ApiKeyRepository
+    from app.modules.monitor.api_keys.service import ApiKeyService, InvalidScopeError
+
+    expires_at = datetime.now(UTC) + timedelta(days=expires_in_days) if expires_in_days else None
+    async with AsyncSessionLocal() as db:
+        try:
+            key, plaintext = await ApiKeyService(ApiKeyRepository(db)).create(name, scopes, created_by=None, expires_at=expires_at)
+        except InvalidScopeError as e:
+            console.print(f"[red]{e}[/red]")
+            raise typer.Exit(code=1) from None
+
+    console.print(f"[green]✓ Created API key[/green] {key.name} ({key.id})")
+    console.print(f"  scopes: {', '.join(key.scopes)}")
+    console.print("  [bold]Key (shown once — store it now):[/bold]")
+    console.print(f"  {plaintext}", soft_wrap=True, highlight=False)
+
+
+@api_keys_app.command("list")
+def api_keys_list() -> None:
+    """List API keys (never shows the key itself)."""
+    asyncio.run(_api_keys_list())
+
+
+async def _api_keys_list() -> None:
+    from app.core.database import AsyncSessionLocal
+    from app.modules.monitor.api_keys.repositories import ApiKeyRepository
+
+    async with AsyncSessionLocal() as db:
+        keys = await ApiKeyRepository(db).list_all()
+
+    table = Table(title="API keys", show_header=True, header_style="bold")
+    for column in ("ID", "Nazwa", "Prefiks", "Scopes", "Wygasa", "Ostatnio użyty", "Status"):
+        table.add_column(column)
+    for key in keys:
+        table.add_row(
+            str(key.id),
+            key.name,
+            key.key_prefix,
+            ", ".join(key.scopes or []),
+            key.expires_at.strftime("%Y-%m-%d") if key.expires_at else "—",
+            key.last_used_at.strftime("%Y-%m-%d %H:%M") if key.last_used_at else "—",
+            "[red]revoked[/red]" if key.revoked_at else "[green]active[/green]",
+        )
+    console.print(table)
+
+
+@api_keys_app.command("revoke")
+def api_keys_revoke(key_id: str = typer.Argument(..., help="API key id (see `api-keys list`)")) -> None:
+    """Revoke an API key immediately."""
+    asyncio.run(_api_keys_revoke(key_id))
+
+
+async def _api_keys_revoke(key_id: str) -> None:
+    import uuid
+
+    from app.core.database import AsyncSessionLocal
+    from app.modules.monitor.api_keys.repositories import ApiKeyRepository
+
+    try:
+        parsed = uuid.UUID(key_id)
+    except ValueError:
+        console.print("[red]Invalid key id[/red]")
+        raise typer.Exit(code=1) from None
+
+    async with AsyncSessionLocal() as db:
+        repo = ApiKeyRepository(db)
+        key = await repo.get_by_id(parsed)
+        if key is None:
+            console.print("[red]API key not found[/red]")
+            raise typer.Exit(code=1)
+        if key.revoked_at is None:
+            await repo.revoke(key)
+    console.print(f"[green]✓ Revoked[/green] {key.name}")

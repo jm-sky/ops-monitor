@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Agent 1.2.0**: `GET /package-history?since=` parses `/var/log/apt/history.log` and rotated `history.log.N.gz` (also under `/host/var/log/apt`) into install/upgrade/remove/purge events; runs with `unattended-upgrade` or without `Requested-By` are flagged `automatic`. Results cached 5 min. New env: `AGENT_APT_LOG_TZ`, `AGENT_APT_LOG_DIR`; compose files mount `/var/log/apt`
+- **Monitor**: `package_update_events` table (migration 069) filled by pulling agent history on the `pollingUpdates` interval and on manual poll, deduplicated on `(site_id, started_at)`
+- **Monitor**: read-only service API keys (migration 070) — hashed at rest, scope `read:package-updates`, expiry/revocation; managed via `/api/monitor/api-keys` (admin) and `cli monitor api-keys create|list|revoke`
+- **Monitor**: `GET /api/monitor/package-updates` (API key) with `from`, `to`, `site_id`, `include_automatic`, pagination, returning site name and host; `GET /api/monitor/sites/{id}/package-updates` for the UI
+- **Frontend**: "Update history" card on the site detail page (events, duration, manual/automatic, packages)
+
+### Notes
+- Deploy: run `db migrate`, update agents to 1.2.0 and add the `/var/log/apt` mount; sites keep working with older agents (history simply stays empty)
+
 ---
 
 ## [1.0.0] - 2026-07-23
