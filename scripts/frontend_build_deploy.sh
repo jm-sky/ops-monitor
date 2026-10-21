@@ -2,8 +2,10 @@
 # Build Vue frontend and deploy to /var/www/ops-monitor/dist.
 # Called by deploy.sh — can also be run standalone from the project root.
 #
-# Always runs the pnpm build as the `deploy` OS user so node_modules/.pnpm-store
-# ownership never splits between CI (`deploy`) and manual deploys.
+# Always runs the pnpm build as the deploy OS user so node_modules/.pnpm-store
+# ownership never splits between CI and manual deploys.
+# User comes from DEPLOY_USER in .env (fallback: `deploy`); the web server user
+# that owns dist/ from DEPLOY_WEB_USER (fallback: `caddy`).
 set -euo pipefail
 
 RED='\033[0;31m'
@@ -15,13 +17,28 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPTS_DIR="$PROJECT_DIR/scripts"
 DEPLOY_DIR="/var/www/ops-monitor/dist"
 
+# Read a single key from .env without sourcing it (values may contain shell chars).
+env_value() {
+  local line
+  line="$(grep -E "^$1=" "$PROJECT_DIR/.env" 2>/dev/null | tail -n1 || true)"
+  line="${line#*=}"
+  line="${line%\"}"; line="${line#\"}"
+  line="${line%\'}"; line="${line#\'}"
+  printf '%s' "$line"
+}
+
+DEPLOY_USER="${DEPLOY_USER:-$(env_value DEPLOY_USER)}"
+DEPLOY_USER="${DEPLOY_USER:-deploy}"
+DEPLOY_WEB_USER="${DEPLOY_WEB_USER:-$(env_value DEPLOY_WEB_USER)}"
+DEPLOY_WEB_USER="${DEPLOY_WEB_USER:-caddy}"
+
 echo -e "${GREEN}Building frontend...${NC}"
 
 echo -e "${YELLOW}Installing dependencies and building...${NC}"
-if [ "$(whoami)" = "deploy" ]; then
+if [ "$(whoami)" = "$DEPLOY_USER" ]; then
   "$SCRIPTS_DIR/frontend_pnpm_build.sh"
 else
-  sudo -u deploy "$SCRIPTS_DIR/frontend_pnpm_build.sh"
+  sudo -u "$DEPLOY_USER" "$SCRIPTS_DIR/frontend_pnpm_build.sh"
 fi
 
 echo -e "${YELLOW}Deploying to $DEPLOY_DIR...${NC}"
@@ -40,6 +57,6 @@ else
   sudo cp -r dist/* "$DEPLOY_DIR/"
 fi
 
-sudo chown -R caddy:deploy "$DEPLOY_DIR"
+sudo chown -R "$DEPLOY_WEB_USER:$DEPLOY_USER" "$DEPLOY_DIR"
 
 echo -e "${GREEN}Frontend deployed to $DEPLOY_DIR${NC}"

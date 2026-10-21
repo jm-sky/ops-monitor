@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Installs frontend deps and builds. Always invoked as the `deploy` OS user
-# (directly from GitHub Actions, or via `sudo -u deploy` from a manual deploy)
+# Installs frontend deps and builds. Always invoked as the deploy OS user (DEPLOY_USER)
+# (directly from GitHub Actions, or via `sudo -u $DEPLOY_USER` from a manual deploy)
 # so node_modules/.pnpm-store never end up split between `deploy` and the
 # main user. pnpm's shared store objects are immutable and owned by whoever
 # wrote them first; a different user can read/link them via the shared
