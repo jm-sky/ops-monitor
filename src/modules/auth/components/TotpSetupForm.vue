@@ -28,7 +28,7 @@ const { mutateAsync: verifyTotp, isPending: isVerifying } = useVerifyTotp(props.
 
 const step = ref<'start' | 'scan' | 'verify' | 'complete'>('start')
 const setupData = ref<TotpSetup | null>(null)
-const pinValue = ref<number[]>([])
+const pinValue = ref<(number | undefined)[]>([])
 
 const { handleSubmit, setErrors, setFieldValue } = useForm({
   validationSchema: toTypedSchema(totpVerifySchema),
@@ -84,7 +84,7 @@ const onSubmit = async (values: { code: string }) => {
 const submitForm = handleSubmit(onSubmit)
 
 // Sync PIN input with form field
-const handlePinInput = (value: number[]) => {
+const handlePinInput = (value: (number | undefined)[]) => {
   pinValue.value = value
   const code = value.join('')
   setFieldValue('code', code, false)

@@ -76,7 +76,7 @@ const props = withDefaults(defineProps<DataTableProps<TData, TValue>>(), {
 // v-model support using defineModel
 const page = defineModel<number>('page', { default: 1 })
 const pageSize = defineModel<number>('pageSize', { default: 10 })
-const rowSelection = defineModel<RowSelectionState>('rowSelection', { default: {} })
+const rowSelection = defineModel<RowSelectionState>('rowSelection', { default: () => ({}) })
 const columnVisibilityModel = defineModel<VisibilityState>('columnVisibility', { default: () => ({}) })
 const globalFilterModel = defineModel<string>('globalFilter', { default: '' })
 

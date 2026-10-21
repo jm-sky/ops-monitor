@@ -30,7 +30,7 @@ const isLoginFlow = computed(() => props.isLogin && !!twoFactorToken.value)
 const { mutateAsync: verifyTotpLogin, isPending: isVerifyingLogin } = useVerifyTotpLogin(props.service)
 const isVerifying = computed(() => isVerifyingLogin.value)
 
-const pinValue = ref<number[]>([])
+const pinValue = ref<(number | undefined)[]>([])
 
 const { handleSubmit, setErrors, setFieldValue } = useForm({
   validationSchema: toTypedSchema(totpVerifySchema),
@@ -75,7 +75,7 @@ const onSubmit = async (values: { code: string }) => {
 const submitForm = handleSubmit(onSubmit)
 
 // Sync PIN input with form field
-const handlePinInput = (value: number[]) => {
+const handlePinInput = (value: (number | undefined)[]) => {
   pinValue.value = value
   const code = value.join('')
   setFieldValue('code', code, false)
