@@ -1,0 +1,12 @@
+# Opt-out — runs the agent container as root with a writable root filesystem.
+#
+# Only for environments where the hardened defaults break something (e.g. host files the
+# agent must read are not world-readable). Prefer fixing permissions or adding a group via
+# `group_add` instead. Capabilities stay dropped and no-new-privileges stays on.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.legacy-root.yml up -d
+services:
+  agent:
+    user: "0:0"
+    read_only: false

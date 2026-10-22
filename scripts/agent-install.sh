@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Install ops-monitor agent as a systemd service (Debian/Ubuntu).
-# Run as root: sudo bash install.sh
+# Run as root from the repo root: sudo bash scripts/agent-install.sh
 
 set -euo pipefail
+
+# Source files (agent.py, requirements.txt, .env.example) live in ../agent relative to this script.
+cd "$(dirname "${BASH_SOURCE[0]}")/../agent"
 
 INSTALL_DIR=/opt/ops-monitor-agent
 SERVICE_USER=ops-agent
@@ -40,6 +43,23 @@ ExecStart=$INSTALL_DIR/venv/bin/python agent.py
 EnvironmentFile=$INSTALL_DIR/.env
 Restart=always
 RestartSec=10
+
+# Hardening: the agent only reads /proc, /run/reboot-required*, /var/lib/apt/lists,
+# /var/lib/update-notifier and /var/log/apt, and listens on a TCP port.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 
 [Install]
 WantedBy=multi-user.target

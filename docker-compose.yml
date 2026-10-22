@@ -105,7 +105,6 @@ services:
     image: ops-monitor-agent
     container_name: ops-monitor-agent
     restart: unless-stopped
-    pid: 'host'
     profiles:
       - agent
     env_file:
@@ -116,10 +115,19 @@ services:
       - AGENT_PORT=${AGENT_PORT:-9100}
     ports:
       - "127.0.0.1:${AGENT_PORT:-9100}:${AGENT_PORT:-9100}"
+    # Hardened agent — see agent/README.md "Security" for opt-outs.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - /var/lib/apt/lists:/var/lib/apt/lists:ro
       - /var/lib/update-notifier:/var/lib/update-notifier:ro
-      - /var/run:/host/var/run:ro
+      # Reboot flag copies from scripts/agent-host-sync-install.sh — never mount /var/run (docker.sock).
+      - /run/ops-monitor-agent/reboot:/host/reboot:ro
       - /var/log/apt:/host/var/log/apt:ro
     logging:
       driver: 'json-file'

@@ -1,0 +1,19 @@
+# ⚠️ DANGEROUS opt-out — mounts the host's whole /var/run into the agent container.
+#
+# /var/run contains docker.sock, containerd.sock and the D-Bus system socket. A read-only
+# bind mount does NOT restrict socket APIs: whoever can talk to docker.sock is root on the
+# host. Use only where the host-side sync (scripts/agent-host-sync-install.sh) cannot be
+# installed, ideally together with the default non-root user (docker.sock is root:docker 0660,
+# so uid 10001 cannot open it). Combining this with docker-compose.legacy-root.yml restores
+# the old, fully exposed setup.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.legacy-varrun.yml up -d
+# or persistently in .env:
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.legacy-varrun.yml
+services:
+  agent:
+    environment:
+      - AGENT_REBOOT_FLAG_DIR=/host/var/run
+    volumes:
+      - /var/run:/host/var/run:ro

@@ -9,10 +9,21 @@ services:
       - "127.0.0.1:${AGENT_BIND_PORT:-19100}:${AGENT_PORT:-9100}"
     env_file:
       - .env
+    # Hardened by default: non-root (USER 10001 in the Dockerfile), read-only rootfs, no capabilities.
+    # Opt-outs (see README "Security"): docker-compose.legacy-root.yml, docker-compose.legacy-varrun.yml
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - /var/lib/apt/lists:/var/lib/apt/lists:ro
       - /var/lib/update-notifier:/var/lib/update-notifier:ro
-      - /var/run:/host/var/run:ro
+      # Copies of /run/reboot-required* kept in sync by scripts/agent-host-sync-install.sh.
+      # Never mount /var/run here: it exposes docker.sock (root on the host).
+      - /run/ops-monitor-agent/reboot:/host/reboot:ro
       - /var/log/apt:/host/var/log/apt:ro
     networks:
       ops-monitor-network:

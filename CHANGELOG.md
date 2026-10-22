@@ -7,7 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **Agent container hardened by default.** The host's whole `/var/run` is no longer mounted. That mount exposed `docker.sock`, `containerd.sock` and D-Bus, so a compromised agent meant root on the host. Instead, only `/run/ops-monitor-agent/reboot` (copies of `reboot-required*`) is mounted read-only at `/host/reboot`. The container runs as uid/gid 10001 with `read_only`, `tmpfs: /tmp`, `cap_drop: ALL` and `no-new-privileges`. This applies to `agent/docker-compose.yml` and the `agent` profile in the root compose files.
+- Root compose files: removed `pid: 'host'` from the `agent` service.
+- `scripts/agent-install.sh`: systemd unit sandboxed with `NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome`, `PrivateTmp`, `PrivateDevices`, an empty `CapabilityBoundingSet` and related settings.
+
 ### Added
+- `scripts/agent-host-sync-install.sh` (`--uninstall`, `--dest`): installs a systemd `.path` (`PathChanged`) + `.timer` (5 min) + oneshot `.service` and a `tmpfiles.d` entry. Together they copy `/run/reboot-required*` with mtime preserved and remove copies when the originals disappear.
+- **Agent 1.3.0**:
+  - `AGENT_REBOOT_FLAG_DIR` env. Default chain is `/host/reboot`, then `/host/var/run`, then `/var/run`; an explicit value disables fallback.
+  - Startup log of the reboot flag source, with a WARNING when detection is effectively disabled (sync not installed, no directory, container's own `/var/run`).
+  - New `/system` fields `reboot_source` and `reboot_flags_synced_at`.
+- Opt-out overrides: `agent/docker-compose.legacy-varrun.yml` (⚠️ dangerous) and `agent/docker-compose.legacy-root.yml`.
+- Runbook: `docs/runbooks/agent-hardening-migration.md`.
+
+### Fixed
+- `scripts/agent-install.sh` now works when run from the repo root, as documented in the README.
 - **Agent 1.2.0**: `GET /package-history?since=` parses `/var/log/apt/history.log` and rotated `history.log.N.gz` (also under `/host/var/log/apt`) into install/upgrade/remove/purge events; runs with `unattended-upgrade` or without `Requested-By` are flagged `automatic`. Results cached 5 min. New env: `AGENT_APT_LOG_TZ`, `AGENT_APT_LOG_DIR`; compose files mount `/var/log/apt`
 - **Monitor**: `package_update_events` table (migration 069) filled by pulling agent history on the `pollingUpdates` interval and on manual poll, deduplicated on `(site_id, started_at)`
 - **Monitor**: read-only service API keys (migration 070) — hashed at rest, scope `read:package-updates`, expiry/revocation; managed via `/api/monitor/api-keys` (admin) and `cli monitor api-keys create|list|revoke`
@@ -16,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Notes
 - Deploy: run `db migrate`, update agents to 1.2.0 and add the `/var/log/apt` mount; sites keep working with older agents (history simply stays empty)
+- Agent 1.3.0 (Docker): run `sudo bash scripts/agent-host-sync-install.sh` on each host **before** redeploying the agent, otherwise reboot detection is disabled (logged as a WARNING). Follow `docs/runbooks/agent-hardening-migration.md`. No backend/frontend changes are needed; the new `/system` fields are stored in `raw_data` as-is
+- Known issue (not fixed): in Docker the `apt list --upgradable` fallback (`no_cache=1`, or no `update-notifier` data) mixes host APT lists with the container's dpkg database and reports meaningless counts
 
 ---
 
