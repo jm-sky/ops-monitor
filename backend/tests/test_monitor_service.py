@@ -41,7 +41,7 @@ async def test_poll_site_now_system_requests_no_cache() -> None:
             }
 
     class FakeClient:
-        async def get(self, url: str, headers: dict) -> FakeResponse:
+        async def get(self, url: str, headers: dict, extensions: dict | None = None) -> FakeResponse:
             captured_urls.append(url)
             return FakeResponse()
 

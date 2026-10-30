@@ -708,6 +708,11 @@ class MonitorSettings(BaseSettings):
         description="Days before certificate expiry to switch status to expiring_soon",
         ge=1,
     )
+    extra_ca_dir: str = Field(
+        default="/app/certs/extra-ca",
+        validation_alias="MONITOR_EXTRA_CA_DIR",
+        description="Directory with extra trusted CA files (*.pem, *.crt) for monitoring probes, on top of certifi",
+    )
 
 
 class HealthSettings(BaseSettings):

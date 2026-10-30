@@ -1,0 +1,3 @@
+# Host-specific CA files are mounted into the app container but never committed.
+*
+!.gitignore

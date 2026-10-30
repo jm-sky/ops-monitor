@@ -37,6 +37,8 @@ services:
       - ./backend/cli.py:/app/cli.py:rw,delegated
       - ./backend/pyproject.toml:/app/pyproject.toml:ro,delegated
       - ./backend/seeds:/app/seeds:rw,delegated
+      # Extra trusted CAs for monitoring probes (*.pem/*.crt, contents gitignored) — see backend/app/modules/monitor/tls.py
+      - ${EXTRA_CA_DIR:-./certs/extra-ca}:/app/certs/extra-ca:ro
     logging:
       driver: 'json-file'
       options:

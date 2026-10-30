@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from app.core.config import settings
 
 from .service import MonitorService
+from .tls import probe_ssl_context
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class PollerScheduler:
         self._service = MonitorService()
 
     def start(self) -> None:
+        probe_ssl_context()  # load + log extra CAs at startup, not on the first probe
         self._task = asyncio.create_task(self._run(), name="monitor-poller")
         logger.info("Monitor poller started (check interval: %ds)", CHECK_INTERVAL)
 

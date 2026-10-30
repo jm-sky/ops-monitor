@@ -167,7 +167,7 @@ class _FakeAgent:
     async def __aexit__(self, *_: object) -> None:
         pass
 
-    async def get(self, url: str, headers: dict[str, str], params: dict[str, str] | None = None) -> httpx.Response:
+    async def get(self, url: str, headers: dict[str, str], params: dict[str, str] | None = None, extensions: dict[str, str] | None = None) -> httpx.Response:
         self.requests.append((url, headers, params))
         request = httpx.Request("GET", url)
         return httpx.Response(self.status_code, json={"events": self.events}, request=request)

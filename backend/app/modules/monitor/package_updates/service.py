@@ -10,6 +10,7 @@ import httpx
 from app.core.database import AsyncSessionLocal
 
 from ..db_models import SiteDB
+from ..tls import probe_verify
 from .db_models import PackageUpdateEventDB
 from .repositories import PackageUpdateRepository
 from .schemas import PackageUpdateEventResponse
@@ -66,7 +67,7 @@ class PackageHistorySyncService:
     async def sync_site(self, site: SiteDB) -> int:
         """Fetch events newer than the last stored one and store them. Returns rows inserted."""
         # Local import: service.py imports this module at load time.
-        from ..service import _auth_headers, _resolve_url
+        from ..service import _auth_headers, _resolve_url, _tls_extensions
 
         if not site.system_url:
             return 0
@@ -84,8 +85,8 @@ class PackageHistorySyncService:
         params = {"since": since.astimezone(UTC).isoformat()} if since else None
         headers = {**_auth_headers(site.token), **extra_headers}
 
-        async with httpx.AsyncClient(timeout=TIMEOUT, verify=site.verify_ssl) as client:
-            resp = await client.get(url, headers=headers, params=params)
+        async with httpx.AsyncClient(timeout=TIMEOUT, verify=probe_verify(site.verify_ssl)) as client:
+            resp = await client.get(url, headers=headers, params=params, extensions=_tls_extensions(history_url, site.ip))
             resp.raise_for_status()
             body = resp.json()
 

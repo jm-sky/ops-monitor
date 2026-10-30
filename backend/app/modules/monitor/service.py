@@ -15,6 +15,7 @@ from .alerts.dispatcher import dispatch_if_changed
 from .db_models import SiteDB
 from .package_updates.service import PackageHistorySyncService
 from .repositories import SiteRepository, SnapshotRepository
+from .tls import probe_verify
 
 logger = logging.getLogger(__name__)
 
@@ -135,8 +136,8 @@ class MonitorService:
         status = None
 
         try:
-            async with httpx.AsyncClient(timeout=TIMEOUT, verify=site.verify_ssl) as client:
-                resp = await client.get(url, headers=headers)
+            async with httpx.AsyncClient(timeout=TIMEOUT, verify=probe_verify(site.verify_ssl)) as client:
+                resp = await client.get(url, headers=headers, extensions=_tls_extensions(site.health_url, site.ip))  # type: ignore[arg-type]
                 resp.raise_for_status()
                 try:
                     body = resp.json()
@@ -184,8 +185,8 @@ class MonitorService:
         status = None
 
         try:
-            async with httpx.AsyncClient(timeout=TIMEOUT, verify=site.verify_ssl) as client:
-                resp = await client.get(url, headers=headers)
+            async with httpx.AsyncClient(timeout=TIMEOUT, verify=probe_verify(site.verify_ssl)) as client:
+                resp = await client.get(url, headers=headers, extensions=_tls_extensions(site.system_url, site.ip))  # type: ignore[arg-type]
                 resp.raise_for_status()
                 raw_data = resp.json()
                 reboot_req = raw_data.get("reboot_required", False)
@@ -273,3 +274,11 @@ def _append_query_param(url: str, key: str, value: str) -> str:
     query = dict(parse_qsl(parsed.query, keep_blank_values=True))
     query[key] = value
     return urlunparse(parsed._replace(query=urlencode(query)))
+
+
+def _tls_extensions(url: str, ip: str | None) -> dict[str, str]:
+    """SNI + certificate hostname check against the original host when connecting via a pinned IP."""
+    hostname = urlparse(url).hostname
+    if ip and hostname and url.startswith("https://"):
+        return {"sni_hostname": hostname}
+    return {}
