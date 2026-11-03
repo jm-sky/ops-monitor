@@ -60,6 +60,7 @@ rules for keeping them in sync until a proper shared package exists.
 | `migrations.py` | Migration runner drift |
 | `static.py` | — |
 | `common/pagination.py`, `common/repositories/email_audit_repository.py` | — |
+| `oauth.py`, `config.py` (`OAuthSettings.oidc_*`) | **Pending mirror (2026-11):** generic OIDC provider (e.g. Authentik) with PKCE + group gate; provider methods now `async get_authorization_url(state)` / `exchange_code_for_token(code, state)`. Generic, no brand values — mirror to gear-stack as-is |
 
 Frontend shared drift includes: `shared/config/config.ts`,
 `shared/composables/useAppInitialization.ts`, `useHandleError.ts`,

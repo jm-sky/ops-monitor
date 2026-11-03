@@ -603,6 +603,13 @@ class AuthService:
         if not user.isActive:
             raise InvalidCredentialsError("User account is inactive")
 
+        # Hybrid admin: local is_admin stays the source of truth; a provider (OIDC admin group)
+        # may only grant it. Losing the group does NOT revoke admin — that is a manual action.
+        if user_info.get("grantsAdmin") and not user.isAdmin:
+            user.isAdmin = True
+            user = await self.user_repository.update_user(user)
+            logger.info(f"OAuth login granted admin via {provider}: user_id={user.id}")
+
         # Create or update OAuth connection in oauth_connections table
         await self.user_repository.create_oauth_connection(
             user_id=user.id,

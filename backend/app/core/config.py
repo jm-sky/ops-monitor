@@ -385,6 +385,57 @@ class OAuthSettings(BaseSettings):
         description="GitHub login callback URL (e.g. /auth/callback/github)",
     )
 
+    # Generic OpenID Connect (e.g. Authentik; login callback: /auth/callback/oidc).
+    # Enabled only when discovery URL, client ID/secret, redirect URI and required group are all set.
+    oidc_discovery_url: str = Field(
+        default="",
+        validation_alias="OIDC_DISCOVERY_URL",
+        description="OIDC discovery document URL (.../.well-known/openid-configuration)",
+    )
+    oidc_client_id: str = Field(
+        default="",
+        validation_alias="OIDC_CLIENT_ID",
+        description="OIDC client ID",
+    )
+    oidc_client_secret: str = Field(
+        default="",
+        validation_alias="OIDC_CLIENT_SECRET",
+        description="OIDC client secret (confidential client)",
+    )
+    oidc_redirect_uri: str = Field(
+        default="",
+        validation_alias="OIDC_REDIRECT_URI",
+        description="OIDC login callback URL (e.g. https://<host>/auth/callback/oidc)",
+    )
+    oidc_scopes: str = Field(
+        default="openid email profile",
+        validation_alias="OIDC_SCOPES",
+        description="Requested scopes; the IdP must return a `groups` claim (Authentik: `profile`)",
+    )
+    oidc_required_group: str = Field(
+        default="",
+        validation_alias="OIDC_REQUIRED_GROUP",
+        description="Only members of this IdP group may log in (checked before any account is created)",
+    )
+    oidc_admin_group: str = Field(
+        default="",
+        validation_alias="OIDC_ADMIN_GROUP",
+        description="Optional: members get is_admin on login (never revoked automatically). Empty = local admin only",
+    )
+
+    @property
+    def oidc_enabled(self) -> bool:
+        """OIDC login is available only with a complete configuration."""
+        return all(
+            (
+                self.oidc_discovery_url,
+                self.oidc_client_id,
+                self.oidc_client_secret,
+                self.oidc_redirect_uri,
+                self.oidc_required_group,
+            )
+        )
+
 
 class EmailSettings(BaseSettings):
     """Email service configuration."""

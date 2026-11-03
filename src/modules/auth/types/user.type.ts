@@ -81,6 +81,8 @@ export interface RegisterResponse extends MessageResponse {
   email?: string
 }
 
+export type OAuthProviderName = 'google' | 'facebook' | 'github' | 'oidc'
+
 export interface OAuthAuthUrlResponse {
   authUrl: string
   state: string

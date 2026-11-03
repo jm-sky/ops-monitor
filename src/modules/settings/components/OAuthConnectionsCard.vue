@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/modules/auth/composables/useAuth'
 import { oauthService } from '@/modules/auth/services/oauthService'
 import { useHandleError } from '@/shared/composables/useHandleError'
+import { config } from '@/shared/config/config'
 import type { OAuthConnection } from '@/modules/auth/services/oauthService'
 
 const { t } = useI18n()
@@ -46,6 +47,8 @@ const getProviderName = (provider: string): string => {
   const providerNames: Record<string, string> = {
     google: t('settings.oauth.providers.google'),
     facebook: t('settings.oauth.providers.facebook'),
+    github: 'GitHub',
+    oidc: config.oauth.oidc.label,
   }
   return providerNames[provider] || provider
 }

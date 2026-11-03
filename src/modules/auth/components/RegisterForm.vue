@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import OAuthFacebookButton from '@/modules/auth/components/OAuthFacebookButton.vue'
 import OAuthGitHubButton from '@/modules/auth/components/OAuthGitHubButton.vue'
 import OAuthGoogleButton from '@/modules/auth/components/OAuthGoogleButton.vue'
+import OAuthOidcButton from '@/modules/auth/components/OAuthOidcButton.vue'
 import { useAuth } from '@/modules/auth/composables/useAuth'
 import { AuthRouteNames } from '@/modules/auth/config/routes'
 import { registerSchema } from '@/modules/auth/validation/register.schema'
@@ -106,7 +107,7 @@ const onSubmit = handleSubmit(async (values: RegisterCredentials) => {
       {{ t('auth.form.submit_register') }}
     </Button>
 
-    <template v-if="config.oauth.google.enabled || config.oauth.facebook.enabled || config.oauth.github.enabled">
+    <template v-if="config.oauth.google.enabled || config.oauth.facebook.enabled || config.oauth.github.enabled || config.oauth.oidc.enabled">
       <div class="relative my-6">
         <div class="absolute inset-0 flex items-center">
           <span class="w-full border-t" />
@@ -121,6 +122,7 @@ const onSubmit = handleSubmit(async (values: RegisterCredentials) => {
       <OAuthGoogleButton v-if="config.oauth.google.enabled" />
       <OAuthFacebookButton v-if="config.oauth.facebook.enabled" />
       <OAuthGitHubButton v-if="config.oauth.github.enabled" />
+      <OAuthOidcButton v-if="config.oauth.oidc.enabled" />
     </template>
   </form>
 </template>
