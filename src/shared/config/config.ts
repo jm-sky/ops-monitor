@@ -60,6 +60,11 @@ export const config = {
       clientId: import.meta.env.VITE_GITHUB_OAUTH_CLIENT_ID ?? '',
       enabled: !!import.meta.env.VITE_GITHUB_OAUTH_CLIENT_ID,
     },
+    // Generic OpenID Connect (e.g. Authentik); backend needs OIDC_* settings too
+    oidc: {
+      enabled: import.meta.env.VITE_OIDC_ENABLED === 'true',
+      label: (import.meta.env.VITE_OIDC_LABEL as string | undefined) || 'SSO',
+    },
   },
   features: {
     imageSearch: {

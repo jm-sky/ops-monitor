@@ -9,6 +9,7 @@ import type {
   MessageResponse,
   OAuthAuthUrlResponse,
   OAuthCallbackRequest,
+  OAuthProviderName,
   RefreshTokenResponse,
   RegisterCredentials,
   RegisterResponse,
@@ -79,7 +80,7 @@ class AuthService implements IAuthService {
     return response.data
   }
 
-  async getOAuthAuthUrl(provider: string): Promise<OAuthAuthUrlResponse> {
+  async getOAuthAuthUrl(provider: OAuthProviderName): Promise<OAuthAuthUrlResponse> {
     const response = await apiClient.post<OAuthAuthUrlResponse>('/auth/oauth/auth-url', { provider })
     return response.data
   }

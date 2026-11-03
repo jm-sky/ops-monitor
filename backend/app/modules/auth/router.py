@@ -569,7 +569,7 @@ async def get_oauth_auth_url(request_data: OAuthAuthUrlRequest, request: Request
     from app.core.oauth_state_store import get_oauth_state_store
 
     state = oauth_service.generate_state()
-    auth_url = oauth_service.get_authorization_url(request_data.provider, state)
+    auth_url = await oauth_service.get_authorization_url(request_data.provider, state)
 
     state_store = await get_oauth_state_store()
     await state_store.store_state(state, request_data.provider)
@@ -602,7 +602,7 @@ async def oauth_callback(
     - ✅ CSRF protection via state parameter (verified + consumed server-side)
     - ⚪ reCAPTCHA: Optional (enable via RECAPTCHA_ENABLED=true)
     """
-    from app.core.oauth import oauth_service
+    from app.core.oauth import OAuthAccessDeniedError, oauth_service
     from app.core.oauth_state_store import get_oauth_state_store
 
     state_store = await get_oauth_state_store()
@@ -615,7 +615,7 @@ async def oauth_callback(
     try:
         # Exchange code for token
         logger.info(f"OAuth callback: Exchanging code for token (provider: {provider})")
-        token_response = await oauth_service.exchange_code_for_token(provider, callback_data.code)
+        token_response = await oauth_service.exchange_code_for_token(provider, callback_data.code, callback_data.state)
         logger.info("OAuth callback: Token exchange successful")
 
         # Get user info from provider
@@ -634,6 +634,8 @@ async def oauth_callback(
             set_refresh_cookie(request, response, result.refreshToken)
         return result
 
+    except OAuthAccessDeniedError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
     except Exception as e:
         logger.error(f"OAuth callback error: {str(e)}", exc_info=True)
         raise HTTPException(
